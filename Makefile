@@ -19,6 +19,9 @@ test/docker/build/snapshot:
 test/docker/run/snapshot:
 	docker run -t snapshot_test:1
 
+test/docker/run/snapshot/daemon:
+	docker run -dt snapshot_test:1
+
 test/run/snapshot:
 	node snapshot_test/index.js
 
