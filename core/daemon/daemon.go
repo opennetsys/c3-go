@@ -11,6 +11,8 @@ import (
 	"github.com/docker/docker/registry"
 )
 
+// TODO: FIGURE THIS OUT
+
 // Daemon ...
 type Daemon struct {
 	daemon *daemon.Daemon
@@ -44,6 +46,6 @@ func New() *Daemon {
 	*/
 
 	return &Daemon{
-		//daemon: daemon,
+	//daemon: daemon,
 	}
 }

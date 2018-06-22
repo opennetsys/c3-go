@@ -1,1 +1,3 @@
-# c3
+# C3
+
+> Cryptocentric Container Consensus
