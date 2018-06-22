@@ -10,7 +10,7 @@ import (
 // Server ...
 type Server struct {
 	host string
-	port string
+	port int
 }
 
 // Client ...
@@ -21,21 +21,20 @@ type Client struct {
 // Config ...
 type Config struct {
 	Host string
-	Port string
+	Port int
 }
 
 // New ...
 func New(config *Config) *Server {
-	srv := &Server{
+	return &Server{
 		host: config.Host,
 		port: config.Port,
 	}
-	return srv
 }
 
 // Run ...
 func (server *Server) Run() {
-	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", server.host, server.port))
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%v", server.host, server.port))
 	if err != nil {
 		log.Fatal(err)
 	}

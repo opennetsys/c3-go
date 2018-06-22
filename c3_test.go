@@ -1,4 +1,4 @@
-package sdk
+package c3
 
 import "testing"
 

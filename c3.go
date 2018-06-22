@@ -1,10 +1,45 @@
-package main
+package c3
 
 import (
-	"github.com/miguelmota/c3/core/client"
+	"errors"
+
+	"github.com/miguelmota/c3/config"
+	"github.com/miguelmota/c3/core/server"
 )
 
-func main() {
-	cl := client.New()
-	cl.ListImages()
+// Service ...
+type Service struct {
+	registeredMethods map[string]func(args ...interface{}) interface{}
+}
+
+// New ...
+func New() *Service {
+	go server.New(&server.Config{
+		Host: config.ServerHost,
+		Port: config.ServerPort,
+	}).Run()
+
+	return &Service{
+		registeredMethods: map[string]func(args ...interface{}) interface{}{},
+	}
+}
+
+// RegisterMethod ...
+func (s *Service) RegisterMethod(methodName string, types []string, ifn interface{}) error {
+	if _, ok := s.registeredMethods[methodName]; ok {
+		return errors.New("method already registered")
+	}
+
+	s.registeredMethods[methodName] = func(args ...interface{}) interface{} {
+		switch v := ifn.(type) {
+		case func(string, string) error:
+			key, ok := args[0].(string)
+			if !ok {
+			}
+			value, ok := args[0].(string)
+			v(key, value)
+		}
+		return nil
+	}
+	return nil
 }
