@@ -12,21 +12,14 @@ import (
 	//mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 )
 
-type cidObj struct {
-	BlockNumber string `json:"blockNumber"`
-	ImageHash   string `json:"imageHash"`
-}
-
 type Props struct {
-	TxsHash              string  `json:"txsHash"`
-	ImageHash            string  `json:"imageHash"`
-	StatePrevDiffHash    string  `json:"statePrevDiffHash"`
-	StateGenesisDiffHash string  `json:"stateGenesisDiffHash"`
-	StateCurrentHash     string  `json:"stateCurrentHash"`
-	BlockNumber          string  `json:"blockNumber"`
-	TimeStamp            string  `json:"timeStamp"` // unix timestamp
-	Nonce                string  `json:"nonce"`
-	Hash                 *string `json:"hash,omitempty"`
+	BlockHash         *string `json:"blockHash,omitempty"`
+	BlockNumber       string  `json:"blockNumber"`
+	BlockTime         string  `json:"blockTime"` // unix timestamp
+	ImageHash         string  `json:"imageHash"`
+	TxsHash           string  `json:"txsHash"`
+	StatePrevDiffHash string  `json:"statePrevDiffHash"`
+	StateCurrentHash  string  `json:"stateCurrentHash"`
 }
 
 // Block ...
@@ -54,8 +47,8 @@ func (b Block) Serialize() ([]byte, error) {
 	return json.Marshal(b.props)
 }
 
-// FromBytes ...
-func (b *Block) FromBytes(bytes []byte) error {
+// Deserialize ...
+func (b *Block) Deserialize(bytes []byte) error {
 	var tmpProps Props
 	if err := json.Unmarshal(bytes, &tmpProps); err != nil {
 		return err
@@ -66,10 +59,16 @@ func (b *Block) FromBytes(bytes []byte) error {
 }
 
 // CID ...
-func (b Block) CID() (*cid.Cid, error) {
-	nd, err := cbor.WrapObject(cidObj{
-		BlockNumber: b.props.BlockNumber,
-		ImageHash:   b.props.ImageHash,
+// TODO: implement attributeName enum
+func (b Block) CID(attributeName string) (*cid.Cid, error) {
+	nd, err := cbor.WrapObject(struct {
+		BlockNumber   string
+		ImageHash     string
+		AttributeName string
+	}{
+		BlockNumber:   b.props.BlockNumber,
+		ImageHash:     b.props.ImageHash,
+		AttributeName: attributeName,
 	}, mh.SHA2_256, -1)
 	if err != nil {
 		return nil, err
@@ -79,10 +78,9 @@ func (b Block) CID() (*cid.Cid, error) {
 }
 
 // Hash ...
-// note: should be mined?
 func (b Block) Hash() (string, error) {
-	if b.props.Hash != nil {
-		return *b.props.Hash, nil
+	if b.props.BlockHash != nil {
+		return *b.props.BlockHash, nil
 	}
 
 	bytes, err := b.Serialize()
