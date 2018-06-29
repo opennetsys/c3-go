@@ -1,5 +1,7 @@
 module github.com/c3systems/c3
 
+replace github.com/Sirupsen/logrus v1.0.5 => github.com/sirupsen/logrus v1.0.5
+
 require (
 	cloud.google.com/go v0.24.0
 	github.com/BurntSushi/toml v0.3.0

@@ -11,7 +11,6 @@ github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 h1:TngWCqHvy9oXAN6lEV
 github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5/go.mod h1:lmUJ/7eu/Q8D7ML55dXQrVaamCz2vxCfdQBasLZfHKk=
 github.com/RackSec/srslog v0.0.0-20180514150917-1f7cff998e92 h1:j64q5c7udH/N3p1xB8dPrM2oRqIGD5WxzWVhAR2T3Ew=
 github.com/RackSec/srslog v0.0.0-20180514150917-1f7cff998e92/go.mod h1:cDLGBht23g0XQdLjzn6xOGXDkLK182YfINAaZEQLCHQ=
-github.com/Sirupsen/logrus v1.0.5 h1:447dy9LxSj+Iaa2uN3yoFHOzU9yJcJYiQPtNz8OXtv0=
 github.com/Sirupsen/logrus v1.0.5/go.mod h1:rmk17hk6i8ZSAJkSDa7nOxamrG+SP4P0mm+DAvExv4U=
 github.com/armon/go-metrics v0.0.0-20180620213357-58588f401c2c h1:mIre41+FqLIbiC+zCr9C9PUUaIxnNFfzzx4x8uf3T+E=
 github.com/armon/go-metrics v0.0.0-20180620213357-58588f401c2c/go.mod h1:Q73ZrmVTwzkszR9V5SSuryQ31EELlFMUz1kKyl939pY=
