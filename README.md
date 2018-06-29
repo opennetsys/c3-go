@@ -1,6 +1,6 @@
 # C3
 
-> Cryptocentric Container Consensus
+> Containers! Containers! Containers!
 
 ```bash
 make docker/build/example
