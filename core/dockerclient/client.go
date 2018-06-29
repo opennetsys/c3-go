@@ -1,12 +1,15 @@
-package client
+package dockerclient
 
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
@@ -42,7 +45,19 @@ func New() *Client {
 	host := os.Getenv("DOCKER_HOST")
 	version := os.Getenv("DOCKER_VERSION")
 
+	if host == "" {
+		log.Fatal("DOCKER_HOST is required")
+	}
+
+	if version == "" {
+		version = dockerVersionFromCLI()
+		if version == "" {
+			log.Fatal("DOCKER_VERSION is required")
+		}
+	}
+
 	cl, err := client.NewClient(host, version, httpclient, nil)
+	//cl, err := client.NewEnvClient()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -53,8 +68,8 @@ func New() *Client {
 }
 
 // ListImages ...
-func (cl *Client) ListImages() {
-	images, err := cl.client.ImageList(context.Background(), types.ImageListOptions{})
+func (s *Client) ListImages() {
+	images, err := s.client.ImageList(context.Background(), types.ImageListOptions{})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -62,4 +77,39 @@ func (cl *Client) ListImages() {
 	for _, img := range images {
 		fmt.Printf("ID: %s\n", img.ID)
 	}
+}
+
+// PullImage ...
+func (s *Client) PullImage(imageURL string) {
+	reader, err := s.client.ImagePull(context.Background(), imageURL, types.ImagePullOptions{})
+	if err != nil {
+		log.Fatal(err)
+	}
+	io.Copy(os.Stdout, reader)
+}
+
+// RunContainer ...
+func (s *Client) RunContainer(imageID string, cmd []string) {
+	/*
+		resp, err := s.client.ContainerCreate(context.Background(), &container.Config{
+			Image: imageID,
+			Cmd:   cmd,
+			Tty:   true,
+		}, nil, nil, "")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println(resp)
+	*/
+}
+
+func dockerVersionFromCLI() string {
+	cmd := `docker version --format="{{.Client.APIVersion}}"`
+	out, err := exec.Command("sh", "-c", cmd).Output()
+	if err != nil {
+		return ""
+	}
+
+	return strings.TrimSpace(string(out))
 }
