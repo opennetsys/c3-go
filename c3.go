@@ -3,8 +3,8 @@ package c3
 import (
 	"errors"
 
-	"github.com/miguelmota/c3/config"
-	"github.com/miguelmota/c3/core/server"
+	"github.com/c3systems/c3/config"
+	"github.com/c3systems/c3/core/server"
 )
 
 // Service ...
