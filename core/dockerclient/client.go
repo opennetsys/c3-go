@@ -80,12 +80,25 @@ func (s *Client) ListImages() {
 }
 
 // PullImage ...
-func (s *Client) PullImage(imageURL string) {
+func (s *Client) PullImage(imageURL string) error {
 	reader, err := s.client.ImagePull(context.Background(), imageURL, types.ImagePullOptions{})
 	if err != nil {
 		log.Fatal(err)
 	}
 	io.Copy(os.Stdout, reader)
+	return nil
+}
+
+// PushImage ...
+func (s *Client) PushImage(imageURL string) error {
+	reader, err := s.client.ImagePush(context.Background(), imageURL, types.ImagePushOptions{
+		RegistryAuth: "123", // if no auth, then any value is required
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	io.Copy(os.Stdout, reader)
+	return nil
 }
 
 // RunContainer ...

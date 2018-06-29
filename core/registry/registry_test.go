@@ -20,3 +20,15 @@ func TestPullImage(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestPushImage(t *testing.T) {
+	registry := New(&Config{
+		Host: "localhost:5000",
+	})
+
+	image := "httpd:latest"
+	err := registry.PushImage(image)
+	if err != nil {
+		t.Error(err)
+	}
+}

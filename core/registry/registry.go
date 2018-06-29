@@ -2,6 +2,7 @@ package registry
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/miguelmota/c3/core/dockerclient"
 )
@@ -28,6 +29,18 @@ func New(config *Config) *Registry {
 
 // PullImage ...
 func (s Registry) PullImage(imageHash string) error {
-	s.client.PullImage(fmt.Sprintf("%s/%s", s.host, imageHash))
+	err := s.client.PullImage(fmt.Sprintf("%s/%s", s.host, imageHash))
+	if err != nil {
+		log.Fatal(err)
+	}
+	return nil
+}
+
+// PushImage ...
+func (s Registry) PushImage(imageHash string) error {
+	err := s.client.PushImage(fmt.Sprintf("%s/%s", s.host, imageHash))
+	if err != nil {
+		log.Fatal(err)
+	}
 	return nil
 }
