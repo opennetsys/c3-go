@@ -1,11 +1,7 @@
 # C3
 
-> Containers! Containers! Containers!
+> Implementation of the C3 protocol
 
-```bash
-make docker/build/example
-```
+## License
 
-```go
-make docker/run/example
-```
+-
