@@ -2,9 +2,12 @@ package ditto
 
 import (
 	"archive/tar"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 )
@@ -24,18 +27,64 @@ func New(config *Config) *Ditto {
 
 // UploadImage uploads Docker image to IPFS
 func (s Ditto) UploadImage(reader io.Reader) error {
-	tmp, err := ioutil.TempDir("", "")
-	if err != nil {
-		return err
-	}
-
+	tmp := mktemp()
 	fmt.Println("temp:", tmp)
 
 	if err := untar(reader, tmp); err != nil {
 		return err
 	}
 
+	if err := process(tmp); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func mktemp() string {
+	tmp, err := ioutil.TempDir("", "")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return tmp
+}
+
+func process(tmp string) error {
+	root := mktemp()
+	workdir := root
+	fmt.Println("preparing image in:", workdir)
+	reposJSON, err := readJSON(tmp + "/" + "repositories")
+	if err != nil {
+		return err
+	}
+	if len(reposJSON) != 1 {
+		return errors.New("only one repository expected in input file")
+	}
+	var name string
+	for imageName, tags := range reposJSON {
+		fmt.Println(imageName, tags)
+		if len(tags) != 1 {
+			return fmt.Errorf("only one tag expected for %s", imageName)
+		}
+		for tag, hash := range tags {
+			name = normalizeImageName(imageName)
+			fmt.Printf("processing image:%s tag:%s hash:256:%s", name, tag, hash)
+		}
+	}
+
+	return nil
+}
+
+func readJSON(filepath string) (map[string]map[string]string, error) {
+	body, _ := ioutil.ReadFile(filepath)
+	var data map[string]map[string]string
+	err := json.Unmarshal(body, &data)
+	if err != nil {
+		return data, err
+	}
+
+	return data, nil
 }
 
 func untar(reader io.Reader, dst string) error {
@@ -77,4 +126,9 @@ func untar(reader io.Reader, dst string) error {
 			}
 		}
 	}
+}
+
+func normalizeImageName(name string) string {
+	// TODO
+	return name
 }
