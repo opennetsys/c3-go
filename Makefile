@@ -10,6 +10,9 @@ test/core/dockerclient:
 test/core/registry:
 	go test -v core/registry/*.go
 
+test/ditto:
+	go test -v ditto/*.go
+
 run/example:
 	go run example/go/main.go
 
