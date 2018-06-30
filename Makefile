@@ -39,3 +39,6 @@ docker/push/localregistry:
 
 docker/list/localregistry:
 	curl -X GET -k "http://$(docker-machine ip):5000/v2/_catalog"
+
+docker/gcr/images/list:
+	curl http://gcr.c3labs.io:5000/v2/_catalog

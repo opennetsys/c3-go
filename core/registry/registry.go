@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/miguelmota/c3/core/dockerclient"
+	"github.com/c3systems/c3/core/dockerclient"
 )
 
 // Registry ...
