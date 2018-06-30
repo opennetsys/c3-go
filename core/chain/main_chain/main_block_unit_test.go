@@ -1,6 +1,6 @@
 // +build unit
 
-package stateblock
+package mainchain
 
 import (
 	"reflect"
@@ -12,44 +12,48 @@ import (
 var (
 	hash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 	p    = Props{
-		BlockHash:         &hash,
-		BlockNumber:       "0x1",
-		BlockTime:         "0x5",
-		ImageHash:         "imageHash",
-		TxsHash:           "txsHash",
-		StatePrevDiffHash: "prevStateHash",
-		StateCurrentHash:  "currentStateHash",
+		BlockHash:       &hash,
+		BlockNumber:     "0x1",
+		BlockTime:       "0x5",
+		ImageHash:       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+		StateBlocksHash: "stateBlocksHash",
+		PrevBlockHash:   "prevBlockHash",
+		Nonce:           "0x1",
+		Difficulty:      "0x1",
 	}
 	p1 = Props{
-		BlockHash:         nil,
-		BlockNumber:       "0x1",
-		BlockTime:         "0x5",
-		ImageHash:         "imageHash1",
-		TxsHash:           "txsHash",
-		StatePrevDiffHash: "prevStateHash",
-		StateCurrentHash:  "currentStateHash",
+		BlockHash:       nil,
+		BlockNumber:     "0x2",
+		BlockTime:       "0x5",
+		ImageHash:       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+		StateBlocksHash: "stateBlocksHash",
+		PrevBlockHash:   "prevBlockHash",
+		Nonce:           "0x1",
+		Difficulty:      "0x1",
 	}
 	s = `{
 		"blockHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 		"blockNumber": "0x1",
 		"blockTime": "0x5",
-		"imageHash": "imageHash",
-		"txsHash": "txsHash",
-		"statePrevDiffHash": "prevStateHash",
-		"stateCurrentHash": "currentStateHash"
+		"imageHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+		"stateBlocksHash": "stateBlocksHash",
+		"prevBlockHash": "prevBlockHash",
+		"nonce": "0x1",
+		"difficulty": "0x1"
 	}`
 	s1 = `{
-		"blockNumber": "0x1",
+		"blockNumber": "0x2",
 		"blockTime": "0x5",
-		"imageHash": "imageHash1",
-		"txsHash": "txsHash",
-		"statePrevDiffHash": "prevStateHash",
-		"stateCurrentHash": "currentStateHash"
+		"imageHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+		"stateBlocksHash": "stateBlocksHash",
+		"prevBlockHash": "prevBlockHash",
+		"nonce": "0x1",
+		"difficulty": "0x1"
 	}`
 	//blockHash  = [32]byte{151, 199, 91, 159, 176, 205, 25, 22, 244, 36, 182, 228, 165, 18, 233, 115, 157, 92, 212, 219, 176, 103, 20, 69, 106, 156, 93, 253, 4, 235, 43, 127}
 	//blockHash1 = [32]byte{56, 141, 178, 217, 91, 120, 234, 79, 136, 94, 56, 232, 202, 59, 161, 30, 98, 100, 183, 246, 207, 97, 234, 248, 87, 231, 101, 57, 232, 217, 119, 166}
 	blockHash  = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-	blockHash1 = "647d8ddefae7c4374de27c19fedeaef9d2ec6b72fa40f6b4014657a71e2bfc95"
+	blockHash1 = "40a7aa8078f0487485ee7ab3fa497e5b8302eb96c87c1474a8a8eda591503599"
 )
 
 func TestNew(t *testing.T) {
@@ -73,6 +77,20 @@ func TestNew(t *testing.T) {
 		}
 	}
 
+	// A nil props and a props with the incorrect imageHash should return the correct image hash
+	inputs := []*Props{
+		nil,
+		&Props{
+			ImageHash: "foo",
+		},
+	}
+
+	for idx, input := range inputs {
+		actual := New(input)
+		if actual == nil || actual.Props().ImageHash != ImageHash {
+			t.Errorf("test #%d failed; expected: %v; received: %v", idx+1, ImageHash, actual.Props().ImageHash)
+		}
+	}
 }
 
 func TestProps(t *testing.T) {
@@ -147,11 +165,12 @@ func TestDeserialize(t *testing.T) {
 			t.Fatalf("test %d failed; err parsing from bytes: %v", idx+1, err)
 		}
 
-		if expected.props.TxsHash != actual.props.TxsHash ||
-			expected.props.StatePrevDiffHash != actual.props.StatePrevDiffHash ||
-			expected.props.StateCurrentHash != actual.props.StateCurrentHash ||
-			expected.props.ImageHash != actual.props.ImageHash ||
+		if expected.props.StateBlocksHash != actual.props.StateBlocksHash ||
+			expected.props.PrevBlockHash != actual.props.PrevBlockHash ||
 			expected.props.BlockNumber != actual.props.BlockNumber ||
+			expected.props.ImageHash != actual.props.ImageHash ||
+			expected.props.Nonce != actual.props.Nonce ||
+			expected.props.Difficulty != actual.props.Difficulty ||
 			expected.props.BlockTime != actual.props.BlockTime {
 			t.Errorf("test %d failed; expected: %v; received: %v", idx+1, expected, actual)
 		}
@@ -174,8 +193,8 @@ func TestCID(t *testing.T) {
 	}
 
 	expecteds := []string{
-		"zdpuAmqW24ts9TgR7NhAcamvrMZBjMMW1H3d2ReP9wPvi9aT3",
-		"zdpuB1sVfUhZMjDp9E3BD83mGRrM8Ki9YusZ3YQiWoifQyjgy",
+		"zdpuB1zqZpbcm6xYhH1JvtciytHcSYehN11HhGkiMGreGy7RX",
+		"zdpuAmBvY5MV6PhHRYxFvwSfkFY4j9qcwGBn3Uxtwu2c5vj8w",
 	}
 
 	for idx, block := range blocks {

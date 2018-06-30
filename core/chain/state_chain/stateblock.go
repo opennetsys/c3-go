@@ -1,4 +1,4 @@
-package stateblock
+package statechain
 
 import (
 	"crypto/sha256"
@@ -58,6 +58,21 @@ func (b *Block) Deserialize(bytes []byte) error {
 	return nil
 }
 
+// SerializeString ...
+func (b Block) SerializeString() (string, error) {
+	return hex.EncodeToString(json.Marshal(b.props))
+}
+
+// DeserializeString ...
+func (b *Block) DeserializeString(str string) error {
+	bytes, err := hex.DecodeString(s)
+	if err != nil {
+		return err
+	}
+
+	return b.Deserialize(bytes)
+}
+
 // CID ...
 // TODO: implement attributeName enum
 func (b Block) CID(attributeName string) (*cid.Cid, error) {
@@ -77,6 +92,12 @@ func (b Block) CID(attributeName string) (*cid.Cid, error) {
 	return nd.Cid(), nil
 }
 
+// VerifyBlock verifies a block
+// TODO: everything
+func VerifyBlock(block *Block) (bool, error) {
+	return false, nil
+}
+
 // Hash ...
 func (b Block) Hash() (string, error) {
 	if b.props.BlockHash != nil {
@@ -90,4 +111,9 @@ func (b Block) Hash() (string, error) {
 
 	shaSum := sha256.Sum256(bytes)
 	return hex.EncodeToString(shaSum[:]), nil
+}
+
+// TODO: everything...
+func BuildNextState(imageHash string, transactions []*Transaction) (*Block, error) {
+	return nil, nil
 }

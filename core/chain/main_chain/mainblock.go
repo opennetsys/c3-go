@@ -1,4 +1,4 @@
-package mainblock
+package mainchain
 
 import (
 	"crypto/sha256"
@@ -16,7 +16,7 @@ import (
 // The main chain does not have an image (i.e. the image hash is nil).
 // The hex encoded, sha256 hash of a nil bytes array is MainChainImageHash
 // https://play.golang.org/p/33_3vY6XyjD
-const MainChainImageHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+const ImageHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 
 type Props struct {
 	BlockHash       *string `json:"blockHash,omitempty"`
@@ -38,12 +38,12 @@ func New(props *Props) *Block {
 	if props == nil {
 		return &Block{
 			props: Props{
-				ImageHash: MainChainImageHash,
+				ImageHash: ImageHash,
 			},
 		}
 	}
 
-	props.ImageHash = MainChainImageHash
+	props.ImageHash = ImageHash
 	return &Block{
 		props: *props,
 	}
@@ -68,6 +68,21 @@ func (b *Block) Deserialize(bytes []byte) error {
 
 	b.props = tmpProps
 	return nil
+}
+
+// SerializeString ...
+func (b Block) SerializeString() (string, error) {
+	return hex.EncodeToString(json.Marshal(b.props))
+}
+
+// DeserializeString ...
+func (b *Block) DeserializeString(str string) error {
+	bytes, err := hex.DecodeString(s)
+	if err != nil {
+		return err
+	}
+
+	return b.Deserialize(bytes)
 }
 
 // CID ...
@@ -102,4 +117,31 @@ func (b Block) Hash() (string, error) {
 
 	shaSum := sha256.Sum256(bytes)
 	return hex.EncodeToString(shaSum[:]), nil
+}
+
+// VerifyBlock verifies a block
+// TODO: everything
+func VerifyBlock(block *Block) (bool, error) {
+	return false, nil
+}
+
+// HashProps ...
+func HashProps(props Props) (string, error) {
+	if props.BlockHash != nil {
+		return props.BlockHash, nil
+	}
+
+	bytes, err := json.Marshal(b.props)
+	if err != nil {
+		return "", err
+	}
+
+	shaSum := sha256.Sum256(bytes)
+	return hex.EncodeToString(shaSum[:]), nil
+}
+
+// NewFromStateBlocks ...
+// TODO: everything...
+func NewFromStateBlocks(stateBlocks []*statechain.Block) (*mainchain.Block, error) {
+	return nil, nil
 }
