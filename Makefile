@@ -1,6 +1,10 @@
 all:
 	@echo "no default"
 
+.PHONY: install
+install:
+	@echo "todo"
+
 test/core/server:
 	go test -v core/server/*.go
 
@@ -41,7 +45,7 @@ docker/push/localregistry:
 	docker push localhost:5000/$(IMAGE)
 
 docker/list/localregistry:
-	curl -X GET -k "http://$(docker-machine ip):5000/v2/_catalog"
+	@curl -X GET -k "http://$(docker-machine ip):5000/v2/_catalog"
 
 docker/gcr/images/list:
 	curl http://gcr.c3labs.io:5000/v2/_catalog

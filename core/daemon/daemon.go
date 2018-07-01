@@ -1,5 +1,6 @@
 package daemon
 
+/*
 import (
 	"fmt"
 	"log"
@@ -35,17 +36,15 @@ func New() *Daemon {
 	}
 
 	fmt.Println(containerdRemote)
-	/*
 
-		pluginStore := plugin.NewStore()
-
-		daemon, err := docker.NewDaemon(cfg, registryService, containerdRemote, pluginStore)
-		if err != nil {
-			log.Fatal(err)
-		}
-	*/
+		//pluginStore := plugin.NewStore()
+		//daemon, err := docker.NewDaemon(cfg, registryService, containerdRemote, pluginStore)
+		//if err != nil {
+		//	log.Fatal(err)
+		//}
 
 	return &Daemon{
 	//daemon: daemon,
 	}
 }
+*/
