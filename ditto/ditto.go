@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
+	"encoding/base32"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -15,7 +16,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
+	"github.com/c3systems/c3/common/base58"
 	"github.com/davecgh/go-spew/spew"
 )
 
@@ -41,9 +44,19 @@ func (s Ditto) UploadImage(reader io.Reader) error {
 		return err
 	}
 
-	if err := ipfsPrep(tmp); err != nil {
+	root, err := ipfsPrep(tmp)
+	if err != nil {
 		return err
 	}
+
+	imageIpfsHash, err := uploadDir(root)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("\nuploaded to /ipfs/%s\n", imageIpfsHash)
+
+	fmt.Printf("docker image %s\n", dockerizeHash(imageIpfsHash))
 
 	return nil
 }
@@ -57,22 +70,22 @@ func mktemp() string {
 	return tmp
 }
 
-func ipfsPrep(tmp string) error {
+func ipfsPrep(tmp string) (string, error) {
 	root := mktemp()
 	workdir := root
 	fmt.Println("preparing image in:", workdir)
 	reposJSON, err := readJSON(tmp + "/repositories")
 	if err != nil {
-		return err
+		return "", err
 	}
 	if len(reposJSON) != 1 {
-		return errors.New("only one repository expected in input file")
+		return "", errors.New("only one repository expected in input file")
 	}
 	var name string
 	for imageName, tags := range reposJSON {
 		fmt.Println(imageName, tags)
 		if len(tags) != 1 {
-			return fmt.Errorf("only one tag expected for %s", imageName)
+			return "", fmt.Errorf("only one tag expected for %s", imageName)
 		}
 		for tag, hash := range tags {
 			name = normalizeImageName(imageName)
@@ -86,17 +99,17 @@ func ipfsPrep(tmp string) error {
 	mkdir(workdir + "/blobs")
 	manifestJSON, err := readJSONArray(tmp + "/manifest.json")
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if len(manifestJSON) == 0 {
-		return errors.New("expected manifest to contain data")
+		return "", errors.New("expected manifest to contain data")
 	}
 
 	manifest := manifestJSON[0]
 	configFile, ok := manifest["Config"].(string)
 	if !ok {
-		return errors.New("image archive must be produced by docker > 1.10")
+		return "", errors.New("image archive must be produced by docker > 1.10")
 	}
 
 	configDest := workdir + "/blobs/sha256:" + string(configFile[:len(configFile)-5])
@@ -108,12 +121,10 @@ func ipfsPrep(tmp string) error {
 	spew.Dump(mf)
 
 	writeJSON(mf, workdir+"/manifests/latest-v2")
-	uploadDir(root)
-
-	return nil
+	return root, nil
 }
 
-func uploadDir(root string) {
+func uploadDir(root string) (string, error) {
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmdstr := fmt.Sprintf("ipfs add -r -q %s", root)
 	cmd := exec.Command("sh", "-c", cmdstr)
@@ -134,10 +145,28 @@ func uploadDir(root string) {
 		log.Fatal(err)
 	}
 
-	outstr := string(stdoutBuf.Bytes())
-	errstr := string(stderrBuf.Bytes())
-	fmt.Println(outstr)
-	fmt.Println(errstr)
+	outstr := strings.TrimSpace(string(stdoutBuf.Bytes()))
+	errstr := strings.TrimSpace(string(stderrBuf.Bytes()))
+	if errstr != "" {
+		return "", errors.New(errstr)
+	}
+	if outstr != "" {
+		fmt.Println(outstr)
+
+		hashes := strings.Split(outstr, "\n")
+		imageIpfsHash := hashes[len(hashes)-2 : len(hashes)-1][0]
+		return imageIpfsHash, nil
+	}
+
+	return "", errors.New("no result")
+}
+
+// base58 to base32 conversion
+func dockerizeHash(hash string) string {
+	decodedB58 := base58.Decode(hash)
+	b32str := base32.StdEncoding.EncodeToString(decodedB58)
+	// remove padding
+	return strings.ToLower(b32str[0 : len(b32str)-1])
 }
 
 func copyio(out io.Reader, in io.Writer) {
@@ -241,6 +270,7 @@ func fileSize(path string) int64 {
 }
 
 func sha256File(path string) string {
+	// TODO: stream instead of reading whole image in memory
 	f, err := os.Open(path)
 	if err != nil {
 		log.Fatal(err)
