@@ -15,7 +15,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/davecgh/go-spew/spew"
 )
@@ -115,13 +114,37 @@ func ipfsPrep(tmp string) error {
 }
 
 func uploadDir(root string) {
-	cmd := fmt.Sprintf(`ipfs add -r -q %s`, root)
-	out, err := exec.Command("sh", "-c", cmd).Output()
+	var stdoutBuf, stderrBuf bytes.Buffer
+	cmdstr := fmt.Sprintf("ipfs add -r -q %s", root)
+	cmd := exec.Command("sh", "-c", cmdstr)
+	stdoutIn, _ := cmd.StdoutPipe()
+	stderrIn, _ := cmd.StderrPipe()
+	stdout := io.MultiWriter(os.Stdout, &stdoutBuf)
+	stderr := io.MultiWriter(os.Stderr, &stderrBuf)
+	err := cmd.Start()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	log.Println(strings.TrimSpace(string(out)))
+	go copyio(stdoutIn, stdout)
+	go copyio(stderrIn, stderr)
+
+	err = cmd.Wait()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	outstr := string(stdoutBuf.Bytes())
+	errstr := string(stderrBuf.Bytes())
+	fmt.Println(outstr)
+	fmt.Println(errstr)
+}
+
+func copyio(out io.Reader, in io.Writer) {
+	_, err := io.Copy(in, out)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func writeJSON(idate interface{}, path string) {
