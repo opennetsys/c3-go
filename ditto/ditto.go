@@ -151,8 +151,6 @@ func uploadDir(root string) (string, error) {
 		return "", errors.New(errstr)
 	}
 	if outstr != "" {
-		fmt.Println(outstr)
-
 		hashes := strings.Split(outstr, "\n")
 		imageIpfsHash := hashes[len(hashes)-2 : len(hashes)-1][0]
 		return imageIpfsHash, nil
@@ -192,7 +190,8 @@ func makeV2Manifest(manifest map[string]interface{}, configFile, configDest, tmp
 	v2manifest := prepareV2Manifest(manifest, tmp, workdir+"/blobs")
 	config := make(map[string]interface{})
 	config["digest"] = "sha256:" + string(configFile[:len(configFile)-5])
-	config["size"] = fileSize(configDest)
+	config["size"] = fileSize(configDest + "/" + configFile)
+	config["mediaType"] = "application/vnd.docker.container.image.v1+json"
 	conf, ok := v2manifest["config"].(map[string]interface{})
 	if !ok {
 	}
@@ -209,7 +208,8 @@ func mergemap(a, b map[string]interface{}) map[string]interface{} {
 
 func prepareV2Manifest(mf map[string]interface{}, tmp, blobDir string) map[string]interface{} {
 	res := make(map[string]interface{})
-	res["schemaVersion"] = "application/vnd.docker.distribution.manifest.v2+json"
+	res["schemaVersion"] = 2
+	res["mediaType"] = "application/vnd.docker.distribution.manifest.v2+json"
 	config := make(map[string]interface{})
 	res["config"] = config
 	var layers []map[string]interface{}
