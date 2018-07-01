@@ -13,7 +13,9 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/davecgh/go-spew/spew"
 )
@@ -106,15 +108,31 @@ func ipfsPrep(tmp string) error {
 	mf := makeV2Manifest(manifest, configFile, configDest, tmp, workdir)
 	spew.Dump(mf)
 
-	//writeJSON(mf, workdir, "manifests", "latest-v2")
-
-	//proc = subprocess.Popen(['ipfs', 'add', '-r', '-q', root], stdout=subprocess.PIPE)
+	writeJSON(mf, workdir+"/manifests/latest-v2")
+	uploadDir(root)
 
 	return nil
 }
 
-func writeJSON() {
+func uploadDir(root string) {
+	cmd := fmt.Sprintf(`ipfs add -r -q %s`, root)
+	out, err := exec.Command("sh", "-c", cmd).Output()
+	if err != nil {
+		log.Fatal(err)
+	}
 
+	log.Println(strings.TrimSpace(string(out)))
+}
+
+func writeJSON(idate interface{}, path string) {
+	data, err := json.Marshal(idate)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = ioutil.WriteFile(path, data, os.ModePerm)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 // produce v2 manifest of type/application/vnd.docker.distribution.manifest.v2+json
