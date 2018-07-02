@@ -36,20 +36,20 @@ func New(config *Config) *Ditto {
 	return &Ditto{}
 }
 
-// UploadImageByID uploads Docker image by image ID (hash/name) to IPFS
-func (s Ditto) UploadImageByID(imageID string) error {
+// PushImageByID uploads Docker image by image ID (hash/name) to IPFS
+func (s Ditto) PushImageByID(imageID string) error {
 	client := dockerclient.New()
 	reader, err := client.ReadImage(imageID)
 	if err != nil {
 		return err
 	}
 
-	return s.UploadImage(reader)
+	return s.PushImage(reader)
 }
 
-// UploadImage uploads Docker image to IPFS
-func (s Ditto) UploadImage(reader io.Reader) error {
-	tmp := mktemp()
+// PushImage uploads Docker image to IPFS
+func (s Ditto) PushImage(reader io.Reader) error {
+	tmp := mktmp()
 	fmt.Println("temp:", tmp)
 
 	if err := untar(reader, tmp); err != nil {
@@ -73,7 +73,17 @@ func (s Ditto) UploadImage(reader io.Reader) error {
 	return nil
 }
 
-func mktemp() string {
+// DownloadImage download Docker image from IPFS
+func (s Ditto) DownloadImage(ipfsHash string) (string, error) {
+	tmp := mktmp()
+	outstr, errstr := ipfsCmd(fmt.Sprintf("get %s -o %s", ipfsHash, tmp))
+	_ = outstr
+	_ = errstr
+
+	return tmp, nil
+}
+
+func mktmp() string {
 	tmp, err := ioutil.TempDir("", "")
 	if err != nil {
 		log.Fatal(err)
@@ -83,7 +93,7 @@ func mktemp() string {
 }
 
 func ipfsPrep(tmp string) (string, error) {
-	root := mktemp()
+	root := mktmp()
 	workdir := root
 	fmt.Println("preparing image in:", workdir)
 	reposJSON, err := readJSON(tmp + "/repositories")
@@ -137,12 +147,26 @@ func ipfsPrep(tmp string) (string, error) {
 }
 
 func uploadDir(root string) (string, error) {
+	outstr, errstr := ipfsCmd(fmt.Sprintf("add -r -q %s", root))
+
+	if errstr != "" {
+		return "", errors.New(errstr)
+	}
+	if outstr != "" {
+		hashes := strings.Split(outstr, "\n")
+		imageIpfsHash := hashes[len(hashes)-2 : len(hashes)-1][0]
+		return imageIpfsHash, nil
+	}
+
+	return "", errors.New("no result")
+}
+
+func ipfsCmd(cmdStr string) (string, string) {
 	path, err := exec.LookPath("ipfs")
 	if err != nil {
 		log.Fatal("ipfs command was not found. Please install ipfs")
 	}
-	cmdstr := fmt.Sprintf("%s add -r -q %s", path, root)
-	cmd := exec.Command("sh", "-c", cmdstr)
+	cmd := exec.Command("sh", "-c", fmt.Sprintf("%s %s", path, cmdStr))
 	stdoutIn, _ := cmd.StdoutPipe()
 	stderrIn, _ := cmd.StderrPipe()
 	var stdoutBuf, stderrBuf bytes.Buffer
@@ -163,16 +187,7 @@ func uploadDir(root string) (string, error) {
 
 	outstr := strings.TrimSpace(string(stdoutBuf.Bytes()))
 	errstr := strings.TrimSpace(string(stderrBuf.Bytes()))
-	if errstr != "" {
-		return "", errors.New(errstr)
-	}
-	if outstr != "" {
-		hashes := strings.Split(outstr, "\n")
-		imageIpfsHash := hashes[len(hashes)-2 : len(hashes)-1][0]
-		return imageIpfsHash, nil
-	}
-
-	return "", errors.New("no result")
+	return outstr, errstr
 }
 
 // base58 to base32 conversion

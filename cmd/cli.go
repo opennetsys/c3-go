@@ -37,7 +37,7 @@ For more info visit: https://github.com/c3systems/c3,
 			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			must(dittoSvc.UploadImageByID(args[0]))
+			must(dittoSvc.PushImageByID(args[0]))
 			fmt.Println("success")
 		},
 	}
