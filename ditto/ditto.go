@@ -88,7 +88,6 @@ func ipfsPrep(tmp string) (string, error) {
 	fmt.Println("preparing image in:", workdir)
 	reposJSON, err := readJSON(tmp + "/repositories")
 	if err != nil {
-		log.Fatal("FOO", err)
 		return "", err
 	}
 	if len(reposJSON) != 1 {
@@ -138,14 +137,18 @@ func ipfsPrep(tmp string) (string, error) {
 }
 
 func uploadDir(root string) (string, error) {
-	var stdoutBuf, stderrBuf bytes.Buffer
-	cmdstr := fmt.Sprintf("ipfs add -r -q %s", root)
+	path, err := exec.LookPath("ipfs")
+	if err != nil {
+		log.Fatal("ipfs command was not found. Please install ipfs")
+	}
+	cmdstr := fmt.Sprintf("%s add -r -q %s", path, root)
 	cmd := exec.Command("sh", "-c", cmdstr)
 	stdoutIn, _ := cmd.StdoutPipe()
 	stderrIn, _ := cmd.StderrPipe()
+	var stdoutBuf, stderrBuf bytes.Buffer
 	stdout := io.MultiWriter(os.Stdout, &stdoutBuf)
 	stderr := io.MultiWriter(os.Stderr, &stderrBuf)
-	err := cmd.Start()
+	err = cmd.Start()
 	if err != nil {
 		log.Fatal(err)
 	}
