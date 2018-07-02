@@ -7,7 +7,30 @@ install:
 
 .PHONY: build
 build:
-	go build -v -o bin/c3 .
+	go build -v -ldflags "-s -w" -o bin/c3 .
+
+.PHONY: build/mac
+build/mac: clean/mac
+	env GOARCH=amd64 go build -ldflags "-s -w" -o build/macos/c3 && upx build/macos/c3
+
+.PHONY: build/linux
+build/linux: clean/linux
+	env GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o build/linux/c3 && upx build/linux/c3
+
+.PHONY: clean/mac
+clean/mac:
+	go clean && \
+	rm -rf build/mac
+
+.PHONY: clean/linux
+clean/linux:
+	go clean && \
+	rm -rf build/linux
+
+.PHONY: clean
+clean:
+	go clean && \
+	rm -rf bin/
 
 .PHONY: test/core/server
 test/core/server:
