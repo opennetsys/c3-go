@@ -5,47 +5,66 @@ all:
 install:
 	@echo "todo"
 
+.PHONY: build
+build:
+	go build -v -o bin/c3 .
+
+.PHONY: test/core/server
 test/core/server:
 	go test -v core/server/*.go
 
+.PHONY: test/core/dockerclient
 test/core/dockerclient:
 	go test -v core/dockerclient/*.go
 
+.PHONY: test/core/registry
 test/core/registry:
 	go test -v core/registry/*.go
 
+.PHONY: test/ditto
 test/ditto:
 	go test -v ditto/*.go
 
+.PHONY: run/example
 run/example:
 	go run example/go/main.go
 
+.PHONY: docker/build/example
 docker/build/example:
 	docker build --no-cache -f example/go/Dockerfile -t goexample ./example
 
+.PHONY: docker/run/example
 docker/run/example:
 	docker run -p 3333 -t goexample
 
+.PHONY: test/docker/build/snapshot
 test/docker/build/snapshot:
 	docker build --no-cache -f snapshot_test/Dockerfile -t snapshot_test:1 ./snapshot_test
 
+.PHONY: test/docker/run/snapshot
 test/docker/run/snapshot:
 	docker run -t snapshot_test:1
 
+.PHONY: test/docker/run/snapshot/daemon
 test/docker/run/snapshot/daemon:
 	docker run -d snapshot_test:1
 
+.PHONY: test/run/snapshot
 test/run/snapshot:
 	node snapshot_test/index.js
 
+.PHONY: docker/run/localregistry
 docker/run/localregistry:
 	docker run -d -p 5000:5000 --restart=always --name registry registry:2
 
+.PHONY: docker/push/localregistry
 docker/push/localregistry:
 	docker push localhost:5000/$(IMAGE)
 
+.PHONY: docker/list/localregistry
 docker/list/localregistry:
 	@curl -X GET -k "http://$(docker-machine ip):5000/v2/_catalog"
 
+.PHONY: docker/gcr/images/list
 docker/gcr/images/list:
 	curl http://gcr.c3labs.io:5000/v2/_catalog

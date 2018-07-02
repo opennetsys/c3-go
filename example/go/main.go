@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/c3systems/c3/c3"
 )
 
@@ -19,6 +21,7 @@ func (s *Data) getItem(key string) string {
 }
 
 func main() {
+	fmt.Println("running")
 	client := c3.New()
 	data := &Data{}
 	client.RegisterMethod("setItem", []string{"string", "string"}, data.setItem)
