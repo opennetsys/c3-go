@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/c3systems/c3"
+	"github.com/c3systems/c3/c3"
 )
 
 // Data ...
