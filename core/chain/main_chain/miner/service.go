@@ -27,6 +27,7 @@ type Props struct {
 type Service struct {
 	props Props
 	ch    chan interface{}
+	async bool // note: build state blocks asynchronously?
 }
 
 // New returns a new service
@@ -47,19 +48,43 @@ func (s Service) Props() Props {
 }
 
 // StartMiner ...
-func (s Service) StartMiner() {
+func (s Service) StartMiner(ch chan interface{}) {
 	// TODO: interrupt if block received
+	// TODO: write to store and publish on ipfs
+	// TODO: reward ourselves with some coin
 	for {
-		block, err := s.buildMainBlock()
-		if err != nil {
-			log.Println("[miner] err mining: %v", err)
+		var (
+			block *mainchain.Block
+			err error
+		)
+
+		switch s.props.async {
+		case true:
+			block, err = s.buildMainBlockAsync()
+			if err != nil {
+				ch <- err
+				continue
+			}
+
+		default:
+			block, err = s.buildMainBlock()
+			if err != nil {
+				ch <- err
+				continue
+			}
 		}
 
+		if block == nil {
+			ch <- errors.New("built a nil block")
+			continue
+		}
+
+		ch <- block
 		s.props.Node.BroadcastBlock(block)
 	}
 }
 
-func (s Service) buildMainBlock() (*mainchain.Block, error) {
+func (s Service) buildMainBlockAsync() (*mainchain.Block, error) {
 	var (
 		wg             sync.WaitGroup
 		stateBlocksMut stateBlocksMutex
@@ -93,6 +118,31 @@ func (s Service) buildMainBlock() (*mainchain.Block, error) {
 
 	// 3. mine main block
 	return s.mineBlock(stateBlocksMut.blocks)
+}
+
+func (s Service) buildMainBlock() (*mainchain.Block, error) {
+	var stateBlock []*statechain.Block
+
+	// 1. gather tx's
+	// TODO: only choose high value tx's to mine
+	txsMap, err := s.props.Node.GatherTransactions()
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. apply txs
+	for imageHash, transactions := range txsMap {
+			block, err := statechain.BuildNextState(imageHash, transactions)
+			if err != nil {
+				log.Printf("[miner] err mining state block for hash %s transactions %v: %v", iHash, txs, err)
+				return
+			}
+
+			stateBlocks = append(stateBlocks, block)
+		}(imageHash, transactions)
+
+	// 3. mine main block
+	return s.mineBlock(stateBlocks)
 }
 
 func (s Service) mineBlock(stateBlocks []*statechain.Block) (*mainchain.Block, error) {

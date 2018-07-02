@@ -1,16 +1,13 @@
 package node
 
-import (
-	"github.com/c3systems/c3/core/chain/mainchain"
-	"github.com/c3systems/c3/core/chain/statechain"
-)
-
+// Interface ...
+// TODO: finish...
 type Interface interface {
-	Ping() error
-	BroadcastBlock(block *mainchain.Block) error
-	BroadcastTransaction(tx *statechain.Transaction) error
-	ListenTransactions()
-	ListenBlocks()
-	GatherTransactions() (statechain.TransactionMap, error)
-	FetchHeadBlock() (*mainchain.Block, error)
+	//Ping() error
+	//BroadcastBlock(block *mainchain.Block) error
+	//FetchBlock(hash string) (*mainchain.Block, error)
+	//FetchHeadBlock() (*mainchain.Block, error)
+	//BroadcastTransaction(tx *statechain.Transaction) error
+	//GatherTransactions() (statechain.TransactionMap, error)
+	//GetInfo() *nodetypes.GetInfoResponse
 }
