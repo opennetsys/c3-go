@@ -28,8 +28,8 @@ func New(config *Config) *Registry {
 }
 
 // PullImage ...
-func (s Registry) PullImage(imageHash string) error {
-	err := s.client.PullImage(fmt.Sprintf("%s/%s", s.host, imageHash))
+func (s Registry) PullImage(imageID string) error {
+	err := s.client.PullImage(fmt.Sprintf("%s/%s", s.host, imageID))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -37,8 +37,8 @@ func (s Registry) PullImage(imageHash string) error {
 }
 
 // PushImage ...
-func (s Registry) PushImage(imageHash string) error {
-	err := s.client.PushImage(fmt.Sprintf("%s/%s", s.host, imageHash))
+func (s Registry) PushImage(imageID string) error {
+	err := s.client.PushImage(fmt.Sprintf("%s/%s", s.host, imageID))
 	if err != nil {
 		log.Fatal(err)
 	}

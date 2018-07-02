@@ -38,7 +38,7 @@ test/core/server:
 
 .PHONY: test/core/dockerclient
 test/core/dockerclient:
-	go test -v core/dockerclient/*.go
+	go test -v core/dockerclient/*.go $(ARGS)
 
 .PHONY: test/core/registry
 test/core/registry:
@@ -46,7 +46,7 @@ test/core/registry:
 
 .PHONY: test/ditto
 test/ditto:
-	go test -v ditto/*.go
+	go test -v ditto/*.go $(ARGS)
 
 .PHONY: run/example
 run/example:

@@ -18,6 +18,12 @@ Show help for C3
 $ c3 help
 ```
 
+### Deploy image to IPFS
+
+```bash
+$ c3 deploy {imageID}
+```
+
 ## License
 
 -

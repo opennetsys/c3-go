@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/c3systems/c3/common/base58"
+	"github.com/c3systems/c3/core/dockerclient"
 	"github.com/davecgh/go-spew/spew"
 )
 
@@ -33,6 +34,17 @@ type Config struct {
 // New ...
 func New(config *Config) *Ditto {
 	return &Ditto{}
+}
+
+// UploadImageByID uploads Docker image by image ID (hash/name) to IPFS
+func (s Ditto) UploadImageByID(imageID string) error {
+	client := dockerclient.New()
+	reader, err := client.ReadImage(imageID)
+	if err != nil {
+		return err
+	}
+
+	return s.UploadImage(reader)
 }
 
 // UploadImage uploads Docker image to IPFS
@@ -76,6 +88,7 @@ func ipfsPrep(tmp string) (string, error) {
 	fmt.Println("preparing image in:", workdir)
 	reposJSON, err := readJSON(tmp + "/repositories")
 	if err != nil {
+		log.Fatal("FOO", err)
 		return "", err
 	}
 	if len(reposJSON) != 1 {

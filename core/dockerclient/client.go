@@ -2,7 +2,6 @@ package dockerclient
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -23,6 +22,11 @@ type Client struct {
 
 // New ...
 func New() *Client {
+	return newEnvClient()
+}
+
+// newClient ...
+func newClient() *Client {
 	httpclient := &http.Client{}
 
 	if dockerCertPath := os.Getenv("DOCKER_CERT_PATH"); dockerCertPath != "" {
@@ -57,7 +61,6 @@ func New() *Client {
 	}
 
 	cl, err := client.NewClient(host, version, httpclient, nil)
-	//cl, err := client.NewEnvClient()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -67,21 +70,47 @@ func New() *Client {
 	}
 }
 
-// ListImages ...
-func (s *Client) ListImages() {
-	images, err := s.client.ImageList(context.Background(), types.ImageListOptions{})
+// newEnvClient ...
+func newEnvClient() *Client {
+	cl, err := client.NewEnvClient()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	for _, img := range images {
-		fmt.Printf("ID: %s\n", img.ID)
+	return &Client{
+		client: cl,
 	}
 }
 
+// ImageSummary ....
+type ImageSummary struct {
+	ID   string
+	Size int64
+}
+
+// ListImages ...
+func (s *Client) ListImages() ([]*ImageSummary, error) {
+	images, err := s.client.ImageList(context.Background(), types.ImageListOptions{
+		All: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var summaries []*ImageSummary
+	for _, img := range images {
+		summaries = append(summaries, &ImageSummary{
+			ID:   img.ID,
+			Size: img.Size,
+		})
+	}
+
+	return summaries, nil
+}
+
 // PullImage ...
-func (s *Client) PullImage(imageURL string) error {
-	reader, err := s.client.ImagePull(context.Background(), imageURL, types.ImagePullOptions{})
+func (s *Client) PullImage(imageID string) error {
+	reader, err := s.client.ImagePull(context.Background(), imageID, types.ImagePullOptions{})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -90,8 +119,8 @@ func (s *Client) PullImage(imageURL string) error {
 }
 
 // PushImage ...
-func (s *Client) PushImage(imageURL string) error {
-	reader, err := s.client.ImagePush(context.Background(), imageURL, types.ImagePushOptions{
+func (s *Client) PushImage(imageID string) error {
+	reader, err := s.client.ImagePush(context.Background(), imageID, types.ImagePushOptions{
 		RegistryAuth: "123", // if no auth, then any value is required
 	})
 	if err != nil {
@@ -115,6 +144,11 @@ func (s *Client) RunContainer(imageID string, cmd []string) {
 
 		fmt.Println(resp)
 	*/
+}
+
+// ReadImage ...
+func (s *Client) ReadImage(imageID string) (io.Reader, error) {
+	return s.client.ImageSave(context.Background(), []string{imageID})
 }
 
 func dockerVersionFromCLI() string {

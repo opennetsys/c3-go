@@ -22,3 +22,11 @@ func TestUploadImage(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestUploadImageByID(t *testing.T) {
+	srv := New(&Config{})
+	err := srv.UploadImageByID("hello-world")
+	if err != nil {
+		t.Error(err)
+	}
+}
