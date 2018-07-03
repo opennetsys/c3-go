@@ -3,7 +3,6 @@ package p2p
 import (
 	"context"
 	"errors"
-	"sync"
 
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/statechain"
@@ -14,40 +13,17 @@ import (
 	"github.com/ipfs/go-ipfs/exchange/bitswap"
 	"github.com/ipfs/go-ipfs/exchange/bitswap/network"
 	cbor "github.com/ipfs/go-ipld-cbor"
-	mh "github.com/multiformats/go-multihash"
 	//bserv "github.com/ipfs/go-ipfs/blockservice"
 	//"github.com/ipfs/go-ds-flatfs"
 	//"github.com/ipfs/go-ipfs/exchange/bitswap"
 	//"github.com/ipfs/go-ipfs/exchange/bitswap/network"
 	//bstore "github.com/ipfs/go-ipfs-blockstore"
 	//nonerouting "github.com/ipfs/go-ipfs-routing"
-	//multihash "github.com/multiformats/go-multihash"
+	//mh "github.com/multiformats/go-multihash"
 	//cid "github.com/ipfs/go-cid"
 	//cbor "github.com/ipfs/go-ipld-cbor"
 	//host "github.com/libp2p/go-libp2p-host"
 )
-
-const hashingAlgo = mh.SHA2_256
-
-var (
-	service *Service
-	once    sync.Once
-)
-
-// Props ...
-type Props struct {
-	BlockStore bstore.Blockstore // note: https://github.com/ipfs/go-ipfs/blob/master/docs/datastores.md
-	Host       *Host.host
-}
-
-// Service ...
-type Service struct {
-	props Props
-	// Peers is a block store that will fetch blocks from other connected nodes
-	peersOrLocal bserv.BlockService
-	// Local is a block store that will only fetch data locally
-	local bstore.Blockstore
-}
 
 // New ...
 func New(props *Props) (*Service, error) {
