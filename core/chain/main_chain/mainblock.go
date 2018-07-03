@@ -4,10 +4,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-
-	cid "github.com/ipfs/go-cid"
-	cbor "github.com/ipfs/go-ipld-cbor"
-	mh "github.com/multiformats/go-multihash"
 	//cbor "gx/ipfs/QmRVSCwQtW1rjHCay9NqKXDwbtKTgDcN4iY7PrpSqfKM5D/go-ipld-cbor"
 	//mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 )
@@ -83,25 +79,6 @@ func (b *Block) DeserializeString(str string) error {
 	}
 
 	return b.Deserialize(bytes)
-}
-
-// CID ...
-// TODO: implement attributeName enum
-func (b Block) CID(attributeName string) (*cid.Cid, error) {
-	nd, err := cbor.WrapObject(struct {
-		BlockNumber   string
-		ImageHash     string
-		AttributeName string
-	}{
-		BlockNumber:   b.props.BlockNumber,
-		ImageHash:     b.props.ImageHash,
-		AttributeName: attributeName,
-	}, mh.SHA2_256, -1)
-	if err != nil {
-		return nil, err
-	}
-
-	return nd.Cid(), nil
 }
 
 // Hash ...

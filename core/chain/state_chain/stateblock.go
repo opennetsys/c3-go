@@ -12,22 +12,7 @@ import (
 	//mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 )
 
-type Props struct {
-	BlockHash         *string `json:"blockHash,omitempty"`
-	BlockNumber       string  `json:"blockNumber"`
-	BlockTime         string  `json:"blockTime"` // unix timestamp
-	ImageHash         string  `json:"imageHash"`
-	TxsHash           string  `json:"txsHash"`
-	StatePrevDiffHash string  `json:"statePrevDiffHash"`
-	StateCurrentHash  string  `json:"stateCurrentHash"`
-}
-
-// Block ...
-type Block struct {
-	props Props
-}
-
-func New(props *Props) *Block {
+func New(props *StateBlockProps) *Block {
 	if props == nil {
 		return &Block{}
 	}
@@ -38,7 +23,7 @@ func New(props *Props) *Block {
 }
 
 // Props ...
-func (b Block) Props() Props {
+func (b Block) Props() StateBlockProps {
 	return b.props
 }
 
