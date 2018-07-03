@@ -1,4 +1,4 @@
-package fs
+package fsstore
 
 import (
 	flatfs "github.com/ipfs/go-ds-flatfs"

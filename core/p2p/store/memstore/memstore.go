@@ -1,4 +1,4 @@
-package mem
+package memstore
 
 import datastore "github.com/ipfs/go-datastore"
 
