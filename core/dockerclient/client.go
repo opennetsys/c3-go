@@ -2,7 +2,9 @@ package dockerclient
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -149,6 +151,30 @@ func (s *Client) RunContainer(imageID string, cmd []string) {
 // ReadImage ...
 func (s *Client) ReadImage(imageID string) (io.Reader, error) {
 	return s.client.ImageSave(context.Background(), []string{imageID})
+}
+
+// LoadImage ...
+func (s *Client) LoadImage(input io.Reader) error {
+	output, err := s.client.ImageLoad(context.Background(), input, false)
+	if err != nil {
+		return err
+	}
+
+	//io.Copy(os.Stdout, output)
+	fmt.Println(output)
+	body, err := ioutil.ReadAll(output.Body)
+	fmt.Println(string(body))
+
+	return err
+}
+
+// LoadImageByFilepath ...
+func (s *Client) LoadImageByFilepath(filepath string) error {
+	input, err := os.Open(filepath)
+	if err != nil {
+		return err
+	}
+	return s.LoadImage(input)
 }
 
 func dockerVersionFromCLI() string {

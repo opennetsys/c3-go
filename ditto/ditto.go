@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
-	"encoding/base32"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -18,8 +17,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/c3systems/c3/common/base58"
 	"github.com/c3systems/c3/core/dockerclient"
+	"github.com/c3systems/c3/ditto/util"
 	"github.com/davecgh/go-spew/spew"
 )
 
@@ -68,7 +67,7 @@ func (s Ditto) PushImage(reader io.Reader) error {
 
 	fmt.Printf("\nuploaded to /ipfs/%s\n", imageIpfsHash)
 
-	fmt.Printf("docker image %s\n", dockerizeHash(imageIpfsHash))
+	fmt.Printf("docker image %s\n", util.DockerizeHash(imageIpfsHash))
 
 	return nil
 }
@@ -76,11 +75,21 @@ func (s Ditto) PushImage(reader io.Reader) error {
 // DownloadImage download Docker image from IPFS
 func (s Ditto) DownloadImage(ipfsHash string) (string, error) {
 	tmp := mktmp()
-	outstr, errstr := ipfsCmd(fmt.Sprintf("get %s -o %s", ipfsHash, tmp))
+	path := tmp + "/" + ipfsHash + ".tar"
+	outstr, errstr := ipfsCmd(fmt.Sprintf("get %s -a -o %s", ipfsHash, path))
 	_ = outstr
 	_ = errstr
 
-	return tmp, nil
+	return path, nil
+}
+
+// PullImage pull Docker image from IPFS
+func (s Ditto) PullImage(ipfsHash, imageName, imageTag string) error {
+	dir, err := s.DownloadImage(ipfsHash)
+	_ = dir
+	_ = err
+
+	return nil
 }
 
 func mktmp() string {
@@ -188,14 +197,6 @@ func ipfsCmd(cmdStr string) (string, string) {
 	outstr := strings.TrimSpace(string(stdoutBuf.Bytes()))
 	errstr := strings.TrimSpace(string(stderrBuf.Bytes()))
 	return outstr, errstr
-}
-
-// base58 to base32 conversion
-func dockerizeHash(hash string) string {
-	decodedB58 := base58.Decode(hash)
-	b32str := base32.StdEncoding.EncodeToString(decodedB58)
-	// remove padding
-	return strings.ToLower(b32str[0 : len(b32str)-1])
 }
 
 func copyio(out io.Reader, in io.Writer) {

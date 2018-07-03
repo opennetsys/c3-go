@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 )
 
 func TestNew(t *testing.T) {
@@ -40,4 +41,13 @@ func TestDownloadImage(t *testing.T) {
 	}
 
 	fmt.Println(location)
+}
+
+func TestPullImage(t *testing.T) {
+	svc := New(&Config{})
+	tag := time.Now().Unix()
+	err := svc.PullImage("QmQuKQ6nmUoFZGKJLHcnqahq2xgq3xbgVsQBG6YL5eF7kh", "hello-world", fmt.Sprintf("%v", tag))
+	if err != nil {
+		t.Error(err)
+	}
 }
