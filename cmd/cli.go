@@ -28,7 +28,7 @@ For more info visit: https://github.com/c3systems/c3,
 
 	pushCmd := &cobra.Command{
 		Use:   "push",
-		Short: "PUsh image to registry",
+		Short: "Push image to registry",
 		Long: `Push the docker image to the decentralized registry on IPFS
 		`,
 		Args: func(cmd *cobra.Command, args []string) error {
