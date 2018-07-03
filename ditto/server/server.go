@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"fmt"
@@ -11,8 +11,13 @@ import (
 	"github.com/c3systems/c3/ditto/util"
 )
 
+var listener net.Listener
+
 // Run ...
 func Run() {
+	if listener != nil {
+		return
+	}
 	var gw string
 
 	contentTypes := map[string]string{
@@ -84,7 +89,8 @@ func Run() {
 		fmt.Fprintf(w, string(body))
 	})
 
-	listener, err := net.Listen("tcp", "0.0.0.0:5000")
+	var err error
+	listener, err = net.Listen("tcp", "0.0.0.0:5000")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -95,6 +101,7 @@ func Run() {
 	log.Fatal(http.Serve(listener, nil))
 }
 
-func main() {
-	Run()
+// Close ...
+func Close() {
+	listener.Close()
 }

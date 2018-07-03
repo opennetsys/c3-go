@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	"github.com/c3systems/c3/core/dockerclient"
+	"github.com/c3systems/c3/ditto/server"
 	"github.com/c3systems/c3/ditto/util"
 	"github.com/davecgh/go-spew/spew"
 )
@@ -85,9 +86,15 @@ func (s Ditto) DownloadImage(ipfsHash string) (string, error) {
 
 // PullImage pull Docker image from IPFS
 func (s Ditto) PullImage(ipfsHash, imageName, imageTag string) error {
-	dir, err := s.DownloadImage(ipfsHash)
-	_ = dir
-	_ = err
+	go server.Run()
+	client := dockerclient.New()
+
+	url := "123.123.123.123:5000/" + util.DockerizeHash(ipfsHash)
+	err := client.PullImage(url)
+	if err != nil {
+		log.Fatal(err)
+	}
+	//server.Close()
 
 	return nil
 }

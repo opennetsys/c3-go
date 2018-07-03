@@ -26,10 +26,10 @@ For more info visit: https://github.com/c3systems/c3,
 		},
 	}
 
-	deployCmd := &cobra.Command{
-		Use:   "deploy",
-		Short: "Deploy image to registry",
-		Long: `Deploys the docker image to the decentralized registry on IPFS
+	pushCmd := &cobra.Command{
+		Use:   "push",
+		Short: "PUsh image to registry",
+		Long: `Push the docker image to the decentralized registry on IPFS
 		`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			require(len(args) != 0, "image hash or name is required")
@@ -42,7 +42,24 @@ For more info visit: https://github.com/c3systems/c3,
 		},
 	}
 
-	rootCmd.AddCommand(deployCmd)
+	pullCmd := &cobra.Command{
+		Use:   "pull",
+		Short: "Pull image from registry",
+		Long: `Pull the docker image from the decentralized registry on IPFS
+		`,
+		Args: func(cmd *cobra.Command, args []string) error {
+			require(len(args) != 0, "image hash or name is required")
+			require(len(args) == 1, "only one argument is required")
+			return nil
+		},
+		Run: func(cmd *cobra.Command, args []string) {
+			must(dittoSvc.PullImage(args[0], "", ""))
+			fmt.Println("success")
+		},
+	}
+
+	rootCmd.AddCommand(pushCmd)
+	rootCmd.AddCommand(pullCmd)
 }
 
 // Execute ...
