@@ -134,7 +134,7 @@ func (s *Client) PushImage(imageID string) error {
 }
 
 // RunContainer ...
-func (s *Client) RunContainer(imageID string, cmd []string) error {
+func (s *Client) RunContainer(imageID string, cmd []string) (string, error) {
 	resp, err := s.client.ContainerCreate(context.Background(), &container.Config{
 		Image: imageID,
 		Cmd:   cmd,
@@ -151,6 +151,19 @@ func (s *Client) RunContainer(imageID string, cmd []string) error {
 	}
 
 	log.Printf("running container %s", resp.ID)
+
+	return resp.ID, nil
+}
+
+// StopContainer ...
+func (s *Client) StopContainer(containerID string) error {
+	err := s.client.ContainerStop(context.Background(), containerID, nil)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Printf("stopping container %s", containerID)
 
 	return nil
 }
