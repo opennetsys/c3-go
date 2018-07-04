@@ -12,6 +12,8 @@ import (
 )
 
 var listener net.Listener
+var ipfsGateway = "http://127.0.0.1:9001"
+var serverHost = "0.0.0.0:5000"
 
 // Run ...
 func Run() {
@@ -30,7 +32,7 @@ func Run() {
 		fmt.Println(uri)
 
 		if uri == "/v2/" {
-			jsonstr := []byte(fmt.Sprintf(`{"what": "a registry", "gateway":%q, "handles": [%q, %q], "project": "https://github.com/c3systems/c3"}`, gw, contentTypes["manifestListV2Schema"], contentTypes["manifestV2Schema"]))
+			jsonstr := []byte(fmt.Sprintf(`{"what": "a registry", "gateway":%q, "handles": [%q, %q], "problematic": ["version 1 registries"], "project": "https://github.com/c3systems/c3"}`, gw, contentTypes["manifestListV2Schema"], contentTypes["manifestV2Schema"]))
 
 			w.Header().Set("Docker-Distribution-API-Version", "registry/2.0")
 			fmt.Fprintln(w, string(jsonstr))
@@ -45,6 +47,7 @@ func Run() {
 		var suffix string
 		if strings.HasSuffix(uri, "/latest") {
 			// docker daemon requesting the manifest
+			suffix = "-v1"
 			accepts := r.Header["Accept"]
 			for _, accept := range accepts {
 				if accept == contentTypes["manifestV2Schema"] ||
@@ -57,11 +60,16 @@ func Run() {
 
 		s := strings.Split(uri, "/")
 		hash := util.IpfsifyHash(s[2])
-		rest := strings.Join(s[3:], "/")
+		rest := strings.Join(s[3:], "/") // tag
 		path := hash + "/" + rest
 
-		location := "http://localhost:9001/ipfs/" + path
-		location = location + suffix
+		// blob request
+		location := ipfsGateway + "/ipfs/" + path
+
+		if suffix != "" {
+			// manifest request
+			location = location + suffix
+		}
 		fmt.Printf("location %s", location)
 
 		req, err := http.NewRequest("GET", location, nil)
@@ -80,23 +88,22 @@ func Run() {
 			log.Fatal(err)
 		}
 
-		//w.Header().Set("Location", location)
+		//w.Header().Set("Location", location) // not required since we're fetching the content and proxying
 		w.Header().Set("Docker-Distribution-API-Version", "registry/2.0")
 
 		// if latest-v2 set header
-		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Content-Type", contentTypes["manifestV2Schema"])
 		fmt.Fprintf(w, string(body))
 	})
 
 	var err error
-	listener, err = net.Listen("tcp", "0.0.0.0:5000")
+	listener, err = net.Listen("tcp", serverHost)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	port := listener.Addr().(*net.TCPAddr).Port
-	fmt.Println("PORT", port)
+	log.Println("PORT", port)
 
 	log.Fatal(http.Serve(listener, nil))
 }

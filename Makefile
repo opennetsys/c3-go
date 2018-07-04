@@ -31,8 +31,18 @@ clean:
 	go clean && \
 	rm -rf bin/
 
+.PHONY: test/before
+test/before:
+	# proxy localhost to 123.123.123.123 required so that docker container can communicate with host machine
+	sudo ifconfig lo0 alias 123.123.123.123/24
+
+.PHONY: test/cleanup
+test/cleanup:
+	@chmod +x scripts/test_cleanup.sh
+	@. scripts/test_cleanup.sh
+
 .PHONY: test
-test: test/core/server test/core/dockerclient test/core/registry test/ditto
+test: test/core/server test/core/dockerclient test/core/registry test/ditto test/cleanup
 
 .PHONY: test/core/server
 test/core/server:
