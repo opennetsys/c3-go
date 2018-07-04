@@ -3,6 +3,8 @@ package safemempool
 import (
 	"errors"
 	"sync"
+
+	"github.com/c3systems/c3/core/chain/statechain"
 )
 
 const (
@@ -21,7 +23,7 @@ type Props struct {
 // Service ...
 type Service struct {
 	props   Props
-	poolMut poolMut
+	poolMut *poolMut
 }
 
 // New ...
@@ -41,8 +43,8 @@ func New(props *Props) (*Service, error) {
 	// 3. return service
 	return &Service{
 		props:   *props,
-		poolMut: pMut,
-	}, err
+		poolMut: &pMut,
+	}, nil
 }
 
 // Props ...
@@ -50,6 +52,7 @@ func (s Service) Props() Props {
 	return s.props
 }
 
+// HasTx ...
 func (s Service) HasTx(hash string) (bool, error) {
 	s.poolMut.mut.Lock()
 	_, ok := s.poolMut.pool[buildKey(hash)]
@@ -58,6 +61,7 @@ func (s Service) HasTx(hash string) (bool, error) {
 	return ok, nil
 }
 
+// GetTx ...
 func (s Service) GetTx(hash string) (*statechain.Transaction, error) {
 	s.poolMut.mut.Lock()
 	byteStr := s.poolMut.pool[buildKey(hash)]
@@ -68,11 +72,12 @@ func (s Service) GetTx(hash string) (*statechain.Transaction, error) {
 	}
 
 	var tx statechain.Transaction
-	err := tx.DeserializeString(bytesStr)
+	err := tx.DeserializeString(byteStr)
 
 	return &tx, err
 }
 
+// GetTxs ...
 func (s Service) GetTxs(hashes []string) ([]*statechain.Transaction, error) {
 	var txs []*statechain.Transaction
 
@@ -85,7 +90,7 @@ func (s Service) GetTxs(hashes []string) ([]*statechain.Transaction, error) {
 		byteStr := s.poolMut.pool[key]
 		if byteStr != "" {
 			var tx statechain.Transaction
-			if err := tx.DeserializeString(bytesStr); err != nil {
+			if err := tx.DeserializeString(byteStr); err != nil {
 				return nil, err
 			}
 
@@ -96,9 +101,10 @@ func (s Service) GetTxs(hashes []string) ([]*statechain.Transaction, error) {
 	return txs, nil
 }
 
+// RemoveTx ...
 func (s Service) RemoveTx(hash string) error {
 	s.poolMut.mut.Lock()
-	delete(s.poolMut.pool[buildKey(hash)])
+	delete(s.poolMut.pool, buildKey(hash))
 	s.poolMut.mut.Unlock()
 
 	return nil
@@ -112,7 +118,7 @@ func (s Service) RemoveTxs(hashes []string) error {
 	keys := buildKeys(hashes)
 
 	for _, key := range keys {
-		delete(s.poolMut.pool[key])
+		delete(s.poolMut.pool, key)
 	}
 
 	return nil
@@ -124,21 +130,28 @@ func (s Service) AddTx(tx *statechain.Transaction) error {
 		return errors.New("cannot add a nil transaction")
 	}
 
-	s.poolMut.mut.Lock()
-	defer s.poolMut.mut.Unlock()
+	bytesStr, err := tx.SerializeString()
+	if err != nil {
+		return err
+	}
 
-	bytesStr := tx.SerializeString()
+	hash, err := tx.Hash()
+	if err != nil {
+		return err
+	}
+	s.poolMut.mut.Lock()
 	s.poolMut.pool[buildKey(hash)] = bytesStr
+	s.poolMut.mut.Unlock()
 
 	return nil
 }
 
 // GatherTransactions ...
-func (s Service) GatherTransactions() (*[]statechain.Transaction, error) {
+func (s Service) GatherTransactions() ([]*statechain.Transaction, error) {
 	s.poolMut.mut.Lock()
 	defer s.poolMut.mut.Unlock()
 
-	txs := make([]*statechain.Transaction, len(s.poolMut.pool), len(s.poolMut.mut))
+	txs := make([]*statechain.Transaction, len(s.poolMut.pool), len(s.poolMut.pool))
 	idx := 0
 	for _, byteStr := range s.poolMut.pool {
 		var tx statechain.Transaction

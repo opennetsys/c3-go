@@ -3,10 +3,11 @@ package p2p
 import (
 	"sync"
 
-	bstore "github.com/ipfs/go-ipfs-blockstore"
+	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
+	host "gx/ipfs/Qmb8T6YBBsjYsVGfrihQLfCJveczZnneSBqBKkYEBWDjge/go-libp2p-host"
+	bstore "gx/ipfs/QmdpuJBPBZ6sLPj9BQpn3Rpi38BT2cF1QMiUfyzNWeySW4/go-ipfs-blockstore"
+
 	bserv "github.com/ipfs/go-ipfs/blockservice"
-	host "github.com/libp2p/go-libp2p-host"
-	mh "github.com/multiformats/go-multihash"
 )
 
 const hashingAlgo = mh.SHA2_256
@@ -19,7 +20,7 @@ var (
 // Props ...
 type Props struct {
 	BlockStore bstore.Blockstore // note: https://github.com/ipfs/go-ipfs/blob/master/docs/datastores.md
-	Host       *host.Host
+	Host       host.Host
 }
 
 // Service ...

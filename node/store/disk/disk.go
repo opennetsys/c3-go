@@ -1,5 +1,7 @@
 package disk
 
+import "github.com/c3systems/c3/core/chain/statechain"
+
 // TODO: everything...
 
 // Props ...
@@ -49,5 +51,5 @@ func (s Service) AddTx(tx *statechain.Transaction) error {
 
 // GatherTransactions ...
 func (s Service) GatherTransactions() (*[]statechain.Transaction, error) {
-	return nil
+	return nil, nil
 }

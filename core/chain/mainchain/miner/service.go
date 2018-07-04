@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/c3systems/c3/core/chain/mainchain"
-	"github.com/c3systems/c3/core/node"
+	"github.com/c3systems/c3/node"
 	"github.com/c3systems/c3/utils/hexutil"
 )
 

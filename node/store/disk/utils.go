@@ -1,4 +1,4 @@
-package safemempool
+package disk
 
 import "fmt"
 

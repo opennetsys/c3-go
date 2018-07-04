@@ -3,17 +3,18 @@ package types
 import (
 	"context"
 
+	host "gx/ipfs/Qmb8T6YBBsjYsVGfrihQLfCJveczZnneSBqBKkYEBWDjge/go-libp2p-host"
+
 	"github.com/c3systems/c3/core/chain"
 	"github.com/c3systems/c3/node/pubsub"
 	nodestore "github.com/c3systems/c3/node/store"
-	host "github.com/libp2p/go-libp2p-host"
 )
 
 // Props ...
 type Props struct {
 	CTX        context.Context
 	CH         chan interface{}
-	Host       *host.Host
+	Host       host.Host
 	Store      nodestore.Interface // store is used to temporarily store blocks and txs for mining and verification
 	Blockchain chain.Interface
 	Pubsub     pubsub.Interface

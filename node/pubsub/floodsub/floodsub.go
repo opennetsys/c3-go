@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 
-	floodsub "github.com/libp2p/go-floodsub"
 	host "github.com/libp2p/go-libp2p-host"
+	// host "gx/ipfs/Qmb8T6YBBsjYsVGfrihQLfCJveczZnneSBqBKkYEBWDjge/go-libp2p-host"
+
+	floodsub "github.com/libp2p/go-floodsub"
 )
 
 // New ...
@@ -15,5 +17,5 @@ func New(ctx context.Context, h *host.Host) (*floodsub.PubSub, error) {
 		return nil, errors.New("host is required")
 	}
 
-	return floodsub.NewFloodSub(ctx, h)
+	return floodsub.NewFloodSub(ctx, *h)
 }

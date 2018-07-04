@@ -6,7 +6,7 @@ import (
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/statechain"
 	nodetypes "github.com/c3systems/c3/node/types"
-	//"github.com/c3systems/c3/core/node/wallet"
+	//"github.com/c3systems/c3/node/wallet"
 	//ipfsaddr "github.com/ipfs/go-ipfs-addr"
 	//libp2p "github.com/libp2p/go-libp2p"
 	//host "github.com/libp2p/go-libp2p-host"

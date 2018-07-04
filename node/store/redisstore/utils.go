@@ -1,4 +1,4 @@
-package resisstore
+package redisstore
 
 import "fmt"
 

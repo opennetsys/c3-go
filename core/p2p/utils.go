@@ -5,9 +5,16 @@ import (
 	"errors"
 	"time"
 
-	cid "github.com/ipfs/go-cid"
+	"github.com/c3systems/c3/core/chain/mainchain"
+	"github.com/c3systems/c3/core/chain/statechain"
+
+	// cid "github.com/ipfs/go-cid"
+	cbor "gx/ipfs/QmRVSCwQtW1rjHCay9NqKXDwbtKTgDcN4iY7PrpSqfKM5D/go-ipld-cbor"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	// cid "gx/ipfs/QmapdYm1b22Frv3k17fqrBYTFRxwiaVJkB299Mfn33edeB/go-cid"
+
 	bserv "github.com/ipfs/go-ipfs/blockservice"
-	cbor "github.com/ipfs/go-ipld-cbor"
+	// cbor "github.com/ipfs/go-ipld-cbor"
 )
 
 // GetCID ...
@@ -106,7 +113,7 @@ func FetchMainchainBlock(bs bserv.BlockService, c *cid.Cid) (*mainchain.Block, e
 }
 
 // FetchStateChainBlock ...
-func FetchStateChainBlock(bs bserv.BlockService, c *cid.Cid) (*state.Block, error) {
+func FetchStateChainBlock(bs bserv.BlockService, c *cid.Cid) (*statechain.Block, error) {
 	if bs == nil || c == nil {
 		return nil, errors.New("arguments cannot be nil")
 	}
@@ -127,8 +134,8 @@ func FetchStateChainBlock(bs bserv.BlockService, c *cid.Cid) (*state.Block, erro
 	return &out, nil
 }
 
-// FetchStateChainTransaction
-func FetchStateChainTransaction(bs bserv.BlockService, c *cid.Cid) (*state.Transaction, error) {
+// FetchStateChainTransaction ...
+func FetchStateChainTransaction(bs bserv.BlockService, c *cid.Cid) (*statechain.Transaction, error) {
 	if bs == nil || c == nil {
 		return nil, errors.New("arguments cannot be nil")
 	}
@@ -158,15 +165,15 @@ func Put(bs bserv.BlockService, v interface{}) (*cid.Cid, error) {
 	switch v.(type) {
 	case *mainchain.Block:
 		block, _ := v.(*mainchain.Block)
-		return PutMainchainBlock(block)
+		return PutMainchainBlock(bs, block)
 
 	case *statechain.Block:
 		block, _ := v.(*statechain.Block)
-		return PutStatechainBlock(block)
+		return PutStatechainBlock(bs, block)
 
 	case *statechain.Transaction:
 		tx, _ := v.(*statechain.Transaction)
-		return PuttStatechainTransaction(tx)
+		return PutStatechainTransaction(bs, tx)
 
 	default:
 		return nil, errors.New("type must be one of pointer to mainchain block, statechain block or statechain tx")

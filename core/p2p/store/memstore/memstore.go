@@ -1,7 +1,8 @@
 package memstore
 
-import datastore "github.com/ipfs/go-datastore"
+import datastore "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore"
 
-func New() *datastore.Datastore {
+// New ...
+func New() datastore.Datastore {
 	return datastore.NewMapDatastore()
 }

@@ -10,10 +10,11 @@ import (
 	floodsub "github.com/c3systems/c3/node/pubsub/floodsub"
 	"github.com/c3systems/c3/node/store/safemempool"
 	nodetypes "github.com/c3systems/c3/node/types"
-	//"github.com/c3systems/c3/core/node/wallet"
+	//"github.com/c3systems/c3/node/wallet"
+
+	libp2p "gx/ipfs/QmZ86eLPtXkQ1Dfa992Q8NpXArUoWWh3y728JDcWvzRrvC/go-libp2p"
 
 	ipfsaddr "github.com/ipfs/go-ipfs-addr"
-	libp2p "github.com/libp2p/go-libp2p"
 	peerstore "github.com/libp2p/go-libp2p-peerstore"
 )
 

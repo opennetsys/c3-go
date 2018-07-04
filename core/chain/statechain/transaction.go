@@ -6,7 +6,8 @@ import (
 	"encoding/json"
 )
 
-func New(props *TransactionProps) *Transaction {
+// NewTransaction ...
+func NewTransaction(props *TransactionProps) *Transaction {
 	if props == nil {
 		return &Transaction{}
 	}
@@ -22,13 +23,13 @@ func (tx Transaction) Props() TransactionProps {
 }
 
 // Serialize ...
-func (tx Transcation) Serialize() ([]byte, error) {
+func (tx Transaction) Serialize() ([]byte, error) {
 	return json.Marshal(tx.props)
 }
 
 // Deserialize ...
 func (tx *Transaction) Deserialize(bytes []byte) error {
-	var tmpProps Props
+	var tmpProps TransactionProps
 	if err := json.Unmarshal(bytes, &tmpProps); err != nil {
 		return err
 	}
@@ -39,12 +40,17 @@ func (tx *Transaction) Deserialize(bytes []byte) error {
 
 // SerializeString ...
 func (tx Transaction) SerializeString() (string, error) {
-	return hex.EncodeToString(json.Marshal(tx.props))
+	bytes, err := json.Marshal(tx.props)
+	if err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(bytes), nil
 }
 
 // DeserializeString ...
 func (tx *Transaction) DeserializeString(str string) error {
-	bytes, err := hex.DecodeString(s)
+	bytes, err := hex.DecodeString(str)
 	if err != nil {
 		return err
 	}
@@ -54,8 +60,8 @@ func (tx *Transaction) DeserializeString(str string) error {
 
 // Hash ...
 func (tx Transaction) Hash() (string, error) {
-	if tx.props.BlockHash != nil {
-		return *tx.props.BlockHash, nil
+	if tx.props.TxHash != nil {
+		return *tx.props.TxHash, nil
 	}
 
 	bytes, err := tx.Serialize()

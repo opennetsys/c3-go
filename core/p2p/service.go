@@ -6,13 +6,21 @@ import (
 
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/statechain"
-	cid "github.com/ipfs/go-cid"
-	bstore "github.com/ipfs/go-ipfs-blockstore"
-	nonerouting "github.com/ipfs/go-ipfs-routing"
+
+	nonerouting "gx/ipfs/QmZRcGYvxdauCd7hHnMYLYqcZRaDjv24c7eUNyJojAcdBb/go-ipfs-routing/none"
+
+	// cid "gx/ipfs/QmapdYm1b22Frv3k17fqrBYTFRxwiaVJkB299Mfn33edeB/go-cid"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	"github.com/ipfs/go-ipfs/exchange/bitswap"
 	"github.com/ipfs/go-ipfs/exchange/bitswap/network"
-	cbor "github.com/ipfs/go-ipld-cbor"
+	// cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	// cid "github.com/ipfs/go-cid"
+	// nonerouting "github.com/ipfs/go-ipfs-routing/none"
+	// bserv "github.com/ipfs/go-ipfs/blockservice"
+	// "github.com/ipfs/go-ipfs/exchange/bitswap"
+	// "github.com/ipfs/go-ipfs/exchange/bitswap/network"
 	//bserv "github.com/ipfs/go-ipfs/blockservice"
 	//"github.com/ipfs/go-ds-flatfs"
 	//"github.com/ipfs/go-ipfs/exchange/bitswap"
@@ -27,47 +35,52 @@ import (
 
 // New ...
 func New(props *Props) (*Service, error) {
+	var err error
+
 	once.Do(func() {
 		if props == nil {
-			return nil, errors.New("props cannot be nil")
+			err = errors.New("props cannot be nil")
+			return
 		}
 		if props.Host == nil || props.BlockStore == nil {
-			return nil, errors.New("host and blockstore are required")
+			err = errors.New("host and blockstore are required")
+			return
 		}
 
 		// Register our types with the cbor encoder. This pregenerates serializers
 		// for these types.
-		cbor.RegisterCborType(mainchain.Block{})
-		cbor.RegisterCborType(statechain.Block{})
-		cbor.RegisterCborType(statechain.Transaction{})
+		// cbor.RegisterCborType(mainchain.Block{})
+		// cbor.RegisterCborType(statechain.Block{})
+		// cbor.RegisterCborType(statechain.Transaction{})
 		// TODO: need to store merkle tree tx's
 
 		// wrap the datastore in a 'content addressed blocks' layer
 		// TODO: implement metrics? https://github.com/ipfs/go-ds-measure
-		blocks := bstore.NewBlockstore(props.BlockStore)
+		// blocks := bstore.NewBlockstore(props.BlockStore)
 
 		// TODO: research if this is what we want...
-		nr, err := nonerouting.ConstructNilRouting(nil, nil, nil)
-		if err != nil {
-			return nil, err
+		nr, err1 := nonerouting.ConstructNilRouting(nil, nil, nil)
+		if err1 != nil {
+			err = err1
+			return
 		}
 
 		bsnet := network.NewFromIpfsHost(props.Host, nr)
-		bswap := bitswap.New(context.Background(), props.Host.ID(), bsnet, blocks, true)
+		bswap := bitswap.New(context.Background(), bsnet, props.BlockStore)
 
 		// Bitswap only fetches blocks from other nodes, to fetch blocks from
 		// either the local cache, or a remote node, we can wrap it in a
 		// 'blockservice'
-		bservice := bserv.New(blocks, bswap)
+		bservice := bserv.New(props.BlockStore, bswap)
 
 		service = &Service{
 			props:        *props,
 			peersOrLocal: bservice,
-			local:        blocks,
+			local:        props.BlockStore,
 		}
 	})
 
-	return service, nil
+	return service, err
 }
 
 // Props ...
@@ -109,10 +122,10 @@ func (s Service) GetMainchainBlock(c *cid.Cid) (*mainchain.Block, error) {
 
 // GetStatechainBlock ...
 func (s Service) GetStatechainBlock(c *cid.Cid) (*statechain.Block, error) {
-	return GetStatechainBlock(s.peersOrLocal, c)
+	return FetchStateChainBlock(s.peersOrLocal, c)
 }
 
 // GetStatechainTransaction ...
 func (s Service) GetStatechainTransaction(c *cid.Cid) (*statechain.Transaction, error) {
-	return GetStatechainTransaction(s.peersOrLocal, c)
+	return FetchStateChainTransaction(s.peersOrLocal, c)
 }

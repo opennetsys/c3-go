@@ -4,9 +4,9 @@ import "strconv"
 
 // DecodeUint64 decodes a hex string into a uint64
 func DecodeUint64(str string) (uint64, error) {
-	num, err := strconv.ParseUint(raw, 16, 64)
+	num, err := strconv.ParseUint(str, 16, 64)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	return num, err

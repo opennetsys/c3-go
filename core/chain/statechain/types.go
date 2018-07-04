@@ -3,7 +3,7 @@ package statechain
 // TransactionsMap is a list of transactions by image hashes
 type TransactionsMap map[string][]*Transaction
 
-// TransactionProps
+// TransactionProps ...
 type TransactionProps struct {
 	TxHash  *string
 	Method  string
@@ -12,10 +12,10 @@ type TransactionProps struct {
 
 // Transaction ...
 type Transaction struct {
-	props Props
+	props TransactionProps
 }
 
-// StateBlockProps
+// StateBlockProps ...
 type StateBlockProps struct {
 	BlockHash         *string `json:"blockHash,omitempty"`
 	BlockNumber       string  `json:"blockNumber"`
@@ -28,5 +28,5 @@ type StateBlockProps struct {
 
 // Block ...
 type Block struct {
-	props Props
+	props StateBlockProps
 }

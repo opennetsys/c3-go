@@ -5,13 +5,17 @@ import (
 	"encoding/hex"
 	"encoding/json"
 
-	cid "github.com/ipfs/go-cid"
-	cbor "github.com/ipfs/go-ipld-cbor"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+
 	mh "github.com/multiformats/go-multihash"
+	// cid "github.com/ipfs/go-cid"
+
+	cbor "gx/ipfs/QmRVSCwQtW1rjHCay9NqKXDwbtKTgDcN4iY7PrpSqfKM5D/go-ipld-cbor"
 	//cbor "gx/ipfs/QmRVSCwQtW1rjHCay9NqKXDwbtKTgDcN4iY7PrpSqfKM5D/go-ipld-cbor"
 	//mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 )
 
+// New ...
 func New(props *StateBlockProps) *Block {
 	if props == nil {
 		return &Block{}
@@ -34,7 +38,7 @@ func (b Block) Serialize() ([]byte, error) {
 
 // Deserialize ...
 func (b *Block) Deserialize(bytes []byte) error {
-	var tmpProps Props
+	var tmpProps StateBlockProps
 	if err := json.Unmarshal(bytes, &tmpProps); err != nil {
 		return err
 	}
@@ -45,12 +49,17 @@ func (b *Block) Deserialize(bytes []byte) error {
 
 // SerializeString ...
 func (b Block) SerializeString() (string, error) {
-	return hex.EncodeToString(json.Marshal(b.props))
+	bytes, err := json.Marshal(b.props)
+	if err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(bytes), nil
 }
 
 // DeserializeString ...
 func (b *Block) DeserializeString(str string) error {
-	bytes, err := hex.DecodeString(s)
+	bytes, err := hex.DecodeString(str)
 	if err != nil {
 		return err
 	}
@@ -98,6 +107,7 @@ func (b Block) Hash() (string, error) {
 	return hex.EncodeToString(shaSum[:]), nil
 }
 
+// BuildNextState ...
 // TODO: everything...
 func BuildNextState(imageHash string, transactions []*Transaction) (*Block, error) {
 	return nil, nil

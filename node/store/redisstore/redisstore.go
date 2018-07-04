@@ -3,7 +3,8 @@ package redisstore
 import (
 	"errors"
 
-	redis "github.com/gomodule/redigo"
+	"github.com/c3systems/c3/core/chain/statechain"
+	redis "github.com/gomodule/redigo/redis"
 )
 
 const (
@@ -46,13 +47,15 @@ func (s Service) Props() Props {
 	return s.props
 }
 
+// HasTx ...
 func (s Service) HasTx(hash string) (bool, error) {
 	c := s.props.Pool.Get()
 	defer c.Close()
 
-	return redis.Bool(conn.Do("EXISTS", buildKey(hash)))
+	return redis.Bool(c.Do("EXISTS", buildKey(hash)))
 }
 
+// GetTx ...
 func (s Service) GetTx(hash string) (*statechain.Transaction, error) {
 	c := s.props.Pool.Get()
 	defer c.Close()
@@ -61,17 +64,21 @@ func (s Service) GetTx(hash string) (*statechain.Transaction, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(bytesStr) == 0 {
+		return nil, nil
+	}
 
 	var tx statechain.Transaction
-	err := tx.DeserializeString(bytesStr)
+	err = tx.DeserializeString(bytesStr[0])
 	return &tx, err
 }
 
+// GetTxs ...
 func (s Service) GetTxs(hashes []string) ([]*statechain.Transaction, error) {
 	c := s.props.Pool.Get()
 	defer c.Close()
 
-	keys := getKeys(hashes)
+	keys := buildKeys(hashes)
 	// get many keys in a single MGET, ask redigo for []string result
 	bytesStrs, err := redis.Strings(c.Do("MGET", keys))
 	if err != nil {
@@ -91,6 +98,7 @@ func (s Service) GetTxs(hashes []string) ([]*statechain.Transaction, error) {
 	return txs, nil
 }
 
+// RemoveTx ...
 func (s Service) RemoveTx(hash string) error {
 	c := s.props.Pool.Get()
 	defer c.Close()
@@ -111,13 +119,16 @@ func (s Service) RemoveTxs(hashes []string) error {
 	defer c.Close()
 
 	keys := buildKeys(hashes)
-
-	_, err := c.Do("DEL", keys...)
+	k := make([]interface{}, len(keys))
+	for i, v := range k {
+		k[i] = v
+	}
+	_, err := c.Do("DEL", k...)
 	if err != nil {
 		return err
 	}
 
-	_, err := c.Do("SREM", keys...)
+	_, err = c.Do("SREM", k...)
 
 	return err
 }
@@ -140,7 +151,7 @@ func (s Service) AddTx(tx *statechain.Transaction) error {
 
 	c := s.props.Pool.Get()
 	defer c.Close()
-	_, err := c.Do("SET", buildKey(hash), bytesStr)
+	_, err = c.Do("SET", buildKey(hash), bytesStr)
 	if err != nil {
 		return err
 	}
@@ -151,7 +162,7 @@ func (s Service) AddTx(tx *statechain.Transaction) error {
 }
 
 // GatherTransactions ...
-func (s Service) GatherTransactions() (*[]statechain.Transaction, error) {
+func (s Service) GatherTransactions() ([]*statechain.Transaction, error) {
 	c := s.props.Pool.Get()
 	defer c.Close()
 

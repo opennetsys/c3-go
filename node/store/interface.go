@@ -1,5 +1,7 @@
 package store
 
+import "github.com/c3systems/c3/core/chain/statechain"
+
 // Interface ...
 type Interface interface {
 	HasTx(hash string) (bool, error)
