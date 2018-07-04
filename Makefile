@@ -1,5 +1,4 @@
-all:
-	@echo "no default"
+all: build
 
 .PHONY: install
 install:
@@ -32,6 +31,9 @@ clean:
 	go clean && \
 	rm -rf bin/
 
+.PHONY: test
+test: test/core/server test/core/dockerclient test/core/registry test/ditto
+
 .PHONY: test/core/server
 test/core/server:
 	go test -v core/server/*.go
@@ -48,32 +50,20 @@ test/core/registry:
 test/ditto:
 	go test -v ditto/*.go $(ARGS)
 
-.PHONY: run/example
-run/example:
-	go run example/go/main.go
-
-.PHONY: docker/build/example
-docker/build/example:
-	docker build --no-cache -f example/go/Dockerfile -t goexample ./example
-
-.PHONY: docker/run/example
-docker/run/example:
-	docker run -p 3333 -t goexample
-
 .PHONY: test/docker/build/snapshot
 test/docker/build/snapshot:
 	docker build --no-cache -f snapshot_test/Dockerfile -t snapshot_test:1 ./snapshot_test
 
 .PHONY: test/docker/run/snapshot
-test/docker/run/snapshot:
+demo/docker/run/snapshot:
 	docker run -t snapshot_test:1
 
 .PHONY: test/docker/run/snapshot/daemon
-test/docker/run/snapshot/daemon:
+demo/docker/run/snapshot/daemon:
 	docker run -d snapshot_test:1
 
 .PHONY: test/run/snapshot
-test/run/snapshot:
+demo/run/snapshot:
 	node snapshot_test/index.js
 
 .PHONY: docker/run/localregistry
@@ -91,6 +81,18 @@ docker/list/localregistry:
 .PHONY: docker/gcr/images/list
 docker/gcr/images/list:
 	curl http://gcr.c3labs.io:5000/v2/_catalog
+
+.PHONY: run/example
+run/example:
+	go run example/go/main.go
+
+.PHONY: docker/build/example
+docker/build/example:
+	docker build --no-cache -f example/go/Dockerfile -t goexample ./example
+
+.PHONY: docker/run/example
+docker/run/example:
+	docker run -p 3333 -t goexample
 
 .PHONY: docker/build/example/bash
 docker/build/example/bash:
