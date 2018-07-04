@@ -91,3 +91,11 @@ docker/list/localregistry:
 .PHONY: docker/gcr/images/list
 docker/gcr/images/list:
 	curl http://gcr.c3labs.io:5000/v2/_catalog
+
+.PHONY: docker/build/example/bash
+docker/build/example/bash:
+	$(MAKE) -C example/bash build
+
+.PHONY: docker/run/example/bash
+docker/run/example/bash:
+	$(MAKE) -C example/bash run

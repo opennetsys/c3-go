@@ -53,6 +53,14 @@ func TestLoadImageByFilepath(t *testing.T) {
 	}
 }
 
+func TestRunContainer(t *testing.T) {
+	client := New()
+	err := client.RunContainer("bash-counter", []string{})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestDockerVersionFromCLI(t *testing.T) {
 	version := dockerVersionFromCLI()
 	if version == "" {
