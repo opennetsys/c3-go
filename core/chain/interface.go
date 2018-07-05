@@ -4,7 +4,7 @@ import (
 	mainchain "github.com/c3systems/c3/core/chain/mainchain"
 	statechain "github.com/c3systems/c3/core/chain/statechain"
 
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	cid "github.com/ipfs/go-cid"
 )
 
 // Interface ...

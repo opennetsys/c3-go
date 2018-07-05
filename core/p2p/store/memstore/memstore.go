@@ -1,6 +1,6 @@
 package memstore
 
-import datastore "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore"
+import datastore "github.com/ipfs/go-datastore"
 
 // New ...
 func New() datastore.Datastore {

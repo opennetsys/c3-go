@@ -3,7 +3,7 @@ package leveldbstore
 import (
 	leveldbds "github.com/ipfs/go-ds-leveldb"
 	opt "github.com/syndtr/goleveldb/leveldb/opt"
-	bstore "gx/ipfs/QmdpuJBPBZ6sLPj9BQpn3Rpi38BT2cF1QMiUfyzNWeySW4/go-ipfs-blockstore"
+	bstore "gx/ipfs/QmTVDM4LCSUMFNQzbDLL9zQwp8usE6QHymFdh3h8vL9v6b/go-ipfs-blockstore"
 )
 
 type Options opt.Options

@@ -3,7 +3,7 @@ package badgerstore
 import (
 	badger "github.com/dgraph-io/badger"
 	badgerds "github.com/ipfs/go-ds-badger"
-	bstore "gx/ipfs/QmdpuJBPBZ6sLPj9BQpn3Rpi38BT2cF1QMiUfyzNWeySW4/go-ipfs-blockstore"
+	bstore "gx/ipfs/QmTVDM4LCSUMFNQzbDLL9zQwp8usE6QHymFdh3h8vL9v6b/go-ipfs-blockstore"
 )
 
 // Options are params for creating DB object.

@@ -3,7 +3,7 @@ package types
 import (
 	"context"
 
-	host "gx/ipfs/Qmb8T6YBBsjYsVGfrihQLfCJveczZnneSBqBKkYEBWDjge/go-libp2p-host"
+	host "github.com/libp2p/go-libp2p-host"
 
 	"github.com/c3systems/c3/core/chain"
 	"github.com/c3systems/c3/node/pubsub"
