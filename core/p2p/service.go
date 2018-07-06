@@ -64,7 +64,7 @@ func New(props *Props) (*Service, error) {
 		// blocks := bstore.NewBlockstore(props.BlockStore)
 
 		// TODO: research if this is what we want...
-		nr, err1 := nonerouting.ConstructNilRouting(nil, nil, nil)
+		nr, err1 := nonerouting.ConstructNilRouting(nil, nil, nil, nil)
 		if err1 != nil {
 			err = err1
 			return

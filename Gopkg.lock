@@ -225,12 +225,13 @@
   name = "github.com/ipfs/go-datastore"
   packages = [
     ".",
+    "delayed",
     "keytransform",
     "namespace",
-    "query"
+    "query",
+    "sync"
   ]
   revision = "e9b957d683804610bb830a00aed753633c4a5d36"
-  version = "v2.4.1"
 
 [[projects]]
   name = "github.com/ipfs/go-ds-badger"
@@ -286,14 +287,42 @@
   version = "v0.0.7"
 
 [[projects]]
+  name = "github.com/ipfs/go-ipfs-delay"
+  packages = ["."]
+  revision = "d0bfb5937b927c243605f7106115653f9175ff2c"
+  version = "v0.0.1"
+
+[[projects]]
   name = "github.com/ipfs/go-ipfs-ds-help"
   packages = ["."]
   revision = "6a316f005dea6cf550114bd2cb4bac36f9c6ce4d"
   version = "v0.0.4"
 
 [[projects]]
+  name = "github.com/ipfs/go-ipfs-exchange-interface"
+  packages = ["."]
+  revision = "62d74ecd98f0ba0107379efe89d142c69500f485"
+  version = "v0.0.2"
+
+[[projects]]
+  name = "github.com/ipfs/go-ipfs-flags"
+  packages = ["."]
+  revision = "03144596b678e4b7e1d20ce770247d3ba382bc91"
+  version = "v0.0.1"
+
+[[projects]]
+  name = "github.com/ipfs/go-ipfs-pq"
+  packages = ["."]
+  revision = "fb85b2783398396eb786ce67b79400fcda0241dc"
+  version = "v0.0.1"
+
+[[projects]]
   name = "github.com/ipfs/go-ipfs-routing"
-  packages = ["none"]
+  packages = [
+    "mock",
+    "none",
+    "offline"
+  ]
   revision = "ee2d893c7c7ad08922055feafae55462b5a4600a"
   version = "v0.0.13"
 
@@ -409,6 +438,7 @@
     ".",
     "config",
     "p2p/host/basic",
+    "p2p/net/mock",
     "p2p/protocol/identify",
     "p2p/protocol/identify/pb"
   ]
@@ -476,8 +506,17 @@
   version = "v3.0.4"
 
 [[projects]]
-  name = "github.com/libp2p/go-libp2p-peer"
+  name = "github.com/libp2p/go-libp2p-netutil"
   packages = ["."]
+  revision = "0fc078c317eb328eb515e65b4ad1f810e5a3b86d"
+  version = "v0.4.3"
+
+[[projects]]
+  name = "github.com/libp2p/go-libp2p-peer"
+  packages = [
+    ".",
+    "test"
+  ]
   revision = "e8858116ad7f0a54dfc2bb6af554f2024221d19c"
   version = "v2.3.4"
 
@@ -591,6 +630,12 @@
   version = "v2.0.3"
 
 [[projects]]
+  name = "github.com/libp2p/go-testutil"
+  packages = ["."]
+  revision = "8891744ae8d1871ef120b128d92d4b732c2a8199"
+  version = "v1.2.4"
+
+[[projects]]
   name = "github.com/libp2p/go-ws-transport"
   packages = ["."]
   revision = "cfc76e292a6c80902669ff97a683c85562bed43a"
@@ -687,8 +732,7 @@
 [[projects]]
   name = "github.com/satori/go.uuid"
   packages = ["."]
-  revision = "f58768cc1a7a7e77a3bd49e98cdd21419399b6a3"
-  version = "v1.2.0"
+  revision = "36e9d2ebbde5e3f13ab2e25625fd453271d6522e"
 
 [[projects]]
   name = "github.com/spaolacci/murmur3"
@@ -862,6 +906,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7bcb0660d3afeac81de59d848358ecc219468b0ee2eb52525b87eb7d31e496dd"
+  inputs-digest = "99061d1081a9ba68634eae9f18e9d5c17a25476bb492f05b32ccca6d1ac14908"
   solver-name = "gps-cdcl"
   solver-version = 1
