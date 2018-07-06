@@ -18,5 +18,6 @@ type GetInfoResponse struct {
 // CFG ...
 type CFG struct {
 	URI     string
+	Peer    string
 	DataDir string
 }

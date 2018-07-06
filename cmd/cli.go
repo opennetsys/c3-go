@@ -19,6 +19,7 @@ func Build() {
 	var (
 		nodeURI string
 		dataDir string
+		peer    string
 	)
 
 	dittoSvc := ditto.New(&ditto.Config{})
@@ -79,11 +80,13 @@ For more info visit: https://github.com/c3systems/c3,
 		Run: func(cmd *cobra.Command, args []string) {
 			must(node.Start(&nodetypes.CFG{
 				URI:     nodeURI,
+				Peer:    peer,
 				DataDir: dataDir,
 			}))
 		},
 	}
-	startSubCmd.Flags().StringVarP(&nodeURI, "uri", "u", "/ip4/127.0.0.1/tcp/9000/ipfs/QmdRa9h1mAxthj4ACrHULZC5yQmuiHzXDV56rWvnQaMA9o", "The host on which to run the node")
+	startSubCmd.Flags().StringVarP(&nodeURI, "uri", "u", "/ip4/0.0.0.0/tcp/9000", "The host on which to run the node")
+	startSubCmd.Flags().StringVarP(&peer, "peer", "p", "", "A peer to which to connect")
 	//startSubCmd.MarkFlagRequired("uri")
 	startSubCmd.Flags().StringVarP(&dataDir, "data-dir", "d", "~/c3-data/", "The directory in which to save data")
 	//startSubCmd.MarkFlagRequired("data-dir")

@@ -34,7 +34,7 @@ func Start(cfg *nodetypes.CFG) error {
 		return errors.New("config is required to start the node")
 	}
 
-	newNode, err := libp2p.New(c, libp2p.Defaults, libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/9000"))
+	newNode, err := libp2p.New(c, libp2p.Defaults, libp2p.ListenAddrStrings(cfg.URI))
 	if err != nil {
 		return fmt.Errorf("err building libp2p service\n%v", err)
 	}
@@ -48,18 +48,20 @@ func Start(cfg *nodetypes.CFG) error {
 		log.Printf("%d: %s/ipfs/%s\n", i, addr, newNode.ID().Pretty())
 	}
 
-	addr, err := ipfsaddr.ParseString(cfg.URI)
-	if err != nil {
-		return fmt.Errorf("err parsing node uri flag: %s\n%v", cfg.URI, err)
-	}
+	if cfg.Peer != "" {
+		addr, err := ipfsaddr.ParseString(cfg.Peer)
+		if err != nil {
+			return fmt.Errorf("err parsing node uri flag: %s\n%v", cfg.URI, err)
+		}
 
-	pinfo, err := peerstore.InfoFromP2pAddr(addr.Multiaddr())
-	if err != nil {
-		return fmt.Errorf("err getting info from peerstore\n%v", err)
-	}
+		pinfo, err := peerstore.InfoFromP2pAddr(addr.Multiaddr())
+		if err != nil {
+			return fmt.Errorf("err getting info from peerstore\n%v", err)
+		}
 
-	if err := newNode.Connect(c, *pinfo); err != nil {
-		fmt.Errorf("bootstrapping a peer failed\n%v", err)
+		if err := newNode.Connect(c, *pinfo); err != nil {
+			log.Printf("bootstrapping a peer failed\n%v", err)
+		}
 	}
 
 	// TODO: add cli flags for different types
@@ -107,7 +109,18 @@ func Start(cfg *nodetypes.CFG) error {
 	}
 
 	//go func() {
-	log.Printf("Node started on %s\n", addr)
+	log.Printf("Node %s started", newNode.ID().Pretty())
+	hash := "fakeHash"
+	tx := statechain.NewTransaction(&statechain.TransactionProps{
+		TxHash:  &hash,
+		Method:  "foo",
+		Payload: "bar",
+	})
+	res, err := n.BroadcastTransaction(tx)
+	if err != nil {
+		log.Printf("err broadcasting tx\n%v", err)
+	}
+	log.Printf("tx resp\n%v", res)
 
 	for {
 		switch v := <-ch; v.(type) {
@@ -116,6 +129,7 @@ func Start(cfg *nodetypes.CFG) error {
 
 		case *mainchain.Block, *statechain.Block, *statechain.Transaction:
 			// do a stoofs
+			log.Printf("received %T\n%v", v, v)
 
 		default:
 			log.Printf("[node] received an unknown message on channel of type %T\n%v", v, v)

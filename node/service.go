@@ -2,10 +2,12 @@ package node
 
 import (
 	"errors"
+	"log"
 
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/statechain"
 	nodetypes "github.com/c3systems/c3/node/types"
+	peer "github.com/libp2p/go-libp2p-peer"
 	//"github.com/c3systems/c3/node/wallet"
 	//ipfsaddr "github.com/ipfs/go-ipfs-addr"
 	//libp2p "github.com/libp2p/go-libp2p"
@@ -95,6 +97,7 @@ func (s Service) listenTransactions() error {
 				s.props.CH <- err
 				continue
 			}
+			log.Printf("tx from %v", peer.ID(msg.GetFrom()).Pretty())
 
 			s.props.CH <- &tx
 		}
