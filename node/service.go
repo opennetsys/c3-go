@@ -15,53 +15,50 @@ import (
 )
 
 // New ...
-func New(props *nodetypes.Props) (*nodetypes.Service, error) {
+func New(props *Props) (*Service, error) {
 	if props == nil {
 		return nil, errors.New("props cannot be nil")
 	}
-	if props.P2pNode == nil || props.Store == nil ||
+	if props.Store == nil ||
 		props.Blockchain == nil || props.Pubsub == nil {
 		return nil, errors.New("p2p node, store, blockchain and pubsub are required")
 	}
 
-	return &nodetyps.Service{
+	return &Service{
 		props: *props,
 	}, nil
 }
 
 // Start ...
-func (s nodetypes.Service) Start() error {
+func (s Service) Start() error {
 	if err := s.listenBlocks(); err != nil {
-		return nil, err
-	}
-	if err := s.listenTransactions(); err != nil {
-		return nil, err
+		return err
 	}
 
-	return nil
+	return s.listenTransactions()
 }
 
-func (s nodetypes.Service) listenBlocks() error {
-	sub, err := n.pubsub.Subscribe("blocks")
+func (s Service) listenBlocks() error {
+	sub, err := s.props.Pubsub.Subscribe("blocks")
 	if err != nil {
 		return err
 	}
 
 	go func() {
 		for {
-			msg, err := sub.Next(n.props.CTX)
+			msg, err := sub.Next(s.props.CTX)
 			if err != nil {
-				n.props.CH <- err
+				s.props.CH <- err
 				continue
 			}
 
 			var block mainchain.Block
 			if err := block.Deserialize(msg.GetData()); err != nil {
-				n.props.CH <- err
+				s.props.CH <- err
 				continue
 			}
 
-			ch <- &block
+			s.props.CH <- &block
 
 			//log.Println("Block received over network, blockhash", block.Props().BlockHash)
 			//cid := node.blockchain.AddMainBlock(&block)
@@ -71,39 +68,43 @@ func (s nodetypes.Service) listenBlocks() error {
 			//}
 		}
 	}()
+
+	return nil
 }
 
-func (s nodetypes.Service) listenTransactions() error {
-	sub, err := s.pubsub.Subscribe("transactions")
+func (s Service) listenTransactions() error {
+	sub, err := s.props.Pubsub.Subscribe("transactions")
 	if err != nil {
 		return err
 	}
 
 	go func() {
 		for {
-			msg, err := sub.Next(n.props.CTX)
+			msg, err := sub.Next(s.props.CTX)
 			if err != nil {
-				n.props.ch <- err
+				s.props.CH <- err
 				continue
 			}
 
 			var tx statechain.Transaction
 			if err := tx.Deserialize(msg.GetData()); err != nil {
-				node.props.CH <- err
+				s.props.CH <- err
 				continue
 			}
-			if err := n.store.AddTx(&tx); err != nil {
-				node.props.CH <- err
+			if err := s.props.Store.AddTx(&tx); err != nil {
+				s.props.CH <- err
 				continue
 			}
 
-			node.props.CH <= &tx
+			s.props.CH <- &tx
 		}
 	}()
+
+	return nil
 }
 
 // CreateNewBlock ...
-func (s nodetypes.Service) CreateNewBlock() (*mainchain.Block, error) {
+func (s Service) CreateNewBlock() (*mainchain.Block, error) {
 	//var blk *mainchan.Block
 	//blk.PrevHash = s.props.blockchain.MainHead().Props().BlockHash
 	//blk.Transactions, err = s.props.store.SelectTransactions()
@@ -120,41 +121,51 @@ func (s nodetypes.Service) CreateNewBlock() (*mainchain.Block, error) {
 
 // BroadcastBlock ...
 // note: only mainchain blocks get broadcast
-func (s nodetypes.Service) BroadcastBlock(block *mainchain.Block) error {
+func (s Service) BroadcastBlock(block *mainchain.Block) error {
 	if block == nil {
 		return errors.New("cannot broadcast nil block")
 	}
 
-	data := block.Serialize()
-	s.props.pubsub.Publish("blocks", data) // note: no err?
+	data, err := block.Serialize()
+	if err != nil {
+		return err
+	}
 
-	return nil
+	return s.props.Pubsub.Publish("blocks", data)
 }
 
 // BroadcastTransaction ...
-func (s nodetypes.Service) BroadcastTransaction(tx *statechain.Transaction) (*nodetypes.SendTxResponse, error) {
+func (s Service) BroadcastTransaction(tx *statechain.Transaction) (*nodetypes.SendTxResponse, error) {
 	if tx == nil {
 		return nil, errors.New("cannot broadcast nil transaction")
 	}
 
-	var res types.SendTxResponse
+	var res nodetypes.SendTxResponse
 
 	data, err := tx.Serialize()
 	if err != nil {
 		return nil, err
 	}
 
-	s.props.pubsub.Publish("transactions", data)
+	if err := s.props.Pubsub.Publish("transactions", data); err != nil {
+		return nil, err
+	}
 
 	res.TxHash = tx.Props().TxHash
 
-	return &res
+	return &res, nil
 }
 
 // GetInfo ...
-func (s nodetypes.Service) GetInfo() *nodetypes.GetInfoResponse {
-	var res types.GetInfoResponse
-	res.BlockHeight = s.props.blockchain.MainHead().Props().BlockNumber
+func (s Service) GetInfo() (*nodetypes.GetInfoResponse, error) {
+	var res nodetypes.GetInfoResponse
 
-	return &res
+	head, err := s.props.Blockchain.MainHead()
+	if err != nil {
+		return nil, err
+	}
+
+	res.BlockHeight = head.Props().BlockNumber
+
+	return &res, err
 }

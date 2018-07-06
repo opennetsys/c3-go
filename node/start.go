@@ -1,39 +1,45 @@
 package node
 
 import (
+	"context"
+	"errors"
+	"fmt"
 	"log"
 
+	"github.com/c3systems/c3/core/chain"
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/statechain"
 	"github.com/c3systems/c3/core/p2p"
 	"github.com/c3systems/c3/core/p2p/store/fsstore"
-	floodsub "github.com/c3systems/c3/node/pubsub/floodsub"
 	"github.com/c3systems/c3/node/store/safemempool"
 	nodetypes "github.com/c3systems/c3/node/types"
 	//"github.com/c3systems/c3/node/wallet"
 
-	libp2p "github.com/libp2p/go-libp2p"
-
 	ipfsaddr "github.com/ipfs/go-ipfs-addr"
+	bstore "github.com/ipfs/go-ipfs-blockstore"
+	floodsub "github.com/libp2p/go-floodsub"
+	libp2p "github.com/libp2p/go-libp2p"
 	peerstore "github.com/libp2p/go-libp2p-peerstore"
 )
 
 // Start ...
 // note: start is called from cobra
-func Start(cfg *nodetypes.CFG) {
+func Start(cfg *nodetypes.CFG) error {
+	c := context.Background()
+
 	if cfg == nil {
 		// note: is this the correct way to fail an app with cobra?
-		log.Fatal("config is required to start the node")
+		return errors.New("config is required to start the node")
 	}
 
-	newNode, err := libp2p.New(props.Ctx, libp2p.Defaults)
+	newNode, err := libp2p.New(c, libp2p.Defaults)
 	if err != nil {
-		log.Fatal("err building libp2p service", err)
+		return fmt.Errorf("err building libp2p service\n%v", err)
 	}
 
-	pubsub, err := floodsub.New(ctx, newNode)
+	pubsub, err := floodsub.NewFloodSub(c, newNode)
 	if err != nil {
-		log.Fatal("err building new pubsub service", err)
+		return fmt.Errorf("err building new pubsub service\n%v", err)
 	}
 
 	for i, addr := range newNode.Addrs() {
@@ -42,74 +48,79 @@ func Start(cfg *nodetypes.CFG) {
 
 	addr, err := ipfsaddr.ParseString(cfg.URI)
 	if err != nil {
-		log.Fatalf("err parsing node uri flag: %s\n%v", cfg.URI, err)
+		return fmt.Errorf("err parsing node uri flag: %s\n%v", cfg.URI, err)
 	}
 	log.Println("Node Address:", addr)
 
 	pinfo, err := peerstore.InfoFromP2pAddr(addr.Multiaddr())
 	if err != nil {
-		log.Fatal("err getting info from peerstore", err)
+		return fmt.Errorf("err getting info from peerstore\n%v", err)
 	}
 
-	if err := newNode.Connect(ctx, *pinfo); err != nil {
-		log.Fatal("bootstrapping a peer failed", err)
+	if err := newNode.Connect(c, *pinfo); err != nil {
+		return fmt.Errorf("bootstrapping a peer failed\n%v", err)
 	}
 
-	memPool := safemempool.New(&safemempool.Props{})
+	// TODO: add cli flags for different types
+	memPool, err := safemempool.New(&safemempool.Props{})
+	if err != nil {
+		return fmt.Errorf("err initializing mempool\n%v", err)
+	}
 	diskStore, err := fsstore.New(cfg.DataDir, nil, true)
 	if err != nil {
-		log.Fatal("err building disk store", err)
+		return fmt.Errorf("err building disk store\n%v", err)
 	}
+	// wrap the datastore in a 'content addressed blocks' layer
+	blocks := bstore.NewBlockstore(diskStore)
 
 	p2p, err := p2p.New(&p2p.Props{
-		BlockStore: diskStore,
+		BlockStore: blocks,
 		Host:       newNode,
 	})
 	if err != nil {
-		log.Fatal("err starting ipfs p2p network", err)
+		return fmt.Errorf("err starting ipfs p2p network\n%v", err)
 	}
 
 	blockchain, err := chain.New(&chain.Props{
 		P2P: p2p,
 	})
 	if err != nil {
-		log.Fatal("err building the blockchain", err)
+		return fmt.Errorf("err building the blockchain\n%v", err)
 	}
 
-	c := ctx.Background()
 	ch := make(chan interface{})
-	n, err := node.New(&node.Props{
+	n, err := New(&Props{
 		CTX:        c,
 		CH:         ch,
 		Host:       newNode,
 		Store:      memPool,
 		Blockchain: blockchain,
-		PubSub:     pubsub,
+		Pubsub:     pubsub,
 	})
 	if err != nil {
-		log.Fatal("err building the node", err)
+		return fmt.Errorf("err building the node\n%v", err)
 	}
 
 	if err := n.Start(); err != nil {
-		log.Fatal("err starting node", err)
+		return fmt.Errorf("err starting node\n%v", err)
 	}
 
-	for {
-		switch v := <-ch; v.(type) {
-		case error:
-			log.Println("[node] received an error on the channel", err)
+	go func() {
+		for {
+			switch v := <-ch; v.(type) {
+			case error:
+				log.Println("[node] received an error on the channel", err)
 
-		case *mainchain.Block:
-			fallthrough
-		case *statechain.Block:
-			fallthrough
-		case *statechain.Transaction:
-			// do a stoofs
+			case *mainchain.Block, *statechain.Block, *statechain.Transaction:
+				// do a stoofs
 
-		default:
-			log.Printf("[node] received an unknown message on channel of type %T\n%v", v, v)
+			default:
+				log.Printf("[node] received an unknown message on channel of type %T\n%v", v, v)
+			}
 		}
-	}
+	}()
+
+	return nil
 	//blockchain := NewBlockchain(newNode)
 
 	//node.p2pNode = newNode

@@ -10,5 +10,5 @@ type Interface interface {
 	RemoveTx(hash string) error
 	RemoveTxs(hashes []string) error
 	AddTx(tx *statechain.Transaction) error
-	GatherTransactions() (*[]statechain.Transaction, error)
+	GatherTransactions() ([]*statechain.Transaction, error)
 }

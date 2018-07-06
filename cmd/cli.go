@@ -6,6 +6,7 @@ import (
 
 	"github.com/c3systems/c3/ditto"
 	"github.com/c3systems/c3/node"
+	nodetypes "github.com/c3systems/c3/node/types"
 	"github.com/go-openapi/errors"
 	"github.com/spf13/cobra"
 )
@@ -76,15 +77,15 @@ For more info visit: https://github.com/c3systems/c3,
 		Short: "Start a c3 node",
 		Long:  "By starting a c3 node, you will participate in the c3 network: mining and storing blocks and responding to RPC requests. Thank you, you are making the c3 network stronger by participating.",
 		Run: func(cmd *cobra.Command, args []string) {
-			must(node.Start(&node.CFG{
+			must(node.Start(&nodetypes.CFG{
 				URI:     nodeURI,
 				DataDir: dataDir,
 			}))
 		},
 	}
-	startSubCmd.Flags().StringVarP(&nodeURI, "u", "uri", "localhost:8080", "The host on which to run the node")
+	startSubCmd.Flags().StringVarP(&nodeURI, "uri", "u", "localhost:8080", "The host on which to run the node")
 	startSubCmd.MarkFlagRequired("uri")
-	startSubCmd.Flags().StringVarP(&dataDir, "d", "data-dir", "/c3-data", "The directory in which to save data")
+	startSubCmd.Flags().StringVarP(&dataDir, "data-dir", "d", "/c3-data", "The directory in which to save data")
 	startSubCmd.MarkFlagRequired("data-dir")
 	// TODO: add more flags for blockstore and nodestore, etc.
 
