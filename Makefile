@@ -4,6 +4,12 @@ all: build
 install:
 	@echo "todo"
 
+.PHONY: deps
+deps:
+	rm -rf ./vendor && \
+	dep ensure && \
+	gxundo ./vendor
+
 .PHONY: build
 build:
 	go build -v -ldflags "-s -w" -o bin/c3 .

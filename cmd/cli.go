@@ -1,17 +1,27 @@
 package cmd
 
 import (
-	"fmt"
 	"log"
 	"os"
 
 	"github.com/c3systems/c3/ditto"
+	"github.com/c3systems/c3/node"
+	nodetypes "github.com/c3systems/c3/node/types"
+	"github.com/go-openapi/errors"
 	"github.com/spf13/cobra"
 )
 
 var rootCmd *cobra.Command
 
-func init() {
+// Build ...
+// note: don't want to use init bc it will init even for tests, benchmarks, etc!
+func Build() {
+	var (
+		nodeURI string
+		dataDir string
+		peer    string
+	)
+
 	dittoSvc := ditto.New(&ditto.Config{})
 
 	rootCmd = &cobra.Command{
@@ -37,7 +47,7 @@ For more info visit: https://github.com/c3systems/c3,
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 			must(dittoSvc.PushImageByID(args[0]))
-			fmt.Println("success")
+			log.Println("success")
 		},
 	}
 
@@ -53,12 +63,37 @@ For more info visit: https://github.com/c3systems/c3,
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 			must(dittoSvc.PullImage(args[0], "", ""))
-			fmt.Println("success")
+			log.Println("success")
 		},
 	}
 
-	rootCmd.AddCommand(pushCmd)
-	rootCmd.AddCommand(pullCmd)
+	nodeCmd := &cobra.Command{
+		Use:              "node [OPTIONS] [COMMANDS] [OPTIONS]",
+		Short:            "c3 node commands",
+		TraverseChildren: true,
+	}
+
+	startSubCmd := &cobra.Command{
+		Use:   "start [OPTIONS]",
+		Short: "Start a c3 node",
+		Long:  "By starting a c3 node, you will participate in the c3 network: mining and storing blocks and responding to RPC requests. Thank you, you are making the c3 network stronger by participating.",
+		Run: func(cmd *cobra.Command, args []string) {
+			must(node.Start(&nodetypes.CFG{
+				URI:     nodeURI,
+				Peer:    peer,
+				DataDir: dataDir,
+			}))
+		},
+	}
+	startSubCmd.Flags().StringVarP(&nodeURI, "uri", "u", "/ip4/0.0.0.0/tcp/9000", "The host on which to run the node")
+	startSubCmd.Flags().StringVarP(&peer, "peer", "p", "", "A peer to which to connect")
+	//startSubCmd.MarkFlagRequired("uri")
+	startSubCmd.Flags().StringVarP(&dataDir, "data-dir", "d", "~/c3-data/", "The directory in which to save data")
+	//startSubCmd.MarkFlagRequired("data-dir")
+	// TODO: add more flags for blockstore and nodestore, etc.
+
+	nodeCmd.AddCommand(startSubCmd)
+	rootCmd.AddCommand(pushCmd, pullCmd, nodeCmd)
 }
 
 // Execute ...
@@ -82,10 +117,14 @@ func must(err error) {
 
 func logFatal(ierr interface{}) {
 	switch v := ierr.(type) {
-	case error.Error:
-		fmt.Println(v)
+	case errors.Error:
+		log.Println(v)
 	case string:
-		fmt.Println(v)
+		log.Println(v)
+	//case *errors.errorString:
+	//log.Println(v)
+	default:
+		log.Printf("%T\n%v", v, ierr)
 	}
 	os.Exit(1)
 }
