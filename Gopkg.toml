@@ -100,3 +100,7 @@ required = [
 [[override]]
   name = "github.com/libp2p/go-libp2p"
   version = "v6.0.4"
+
+[[constraint]]
+  name = "github.com/libp2p/go-libp2p-blankhost"
+  version = "0.3.3"

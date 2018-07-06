@@ -446,6 +446,12 @@
   version = "v6.0.4"
 
 [[projects]]
+  name = "github.com/libp2p/go-libp2p-blankhost"
+  packages = ["."]
+  revision = "c5bec0592262b9962c483b9fa8e1257dd945513a"
+  version = "v0.3.3"
+
+[[projects]]
   name = "github.com/libp2p/go-libp2p-circuit"
   packages = [
     ".",
@@ -906,6 +912,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "99061d1081a9ba68634eae9f18e9d5c17a25476bb492f05b32ccca6d1ac14908"
+  inputs-digest = "2352881aab7301fa7438a9138497e036918e94ce07a7dcf2b23ba67b229a9842"
   solver-name = "gps-cdcl"
   solver-version = 1
