@@ -83,10 +83,10 @@ For more info visit: https://github.com/c3systems/c3,
 			}))
 		},
 	}
-	startSubCmd.Flags().StringVarP(&nodeURI, "uri", "u", "localhost:8080", "The host on which to run the node")
-	startSubCmd.MarkFlagRequired("uri")
-	startSubCmd.Flags().StringVarP(&dataDir, "data-dir", "d", "/c3-data", "The directory in which to save data")
-	startSubCmd.MarkFlagRequired("data-dir")
+	startSubCmd.Flags().StringVarP(&nodeURI, "uri", "u", "/ip4/127.0.0.1/tcp/9000/ipfs/QmdRa9h1mAxthj4ACrHULZC5yQmuiHzXDV56rWvnQaMA9o", "The host on which to run the node")
+	//startSubCmd.MarkFlagRequired("uri")
+	startSubCmd.Flags().StringVarP(&dataDir, "data-dir", "d", "~/c3-data/", "The directory in which to save data")
+	//startSubCmd.MarkFlagRequired("data-dir")
 	// TODO: add more flags for blockstore and nodestore, etc.
 
 	nodeCmd.AddCommand(startSubCmd)
@@ -118,6 +118,10 @@ func logFatal(ierr interface{}) {
 		log.Println(v)
 	case string:
 		log.Println(v)
+	//case *errors.errorString:
+	//log.Println(v)
+	default:
+		log.Printf("%T\n%v", v, ierr)
 	}
 	os.Exit(1)
 }
