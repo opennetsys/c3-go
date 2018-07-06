@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/tlsconfig"
 )
@@ -133,19 +134,38 @@ func (s *Client) PushImage(imageID string) error {
 }
 
 // RunContainer ...
-func (s *Client) RunContainer(imageID string, cmd []string) {
-	/*
-		resp, err := s.client.ContainerCreate(context.Background(), &container.Config{
-			Image: imageID,
-			Cmd:   cmd,
-			Tty:   true,
-		}, nil, nil, "")
-		if err != nil {
-			log.Fatal(err)
-		}
+func (s *Client) RunContainer(imageID string, cmd []string) (string, error) {
+	resp, err := s.client.ContainerCreate(context.Background(), &container.Config{
+		Image: imageID,
+		Cmd:   cmd,
+		Tty:   true,
+	}, nil, nil, "")
+	if err != nil {
+		log.Fatal(err)
+	}
 
-		fmt.Println(resp)
-	*/
+	err = s.client.ContainerStart(context.Background(), resp.ID, types.ContainerStartOptions{})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Printf("running container %s", resp.ID)
+
+	return resp.ID, nil
+}
+
+// StopContainer ...
+func (s *Client) StopContainer(containerID string) error {
+	err := s.client.ContainerStop(context.Background(), containerID, nil)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Printf("stopping container %s", containerID)
+
+	return nil
 }
 
 // ReadImage ...

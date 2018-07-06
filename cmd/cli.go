@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/c3systems/c3/ditto"
-	"github.com/go-openapi/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -83,7 +82,7 @@ func must(err error) {
 
 func logFatal(ierr interface{}) {
 	switch v := ierr.(type) {
-	case errors.Error:
+	case error.Error:
 		fmt.Println(v)
 	case string:
 		fmt.Println(v)
