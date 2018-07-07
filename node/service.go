@@ -2,7 +2,6 @@ package node
 
 import (
 	"errors"
-	"log"
 
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/statechain"
@@ -54,6 +53,11 @@ func (s Service) listenBlocks() error {
 				continue
 			}
 
+			if peer.ID(msg.GetFrom()).Pretty() == s.props.Host.ID().Pretty() {
+				// note: received a message from ourselves
+				continue
+			}
+
 			var block mainchain.Block
 			if err := block.Deserialize(msg.GetData()); err != nil {
 				s.props.CH <- err
@@ -88,6 +92,11 @@ func (s Service) listenTransactions() error {
 				continue
 			}
 
+			if peer.ID(msg.GetFrom()).Pretty() == s.props.Host.ID().Pretty() {
+				// note: received a message from ourselves
+				continue
+			}
+
 			var tx statechain.Transaction
 			if err := tx.Deserialize(msg.GetData()); err != nil {
 				s.props.CH <- err
@@ -97,7 +106,6 @@ func (s Service) listenTransactions() error {
 				s.props.CH <- err
 				continue
 			}
-			log.Printf("tx from %v", peer.ID(msg.GetFrom()).Pretty())
 
 			s.props.CH <- &tx
 		}

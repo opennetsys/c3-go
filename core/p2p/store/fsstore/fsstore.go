@@ -21,9 +21,12 @@ func New(path string) (*flatfs.Datastore, error) {
 		err     error
 	)
 
+	if err := createDirIfNotExist(dir); err != nil {
+		return nil, err
+	}
+
 	shardFn, err = flatfs.ReadShardFunc(dir)
 	if shardFn == nil || err != nil {
-		log.Printf("err reading shardfn\n%v", err)
 		shardFn = flatfs.Prefix(4)
 		if err := flatfs.WriteShardFunc(dir, shardFn); err != nil {
 			return nil, err
@@ -47,4 +50,12 @@ func userHomeDir() string {
 		}
 	}
 	return os.Getenv("HOME")
+}
+
+func createDirIfNotExist(dir string) error {
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		return os.MkdirAll(dir, 0757)
+	}
+
+	return nil
 }
