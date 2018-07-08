@@ -12,8 +12,21 @@ var (
 )
 
 // Diff ...
-func Diff(old, new, out string) error {
-	cmd := exec.Command("sh", "-c", fmt.Sprintf("/usr/bin/diff -ud %s %s > %s", old, new, out))
+func Diff(old, new, out string, isDir bool) error {
+	var (
+		commands []interface{}
+		s        string
+	)
+
+	if isDir {
+		commands = append(commands, "-rN")
+		s = " %s"
+	}
+
+	commands = append(commands, old, new, ">", out)
+	s += " %s %s %s %s"
+
+	cmd := exec.Command("sh", "-c", fmt.Sprintf("/usr/bin/diff -ud"+s, commands...))
 	if err := cmd.Start(); err != nil {
 		return err
 	}

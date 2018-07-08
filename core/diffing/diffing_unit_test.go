@@ -11,6 +11,7 @@ import (
 )
 
 func TestDiff(t *testing.T) {
+	// TODO: test dir
 	wd, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("err getting current working directory\n%v", err)
@@ -53,7 +54,7 @@ func TestDiff(t *testing.T) {
 
 	f2.Sync()
 
-	if err := Diff(fmt.Sprintf("%s/.testfiles/1.txt", wd), fmt.Sprintf("%s/.testfiles/2.txt", wd), fmt.Sprintf("%s/.testfiles/12.patch", wd)); err != nil {
+	if err := Diff(fmt.Sprintf("%s/.testfiles/1.txt", wd), fmt.Sprintf("%s/.testfiles/2.txt", wd), fmt.Sprintf("%s/.testfiles/12.patch", wd), false); err != nil {
 		t.Fatalf("err diffing the files\n%v", err)
 	}
 
@@ -138,11 +139,11 @@ func TestCombineDiff(t *testing.T) {
 		t.Fatalf("err synching file 3\n%v", err)
 	}
 
-	if err := Diff(fmt.Sprintf("%s/.testfiles/1.txt", wd), fmt.Sprintf("%s/.testfiles/2.txt", wd), fmt.Sprintf("%s/.testfiles/12.patch", wd)); err != nil {
+	if err := Diff(fmt.Sprintf("%s/.testfiles/1.txt", wd), fmt.Sprintf("%s/.testfiles/2.txt", wd), fmt.Sprintf("%s/.testfiles/12.patch", wd), false); err != nil {
 		t.Fatalf("err diffing the 1 and 2\n%v", err)
 	}
 
-	if err := Diff(fmt.Sprintf("%s/.testfiles/2.txt", wd), fmt.Sprintf("%s/.testfiles/3.txt", wd), fmt.Sprintf("%s/.testfiles/23.patch", wd)); err != nil {
+	if err := Diff(fmt.Sprintf("%s/.testfiles/2.txt", wd), fmt.Sprintf("%s/.testfiles/3.txt", wd), fmt.Sprintf("%s/.testfiles/23.patch", wd), false); err != nil {
 		t.Fatalf("err diffing the 2 and 3\n%v", err)
 	}
 
@@ -214,7 +215,7 @@ func TestPatch(t *testing.T) {
 
 	f2.Sync()
 
-	if err := Diff(fmt.Sprintf("%s/.testfiles/1.txt", wd), fmt.Sprintf("%s/.testfiles/2.txt", wd), fmt.Sprintf("%s/.testfiles/12.patch", wd)); err != nil {
+	if err := Diff(fmt.Sprintf("%s/.testfiles/1.txt", wd), fmt.Sprintf("%s/.testfiles/2.txt", wd), fmt.Sprintf("%s/.testfiles/12.patch", wd), false); err != nil {
 		t.Fatalf("err diffing the files\n%v", err)
 	}
 
