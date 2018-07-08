@@ -22,8 +22,9 @@ func (s *Data) getItem(key string) string {
 
 func main() {
 	fmt.Println("running")
-	client := c3.New()
+	client := c3.NewC3()
 	data := &Data{}
 	client.RegisterMethod("setItem", []string{"string", "string"}, data.setItem)
 	client.RegisterMethod("getItem", []string{"string"}, data.getItem)
+	client.Serve()
 }

@@ -23,18 +23,22 @@ func (s Service) Props() Props {
 	return s.props
 }
 
+// HasTx ...
 func (s Service) HasTx(hash string) (bool, error) {
 	return false, nil
 }
 
+// GetTx ...
 func (s Service) GetTx(hash string) (*statechain.Transaction, error) {
 	return nil, nil
 }
 
+// GetTxs ...
 func (s Service) GetTxs(hashes []string) ([]*statechain.Transaction, error) {
 	return nil, nil
 }
 
+// RemoveTx ...
 func (s Service) RemoveTx(hash string) error {
 	return nil
 }

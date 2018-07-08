@@ -12,8 +12,9 @@ import (
 
 // Props ...
 type Props struct {
-	CTX        context.Context
-	CH         chan interface{}
+	// Note: it's preferable to not use abbreviations if it means uppercasing all the letters. Acronyms are OK.
+	Context    context.Context
+	Channel    chan interface{}
 	Host       host.Host
 	Store      nodestore.Interface // store is used to temporarily store blocks and txs for mining and verification
 	Blockchain chain.Interface

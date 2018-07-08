@@ -10,11 +10,15 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
+	"github.com/c3systems/c3/common/network"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
+	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-connections/tlsconfig"
 )
 
@@ -23,8 +27,8 @@ type Client struct {
 	client *client.Client
 }
 
-// New ...
-func New() *Client {
+// NewClient ...
+func NewClient() *Client {
 	return newEnvClient()
 }
 
@@ -115,7 +119,7 @@ func (s *Client) ListImages() ([]*ImageSummary, error) {
 func (s *Client) PullImage(imageID string) error {
 	reader, err := s.client.ImagePull(context.Background(), imageID, types.ImagePullOptions{})
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	io.Copy(os.Stdout, reader)
 	return nil
@@ -127,27 +131,206 @@ func (s *Client) PushImage(imageID string) error {
 		RegistryAuth: "123", // if no auth, then any value is required
 	})
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	io.Copy(os.Stdout, reader)
 	return nil
 }
 
+// RunContainerConfig ...
+type RunContainerConfig struct {
+	Volumes map[string]struct {
+		Type        string
+		Source      string
+		Destination string
+	}
+}
+
 // RunContainer ...
-func (s *Client) RunContainer(imageID string, cmd []string) (string, error) {
-	resp, err := s.client.ContainerCreate(context.Background(), &container.Config{
+func (s *Client) RunContainer(imageID string, cmd []string, config *RunContainerConfig) (string, error) {
+	hostPort, err := network.GetFreePort()
+	if err != nil {
+		return "", err
+	}
+
+	dockerConfig := &container.Config{
 		Image: imageID,
 		Cmd:   cmd,
-		Tty:   true,
-	}, nil, nil, "")
+		Tty:   false,
+		Volumes: map[string]struct {
+		}{
+			"/var/run/docker.sock": {},
+		},
+		ExposedPorts: map[nat.Port]struct{}{
+			"3333/tcp": {},
+		},
+	}
+
+	if config != nil {
+		//dockerConfig.Volumes = config.Volumes
+	}
+
+	resp, err := s.client.ContainerCreate(context.Background(), dockerConfig, &container.HostConfig{
+		Binds: nil,
+		PortBindings: map[nat.Port][]nat.PortBinding{
+			"3333/tcp": []nat.PortBinding{
+				{
+					HostIP:   "0.0.0.0",
+					HostPort: strconv.Itoa(hostPort),
+				},
+			},
+		},
+		AutoRemove: true,
+		IpcMode:    "",
+		Privileged: false,
+		Mounts: []mount.Mount{
+			mount.Mount{
+				Type:     "bind",
+				Source:   "/var/run/docker.sock",
+				Target:   "/var/run/docker.sock",
+				ReadOnly: false,
+			},
+		},
+	}, nil, "")
+
+	/*
+			container.Config{
+				Hostname:     "",
+				Domainname:   "",
+				User:         "",
+				AttachStdin:  false,
+				AttachStdout: false,
+				AttachStderr: false,
+				ExposedPorts: map[nat.Port]struct{}{
+					"": {},
+				},
+				Tty:       false,
+				OpenStdin: false,
+				StdinOnce: false,
+				Env:       nil,
+				Cmd:       nil,
+				Healthcheck: &container.HealthConfig{
+					Test:     nil,
+					Interval: 0,
+					Timeout:  0,
+					Retries:  0,
+				},
+				ArgsEscaped: false,
+				Image:       "",
+				Volumes: map[string]struct{}{
+					"": {},
+				},
+				WorkingDir:      "",
+				Entrypoint:      nil,
+				NetworkDisabled: false,
+				MacAddress:      "",
+				OnBuild:         nil,
+				Labels: map[string]string{
+					"": "",
+				},
+				StopSignal:  "",
+				StopTimeout: nil,
+				Shell:       nil,
+			}
+
+		&container.HostConfig{
+			Binds:           nil,
+			ContainerIDFile: "",
+			LogConfig: container.LogConfig{
+				Type: "",
+				Config: map[string]string{
+					"": "",
+				},
+			},
+			NetworkMode: "",
+			PortBindings: map[nat.Port][]nat.PortBinding{
+				"": nil,
+			},
+			RestartPolicy: container.RestartPolicy{
+				Name:              "",
+				MaximumRetryCount: 0,
+			},
+			AutoRemove:      false,
+			VolumeDriver:    "",
+			VolumesFrom:     nil,
+			CapAdd:          nil,
+			CapDrop:         nil,
+			DNS:             nil,
+			DNSOptions:      nil,
+			DNSSearch:       nil,
+			ExtraHosts:      nil,
+			GroupAdd:        nil,
+			IpcMode:         "",
+			Cgroup:          "",
+			Links:           nil,
+			OomScoreAdj:     0,
+			PidMode:         "",
+			Privileged:      false,
+			PublishAllPorts: false,
+			ReadonlyRootfs:  false,
+			SecurityOpt:     nil,
+			StorageOpt: map[string]string{
+				"": "",
+			},
+			Tmpfs: map[string]string{
+				"": "",
+			},
+			UTSMode:    "",
+			UsernsMode: "",
+			ShmSize:    0,
+			Sysctls: map[string]string{
+				"": "",
+			},
+			Runtime: "",
+			ConsoleSize: [2]uint{
+				0,
+				0,
+			},
+			Isolation: "",
+			Resources: container.Resources{
+				CPUShares:            0,
+				Memory:               0,
+				NanoCPUs:             0,
+				CgroupParent:         "",
+				BlkioWeight:          0,
+				BlkioWeightDevice:    nil,
+				BlkioDeviceReadBps:   nil,
+				BlkioDeviceWriteBps:  nil,
+				BlkioDeviceReadIOps:  nil,
+				BlkioDeviceWriteIOps: nil,
+				CPUPeriod:            0,
+				CPUQuota:             0,
+				CPURealtimePeriod:    0,
+				CPURealtimeRuntime:   0,
+				CpusetCpus:           "",
+				CpusetMems:           "",
+				Devices:              nil,
+				DiskQuota:            0,
+				KernelMemory:         0,
+				MemoryReservation:    0,
+				MemorySwap:           0,
+				MemorySwappiness:     nil,
+				OomKillDisable:       nil,
+				PidsLimit:            0,
+				Ulimits:              nil,
+				CPUCount:             0,
+				CPUPercent:           0,
+				IOMaximumIOps:        0,
+				IOMaximumBandwidth:   0,
+			},
+			Mounts:   nil,
+			Init:     nil,
+			InitPath: "",
+		}
+	*/
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
 	err = s.client.ContainerStart(context.Background(), resp.ID, types.ContainerStartOptions{})
 
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
 	log.Printf("running container %s", resp.ID)
@@ -160,12 +343,22 @@ func (s *Client) StopContainer(containerID string) error {
 	err := s.client.ContainerStop(context.Background(), containerID, nil)
 
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	log.Printf("stopping container %s", containerID)
 
 	return nil
+}
+
+// InspectContainer ...
+func (s *Client) InspectContainer(containerID string) (types.ContainerJSON, error) {
+	info, err := s.client.ContainerInspect(context.Background(), containerID)
+	if err != nil {
+		return types.ContainerJSON{}, err
+	}
+
+	return info, nil
 }
 
 // ReadImage ...

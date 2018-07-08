@@ -18,9 +18,9 @@ type Config struct {
 	Host string
 }
 
-// New ...
-func New(config *Config) *Registry {
-	client := dockerclient.New()
+// NewRegistry ...
+func NewRegistry(config *Config) *Registry {
+	client := dockerclient.NewClient()
 	return &Registry{
 		client: client,
 		host:   config.Host,

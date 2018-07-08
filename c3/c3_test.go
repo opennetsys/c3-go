@@ -7,9 +7,9 @@ func setItem(key, value string) error {
 }
 
 func TestRegisterMethod(t *testing.T) {
-	srv := New()
+	c3 := NewC3()
 
-	err := srv.RegisterMethod("setItem", []string{"string", "string"}, setItem)
+	err := c3.RegisterMethod("setItem", []string{"string", "string"}, setItem)
 	if err != nil {
 		t.Error(err)
 	}

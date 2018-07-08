@@ -5,12 +5,14 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	registry := New(&Config{})
-	_ = registry
+	registry := NewRegistry(&Config{})
+	if registry == nil {
+		t.FailNow()
+	}
 }
 
 func TestPullImage(t *testing.T) {
-	registry := New(&Config{
+	registry := NewRegistry(&Config{
 		Host: "registry.hub.docker.com",
 	})
 
@@ -23,7 +25,7 @@ func TestPullImage(t *testing.T) {
 
 func TestPushImage(t *testing.T) {
 	t.Skip()
-	registry := New(&Config{
+	registry := NewRegistry(&Config{
 		Host: "localhost:5000",
 	})
 
