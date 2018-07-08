@@ -40,4 +40,4 @@ Tests require docker daemon and IPFS daemon to be running
 
 ## License
 
-[GNU LGPLv3](LICENSE.md)
+[Apache 2.0](LICENSE)
