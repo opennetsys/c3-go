@@ -1,14 +1,10 @@
 package statechain
 
 import (
-	"encoding/hex"
 	"encoding/json"
 
 	"github.com/c3systems/c3/common/hashing"
-
-	cid "github.com/ipfs/go-cid"
-	cbor "github.com/ipfs/go-ipld-cbor"
-	mh "github.com/multiformats/go-multihash"
+	"github.com/c3systems/c3/common/hexutil"
 )
 
 // New ...
@@ -45,41 +41,22 @@ func (b *Block) Deserialize(bytes []byte) error {
 
 // SerializeString ...
 func (b Block) SerializeString() (string, error) {
-	bytes, err := json.Marshal(b.props)
+	bytes, err := b.Serialize()
 	if err != nil {
 		return "", err
 	}
 
-	return hex.EncodeToString(bytes), nil
+	return hexutil.EncodeString(string(bytes)), nil
 }
 
 // DeserializeString ...
-func (b *Block) DeserializeString(str string) error {
-	bytes, err := hex.DecodeString(str)
+func (b *Block) DeserializeString(hexStr string) error {
+	str, err := hexutil.DecodeString(hexStr)
 	if err != nil {
 		return err
 	}
 
-	return b.Deserialize(bytes)
-}
-
-// CID ...
-// TODO: implement attributeName enum
-func (b Block) CID(attributeName string) (*cid.Cid, error) {
-	nd, err := cbor.WrapObject(struct {
-		BlockNumber   string
-		ImageHash     string
-		AttributeName string
-	}{
-		BlockNumber:   b.props.BlockNumber,
-		ImageHash:     b.props.ImageHash,
-		AttributeName: attributeName,
-	}, mh.SHA2_256, -1)
-	if err != nil {
-		return nil, err
-	}
-
-	return nd.Cid(), nil
+	return b.Deserialize([]byte(str))
 }
 
 // VerifyBlock verifies a block

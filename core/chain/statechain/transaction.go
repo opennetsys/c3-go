@@ -1,10 +1,10 @@
 package statechain
 
 import (
-	"encoding/hex"
 	"encoding/json"
 
 	"github.com/c3systems/c3/common/hashing"
+	"github.com/c3systems/c3/common/hexutil"
 )
 
 // NewTransaction ...
@@ -41,22 +41,22 @@ func (tx *Transaction) Deserialize(bytes []byte) error {
 
 // SerializeString ...
 func (tx Transaction) SerializeString() (string, error) {
-	bytes, err := json.Marshal(tx.props)
+	bytes, err := tx.Serialize()
 	if err != nil {
 		return "", err
 	}
 
-	return hex.EncodeToString(bytes), nil
+	return hexutil.EncodeString(string(bytes)), nil
 }
 
 // DeserializeString ...
-func (tx *Transaction) DeserializeString(str string) error {
-	bytes, err := hex.DecodeString(str)
+func (tx *Transaction) DeserializeString(hexStr string) error {
+	str, err := hexutil.DecodeString(hexStr)
 	if err != nil {
 		return err
 	}
 
-	return tx.Deserialize(bytes)
+	return tx.Deserialize([]byte(str))
 }
 
 // Hash ...

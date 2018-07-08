@@ -1,11 +1,10 @@
 package mainchain
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 
 	"github.com/c3systems/c3/common/hashing"
+	"github.com/c3systems/c3/common/hexutil"
 	"github.com/c3systems/c3/core/chain/statechain"
 )
 
@@ -71,18 +70,22 @@ func (b *Block) Deserialize(bytes []byte) error {
 
 // SerializeString ...
 func (b Block) SerializeString() (string, error) {
-	bytes, err := json.Marshal(b.props)
-	return hex.EncodeToString(bytes), err
+	bytes, err := b.Serialize()
+	if err != nil {
+		return "", err
+	}
+
+	return hexutil.EncodeString(string(bytes)), nil
 }
 
 // DeserializeString ...
-func (b *Block) DeserializeString(str string) error {
-	bytes, err := hex.DecodeString(str)
+func (b *Block) DeserializeString(hexStr string) error {
+	str, err := hexutil.DecodeString(hexStr)
 	if err != nil {
 		return err
 	}
 
-	return b.Deserialize(bytes)
+	return b.Deserialize([]byte(str))
 }
 
 // Hash ...
@@ -96,8 +99,7 @@ func (b Block) Hash() (string, error) {
 		return "", err
 	}
 
-	shaSum := sha256.Sum256(bytes)
-	return hex.EncodeToString(shaSum[:]), nil
+	return hashing.HashToHexString(bytes), nil
 }
 
 // VerifyBlock verifies a block

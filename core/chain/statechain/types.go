@@ -1,13 +1,22 @@
 package statechain
 
+// TxSig ...
+type TxSig struct {
+	R string `json:"r"`
+	S string `json:"s"`
+}
+
 // TransactionsMap is a list of transactions by image hashes
 type TransactionsMap map[string][]*Transaction
 
 // TransactionProps ...
 type TransactionProps struct {
-	TxHash  *string
-	Method  string
-	Payload interface{}
+	TxHash    *string     `json:"txHash,omitempty"`
+	ImageHash string      `json:"imageHash"`
+	Method    string      `json:"method"`
+	Payload   interface{} `json:"payload"`
+	From      string      `json:"from"`
+	Sig       TxSig       `json:"txSig"`
 }
 
 // Transaction ...
