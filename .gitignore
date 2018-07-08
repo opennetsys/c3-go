@@ -26,3 +26,5 @@ build/
 notes.txt
 
 .data/
+
+.testfiles/
