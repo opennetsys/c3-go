@@ -5,9 +5,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 
+	"github.com/c3systems/c3/common/hashing"
 	"github.com/c3systems/c3/core/chain/statechain"
-	//cbor "gx/ipfs/QmRVSCwQtW1rjHCay9NqKXDwbtKTgDcN4iY7PrpSqfKM5D/go-ipld-cbor"
-	//mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 )
 
 // ImageHash is the main chain identifier
@@ -107,8 +106,8 @@ func VerifyBlock(block *Block) (bool, error) {
 	return false, nil
 }
 
-// HashProps ...
-func HashProps(props Props) (string, error) {
+// Hash ...
+func Hash(props Props) (string, error) {
 	if props.BlockHash != nil {
 		return *props.BlockHash, nil
 	}
@@ -118,8 +117,7 @@ func HashProps(props Props) (string, error) {
 		return "", err
 	}
 
-	shaSum := sha256.Sum256(bytes)
-	return hex.EncodeToString(shaSum[:]), nil
+	return hashing.HashToHexString(bytes), nil
 }
 
 // NewFromStateBlocks ...

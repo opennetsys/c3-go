@@ -1,9 +1,10 @@
 package statechain
 
 import (
-	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+
+	"github.com/c3systems/c3/common/hashing"
 )
 
 // NewTransaction ...
@@ -69,6 +70,5 @@ func (tx Transaction) Hash() (string, error) {
 		return "", err
 	}
 
-	shaSum := sha256.Sum256(bytes)
-	return hex.EncodeToString(shaSum[:]), nil
+	return hashing.HashToHexString(bytes), nil
 }

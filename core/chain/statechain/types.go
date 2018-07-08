@@ -21,7 +21,8 @@ type StateBlockProps struct {
 	BlockNumber       string  `json:"blockNumber"`
 	BlockTime         string  `json:"blockTime"` // unix timestamp
 	ImageHash         string  `json:"imageHash"`
-	TxsHash           string  `json:"txsHash"`
+	TxsMerkleHash     string  `json:"txsMerkleHash"`
+	TxHashes          string  `json:"txHashes"`
 	StatePrevDiffHash string  `json:"statePrevDiffHash"`
 	StateCurrentHash  string  `json:"stateCurrentHash"`
 }

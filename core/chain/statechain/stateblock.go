@@ -1,20 +1,14 @@
 package statechain
 
 import (
-	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 
+	"github.com/c3systems/c3/common/hashing"
+
 	cid "github.com/ipfs/go-cid"
-	// cid "gx/ipfs/QmapdYm1b22Frv3k17fqrBYTFRxwiaVJkB299Mfn33edeB/go-cid"
-
-	mh "github.com/multiformats/go-multihash"
-	// cid "github.com/ipfs/go-cid"
-
 	cbor "github.com/ipfs/go-ipld-cbor"
-	// cbor "gx/ipfs/QmSF1Ksgn5d7JCTBt4e1yp4wzs6tpYyweCZ4PcDYp3tNeK/go-ipld-cbor"
-	//cbor "gx/ipfs/QmRVSCwQtW1rjHCay9NqKXDwbtKTgDcN4iY7PrpSqfKM5D/go-ipld-cbor"
-	//mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
+	mh "github.com/multiformats/go-multihash"
 )
 
 // New ...
@@ -105,8 +99,7 @@ func (b Block) Hash() (string, error) {
 		return "", err
 	}
 
-	shaSum := sha256.Sum256(bytes)
-	return hex.EncodeToString(shaSum[:]), nil
+	return hashing.HashToHexString(bytes, nil)
 }
 
 // BuildNextState ...
