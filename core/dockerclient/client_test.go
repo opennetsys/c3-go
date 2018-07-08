@@ -8,13 +8,20 @@ import (
 	"github.com/davecgh/go-spew/spew"
 )
 
+var (
+	TestImage    = "hello-world"
+	TestImageTar = "./test_data/hello-world.tar"
+)
+
 func TestNew(t *testing.T) {
-	client := New()
-	_ = client
+	client := NewClient()
+	if client == nil {
+		t.FailNow()
+	}
 }
 
 func TestListImages(t *testing.T) {
-	client := New()
+	client := NewClient()
 	images, err := client.ListImages()
 	if err != nil {
 		t.Fatal(err)
@@ -24,8 +31,8 @@ func TestListImages(t *testing.T) {
 }
 
 func TestReadImage(t *testing.T) {
-	client := New()
-	reader, err := client.ReadImage("hello-world")
+	client := NewClient()
+	reader, err := client.ReadImage(TestImage)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,8 +41,8 @@ func TestReadImage(t *testing.T) {
 }
 
 func TestLoadImage(t *testing.T) {
-	client := New()
-	input, err := os.Open("./test_data/hello-world.tar")
+	client := NewClient()
+	input, err := os.Open(TestImageTar)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,16 +53,16 @@ func TestLoadImage(t *testing.T) {
 }
 
 func TestLoadImageByFilepath(t *testing.T) {
-	client := New()
-	err := client.LoadImageByFilepath("./test_data/hello-world.tar")
+	client := NewClient()
+	err := client.LoadImageByFilepath(TestImageTar)
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestRunContainer(t *testing.T) {
-	client := New()
-	containerID, err := client.RunContainer("hello-world", []string{}, nil)
+	client := NewClient()
+	containerID, err := client.RunContainer(TestImage, []string{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,8 +73,8 @@ func TestRunContainer(t *testing.T) {
 }
 
 func TestStopContainer(t *testing.T) {
-	client := New()
-	containerID, err := client.RunContainer("hello-world", []string{}, nil)
+	client := NewClient()
+	containerID, err := client.RunContainer(TestImage, []string{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

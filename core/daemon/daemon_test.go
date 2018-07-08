@@ -3,7 +3,7 @@ package daemon
 import "testing"
 
 func TestNew(t *testing.T) {
-	daemon := New()
+	daemon := NewDaemon()
 	if daemon == nil {
 		t.FailNow()
 	}

@@ -3,7 +3,6 @@ package server
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"net"
 )
 
@@ -24,8 +23,8 @@ type Config struct {
 	Port int
 }
 
-// New ...
-func New(config *Config) *Server {
+// NewServer ...
+func NewServer(config *Config) *Server {
 	return &Server{
 		host: config.Host,
 		port: config.Port,
@@ -33,17 +32,17 @@ func New(config *Config) *Server {
 }
 
 // Run ...
-func (server *Server) Run() {
+func (server *Server) Run() error {
 	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%v", server.host, server.port))
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer listener.Close()
 
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 
 		client := &Client{

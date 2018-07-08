@@ -11,7 +11,6 @@ func TestNew(t *testing.T) {
 
 func TestRun(t *testing.T) {
 	sb := NewSandbox(&Config{})
-
 	err := sb.Play(&PlayConfig{
 		ImageID: "QmULmGLSnqf3pkLhdgrC9QxFXv1SuwqYkJw15QpoVzFiEh",
 		Payload: []byte(`{"foo": "bar"}`),

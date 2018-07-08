@@ -26,18 +26,12 @@ type Sandbox struct {
 type Config struct {
 }
 
-// PlayConfig ...
-type PlayConfig struct {
-	ImageID string // ipfs hash
-	Payload []byte
-}
-
 // NewSandbox ...
 func NewSandbox(config *Config) *Sandbox {
-	dckr := dockerclient.New()
-	dit := ditto.New(&ditto.Config{})
+	docker := dockerclient.NewClient()
+	dit := ditto.NewDitto(&ditto.Config{})
 	sb := &Sandbox{
-		docker:            dckr,
+		docker:            docker,
 		ditto:             dit,
 		sock:              "/var/run/docker.sock",
 		runningContainers: map[string]bool{},
@@ -46,6 +40,12 @@ func NewSandbox(config *Config) *Sandbox {
 	go sb.cleanupOnExit()
 
 	return sb
+}
+
+// PlayConfig ...
+type PlayConfig struct {
+	ImageID string // ipfs hash
+	Payload []byte
 }
 
 // TODO: include transaction inputs
@@ -65,6 +65,13 @@ func (s *Sandbox) Play(config *PlayConfig) error {
 	log.Printf("running container %s", containerID)
 	s.runningContainers[containerID] = true
 
+	info, err := s.docker.InspectContainer(containerID)
+	if err != nil {
+		return err
+	}
+
+	hostPort := info.NetworkSettings.Ports["3333/tcp"][0].HostPort
+
 	done := make(chan bool)
 	timedout := make(chan bool)
 
@@ -72,10 +79,12 @@ func (s *Sandbox) Play(config *PlayConfig) error {
 		// Wait for application to start up
 		// TODO: optimize
 		time.Sleep(1 * time.Second)
-		err := s.sendMessage(config.Payload)
+		err := s.sendMessage(config.Payload, hostPort)
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		done <- true
 	}()
 
 	go func() {
@@ -102,13 +111,14 @@ func (s *Sandbox) Play(config *PlayConfig) error {
 	}
 }
 
-func (s *Sandbox) sendMessage(msg []byte) error {
-	// TODO: use dynamic port
-	conn, err := net.Dial("tcp", "localhost:3333")
+func (s *Sandbox) sendMessage(msg []byte, port string) error {
+	host := fmt.Sprintf("localhost:%s", port)
+	conn, err := net.Dial("tcp", host)
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
+	fmt.Printf("writing to %s", host)
 	conn.Write(msg)
 	conn.Write([]byte("\n"))
 	return nil

@@ -10,20 +10,20 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	svc := New(&Config{})
-	if svc == nil {
+	ditto := NewDitto(&Config{})
+	if ditto == nil {
 		t.FailNow()
 	}
 }
 
 func TestPushImage(t *testing.T) {
-	svc := New(&Config{})
+	ditto := NewDitto(&Config{})
 	filepath := "./test_data/hello-world.tar"
 	reader, err := os.Open(filepath)
 	if err != nil {
 		t.Error(err)
 	}
-	err = svc.PushImage(reader)
+	err = ditto.PushImage(reader)
 	if err != nil {
 		t.Error(err)
 	}
@@ -36,16 +36,16 @@ func TestPushImageByID(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	svc := New(&Config{})
-	err = svc.PushImageByID("hello-world")
+	ditto := NewDitto(&Config{})
+	err = ditto.PushImageByID("hello-world")
 	if err != nil {
 		t.Error(err)
 	}
 }
 
 func TestDownloadImage(t *testing.T) {
-	svc := New(&Config{})
-	location, err := svc.DownloadImage("QmQuKQ6nmUoFZGKJLHcnqahq2xgq3xbgVsQBG6YL5eF7kh")
+	ditto := NewDitto(&Config{})
+	location, err := ditto.DownloadImage("QmQuKQ6nmUoFZGKJLHcnqahq2xgq3xbgVsQBG6YL5eF7kh")
 	if err != nil {
 		t.Error(err)
 	}
@@ -54,9 +54,9 @@ func TestDownloadImage(t *testing.T) {
 }
 
 func TestPullImage(t *testing.T) {
-	svc := New(&Config{})
+	ditto := NewDitto(&Config{})
 	//tag := time.Now().Unix()
-	_, err := svc.PullImage("QmQuKQ6nmUoFZGKJLHcnqahq2xgq3xbgVsQBG6YL5eF7kh")
+	_, err := ditto.PullImage("QmQuKQ6nmUoFZGKJLHcnqahq2xgq3xbgVsQBG6YL5eF7kh")
 	if err != nil {
 		t.Error(err)
 	}

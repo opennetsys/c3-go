@@ -10,8 +10,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
+	"github.com/c3systems/c3/common/network"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -25,8 +27,8 @@ type Client struct {
 	client *client.Client
 }
 
-// New ...
-func New() *Client {
+// NewClient ...
+func NewClient() *Client {
 	return newEnvClient()
 }
 
@@ -117,7 +119,7 @@ func (s *Client) ListImages() ([]*ImageSummary, error) {
 func (s *Client) PullImage(imageID string) error {
 	reader, err := s.client.ImagePull(context.Background(), imageID, types.ImagePullOptions{})
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	io.Copy(os.Stdout, reader)
 	return nil
@@ -129,7 +131,7 @@ func (s *Client) PushImage(imageID string) error {
 		RegistryAuth: "123", // if no auth, then any value is required
 	})
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	io.Copy(os.Stdout, reader)
 	return nil
@@ -146,6 +148,11 @@ type RunContainerConfig struct {
 
 // RunContainer ...
 func (s *Client) RunContainer(imageID string, cmd []string, config *RunContainerConfig) (string, error) {
+	hostPort, err := network.GetFreePort()
+	if err != nil {
+		return "", err
+	}
+
 	dockerConfig := &container.Config{
 		Image: imageID,
 		Cmd:   cmd,
@@ -166,11 +173,10 @@ func (s *Client) RunContainer(imageID string, cmd []string, config *RunContainer
 	resp, err := s.client.ContainerCreate(context.Background(), dockerConfig, &container.HostConfig{
 		Binds: nil,
 		PortBindings: map[nat.Port][]nat.PortBinding{
-			// TODO: use dynamic port
 			"3333/tcp": []nat.PortBinding{
 				{
 					HostIP:   "0.0.0.0",
-					HostPort: "3333",
+					HostPort: strconv.Itoa(hostPort),
 				},
 			},
 		},
@@ -318,13 +324,13 @@ func (s *Client) RunContainer(imageID string, cmd []string, config *RunContainer
 		}
 	*/
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
 	err = s.client.ContainerStart(context.Background(), resp.ID, types.ContainerStartOptions{})
 
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
 	log.Printf("running container %s", resp.ID)
@@ -337,12 +343,22 @@ func (s *Client) StopContainer(containerID string) error {
 	err := s.client.ContainerStop(context.Background(), containerID, nil)
 
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	log.Printf("stopping container %s", containerID)
 
 	return nil
+}
+
+// InspectContainer ...
+func (s *Client) InspectContainer(containerID string) (types.ContainerJSON, error) {
+	info, err := s.client.ContainerInspect(context.Background(), containerID)
+	if err != nil {
+		return types.ContainerJSON{}, err
+	}
+
+	return info, nil
 }
 
 // ReadImage ...

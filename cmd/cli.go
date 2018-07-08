@@ -11,19 +11,24 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var rootCmd *cobra.Command
+var (
+	// ErrImageIDRequired ...
+	ErrImageIDRequired = errors.New("image hash or name is required")
+	// ErrOnlyOneArgumentRequired ...
+	ErrOnlyOneArgumentRequired = errors.New("only one argument is required")
+)
 
 // Build ...
-func Build() {
+func Build() *cobra.Command {
 	var (
 		nodeURI string
 		dataDir string
 		peer    string
 	)
 
-	dittoSvc := ditto.New(&ditto.Config{})
+	dit := ditto.NewDitto(&ditto.Config{})
 
-	rootCmd = &cobra.Command{
+	rootCmd := &cobra.Command{
 		Use:   "c3",
 		Short: "C3 command line interface",
 		Long: `The command line interface for C3
@@ -41,16 +46,16 @@ For more info visit: https://github.com/c3systems/c3,
 		`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
-				return errors.New("image hash or name is required")
+				return ErrImageIDRequired
 			}
 			if len(args) != 1 {
-				return errors.New("only one argument is required")
+				return ErrOnlyOneArgumentRequired
 			}
 
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return dittoSvc.PushImageByID(args[0])
+			return dit.PushImageByID(args[0])
 		},
 	}
 
@@ -61,16 +66,16 @@ For more info visit: https://github.com/c3systems/c3,
 		`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
-				return errors.New("image hash or name is required")
+				return ErrImageIDRequired
 			}
 			if len(args) != 1 {
-				return errors.New("only one argument is required")
+				return ErrOnlyOneArgumentRequired
 			}
 
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			_, err := dittoSvc.PullImage(args[0])
+			_, err := dit.PullImage(args[0])
 			return err
 		},
 	}
@@ -102,10 +107,14 @@ For more info visit: https://github.com/c3systems/c3,
 
 	nodeCmd.AddCommand(startSubCmd)
 	rootCmd.AddCommand(pushCmd, pullCmd, nodeCmd)
+
+	return rootCmd
 }
 
 // Execute ...
 func Execute() {
+	rootCmd := Build()
+
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}

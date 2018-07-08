@@ -5,10 +5,15 @@ import (
 	"time"
 )
 
+var (
+	Host = "localhost"
+	Port = 3333
+)
+
 func TestNew(t *testing.T) {
-	server := New(&Config{
-		Host: "localhost",
-		Port: 3333,
+	server := NewServer(&Config{
+		Host: Host,
+		Port: Port,
 	})
 	if server == nil {
 		t.FailNow()
@@ -16,9 +21,9 @@ func TestNew(t *testing.T) {
 }
 
 func TestRun(t *testing.T) {
-	server := New(&Config{
-		Host: "localhost",
-		Port: 3333,
+	server := NewServer(&Config{
+		Host: Host,
+		Port: Port,
 	})
 	go server.Run()
 	time.Sleep(1 * time.Second)
