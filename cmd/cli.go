@@ -1,20 +1,19 @@
 package cmd
 
 import (
-	"log"
+	"errors"
 	"os"
 
+	"github.com/c3systems/c3/config"
 	"github.com/c3systems/c3/ditto"
 	"github.com/c3systems/c3/node"
 	nodetypes "github.com/c3systems/c3/node/types"
-	"github.com/go-openapi/errors"
 	"github.com/spf13/cobra"
 )
 
 var rootCmd *cobra.Command
 
 // Build ...
-// note: don't want to use init bc it will init even for tests, benchmarks, etc!
 func Build() {
 	var (
 		nodeURI string
@@ -41,13 +40,17 @@ For more info visit: https://github.com/c3systems/c3,
 		Long: `Push the docker image to the decentralized registry on IPFS
 		`,
 		Args: func(cmd *cobra.Command, args []string) error {
-			require(len(args) != 0, "image hash or name is required")
-			require(len(args) == 1, "only one argument is required")
+			if len(args) == 0 {
+				return errors.New("image hash or name is required")
+			}
+			if len(args) != 1 {
+				return errors.New("only one argument is required")
+			}
+
 			return nil
 		},
-		Run: func(cmd *cobra.Command, args []string) {
-			must(dittoSvc.PushImageByID(args[0]))
-			log.Println("success")
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return dittoSvc.PushImageByID(args[0])
 		},
 	}
 
@@ -57,13 +60,17 @@ For more info visit: https://github.com/c3systems/c3,
 		Long: `Pull the docker image from the decentralized registry on IPFS
 		`,
 		Args: func(cmd *cobra.Command, args []string) error {
-			require(len(args) != 0, "image hash or name is required")
-			require(len(args) == 1, "only one argument is required")
+			if len(args) == 0 {
+				return errors.New("image hash or name is required")
+			}
+			if len(args) != 1 {
+				return errors.New("only one argument is required")
+			}
+
 			return nil
 		},
-		Run: func(cmd *cobra.Command, args []string) {
-			must(dittoSvc.PullImage(args[0], "", ""))
-			log.Println("success")
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return dittoSvc.PullImage(args[0], "", "")
 		},
 	}
 
@@ -77,18 +84,18 @@ For more info visit: https://github.com/c3systems/c3,
 		Use:   "start [OPTIONS]",
 		Short: "Start a c3 node",
 		Long:  "By starting a c3 node, you will participate in the c3 network: mining and storing blocks and responding to RPC requests. Thank you, you are making the c3 network stronger by participating.",
-		Run: func(cmd *cobra.Command, args []string) {
-			must(node.Start(&nodetypes.CFG{
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return node.Start(&nodetypes.Config{
 				URI:     nodeURI,
 				Peer:    peer,
 				DataDir: dataDir,
-			}))
+			})
 		},
 	}
 	startSubCmd.Flags().StringVarP(&nodeURI, "uri", "u", "/ip4/0.0.0.0/tcp/9000", "The host on which to run the node")
 	startSubCmd.Flags().StringVarP(&peer, "peer", "p", "", "A peer to which to connect")
 	//startSubCmd.MarkFlagRequired("uri")
-	startSubCmd.Flags().StringVarP(&dataDir, "data-dir", "d", "~/c3-data/", "The directory in which to save data")
+	startSubCmd.Flags().StringVarP(&dataDir, "data-dir", "d", config.DefaultStoreDirectory, "The directory in which to save data")
 	//startSubCmd.MarkFlagRequired("data-dir")
 	// TODO: add more flags for blockstore and nodestore, etc.
 
@@ -99,32 +106,6 @@ For more info visit: https://github.com/c3systems/c3,
 // Execute ...
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		log.Fatal(err)
+		os.Exit(1)
 	}
-}
-
-func require(cond bool, err string) {
-	if !cond {
-		logFatal(err)
-	}
-}
-
-func must(err error) {
-	if err != nil {
-		logFatal(err)
-	}
-}
-
-func logFatal(ierr interface{}) {
-	switch v := ierr.(type) {
-	case errors.Error:
-		log.Println(v)
-	case string:
-		log.Println(v)
-	//case *errors.errorString:
-	//log.Println(v)
-	default:
-		log.Printf("%T\n%v", v, ierr)
-	}
-	os.Exit(1)
 }

@@ -15,8 +15,8 @@ type GetInfoResponse struct {
 	BlockHeight string
 }
 
-// CFG ...
-type CFG struct {
+// Config ...
+type Config struct {
 	URI     string
 	Peer    string
 	DataDir string

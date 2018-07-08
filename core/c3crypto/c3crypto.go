@@ -1,4 +1,4 @@
-package c3crypto
+package crypto
 
 import (
 	"crypto/ecdsa"

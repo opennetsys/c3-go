@@ -24,7 +24,7 @@ import (
 
 // Start ...
 // note: start is called from cobra
-func Start(cfg *nodetypes.CFG) error {
+func Start(cfg *nodetypes.Config) error {
 	c, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	//c := context.Background()

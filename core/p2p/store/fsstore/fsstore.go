@@ -1,19 +1,20 @@
 package fsstore
 
 import (
-	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"runtime"
+	"strings"
 
 	flatfs "github.com/ipfs/go-ds-flatfs"
 )
 
 // New ...
 func New(path string) (*flatfs.Datastore, error) {
-	dir := path
-	if dir == "~/c3-data/" {
-		dir = fmt.Sprintf("%s/c3-data", userHomeDir())
+	// expand tilde
+	if strings.HasPrefix(path, "~/") {
+		path = filepath.Join(userHomeDir(), path[2:])
 	}
 
 	var (
@@ -21,19 +22,20 @@ func New(path string) (*flatfs.Datastore, error) {
 		err     error
 	)
 
-	if err := createDirIfNotExist(dir); err != nil {
+	if err := createDirIfNotExist(path); err != nil {
 		return nil, err
 	}
 
-	shardFn, err = flatfs.ReadShardFunc(dir)
+	shardFn, err = flatfs.ReadShardFunc(path)
 	if shardFn == nil || err != nil {
 		shardFn = flatfs.Prefix(4)
-		if err := flatfs.WriteShardFunc(dir, shardFn); err != nil {
+		if err := flatfs.WriteShardFunc(path, shardFn); err != nil {
 			return nil, err
 		}
 	}
 	log.Printf("shard func: %v\nshard string: %s\n", shardFn.Func(), shardFn.String())
-	return flatfs.CreateOrOpen(dir, shardFn, true)
+
+	return flatfs.CreateOrOpen(path, shardFn, true)
 }
 
 func userHomeDir() string {
@@ -52,9 +54,9 @@ func userHomeDir() string {
 	return os.Getenv("HOME")
 }
 
-func createDirIfNotExist(dir string) error {
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		return os.MkdirAll(dir, 0757)
+func createDirIfNotExist(path string) error {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return os.MkdirAll(path, 0757)
 	}
 
 	return nil
