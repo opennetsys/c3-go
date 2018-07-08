@@ -25,7 +25,7 @@ import (
 // Start ...
 // note: start is called from cobra
 func Start(cfg *nodetypes.Config) error {
-	c, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	//c := context.Background()
 
@@ -34,12 +34,12 @@ func Start(cfg *nodetypes.Config) error {
 		return errors.New("config is required to start the node")
 	}
 
-	newNode, err := libp2p.New(c, libp2p.Defaults, libp2p.ListenAddrStrings(cfg.URI))
+	newNode, err := libp2p.New(ctx, libp2p.Defaults, libp2p.ListenAddrStrings(cfg.URI))
 	if err != nil {
 		return fmt.Errorf("err building libp2p service\n%v", err)
 	}
 
-	pubsub, err := floodsub.NewFloodSub(c, newNode)
+	pubsub, err := floodsub.NewFloodSub(ctx, newNode)
 	if err != nil {
 		return fmt.Errorf("err building new pubsub service\n%v", err)
 	}
@@ -59,7 +59,7 @@ func Start(cfg *nodetypes.Config) error {
 			return fmt.Errorf("err getting info from peerstore\n%v", err)
 		}
 
-		if err := newNode.Connect(c, *pinfo); err != nil {
+		if err := newNode.Connect(ctx, *pinfo); err != nil {
 			log.Printf("bootstrapping a peer failed\n%v", err)
 		}
 	}
@@ -93,8 +93,8 @@ func Start(cfg *nodetypes.Config) error {
 
 	ch := make(chan interface{})
 	n, err := New(&Props{
-		CTX:        c,
-		CH:         ch,
+		Context:    ctx,
+		Channel:    ch,
 		Host:       newNode,
 		Store:      memPool,
 		Blockchain: blockchain,

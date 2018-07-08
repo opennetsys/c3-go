@@ -39,6 +39,5 @@ func TestNew(t *testing.T) {
 		t.Error(err)
 	}
 
-	// TODO
 	_ = svc
 }

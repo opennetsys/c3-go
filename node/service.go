@@ -47,9 +47,9 @@ func (s Service) listenBlocks() error {
 
 	go func() {
 		for {
-			msg, err := sub.Next(s.props.CTX)
+			msg, err := sub.Next(s.props.Context)
 			if err != nil {
-				s.props.CH <- err
+				s.props.Channel <- err
 				continue
 			}
 
@@ -60,11 +60,11 @@ func (s Service) listenBlocks() error {
 
 			var block mainchain.Block
 			if err := block.Deserialize(msg.GetData()); err != nil {
-				s.props.CH <- err
+				s.props.Channel <- err
 				continue
 			}
 
-			s.props.CH <- &block
+			s.props.Channel <- &block
 
 			//log.Println("Block received over network, blockhash", block.Props().BlockHash)
 			//cid := node.blockchain.AddMainBlock(&block)
@@ -86,9 +86,9 @@ func (s Service) listenTransactions() error {
 
 	go func() {
 		for {
-			msg, err := sub.Next(s.props.CTX)
+			msg, err := sub.Next(s.props.Context)
 			if err != nil {
-				s.props.CH <- err
+				s.props.Channel <- err
 				continue
 			}
 
@@ -99,15 +99,15 @@ func (s Service) listenTransactions() error {
 
 			var tx statechain.Transaction
 			if err := tx.Deserialize(msg.GetData()); err != nil {
-				s.props.CH <- err
+				s.props.Channel <- err
 				continue
 			}
 			if err := s.props.Store.AddTx(&tx); err != nil {
-				s.props.CH <- err
+				s.props.Channel <- err
 				continue
 			}
 
-			s.props.CH <- &tx
+			s.props.Channel <- &tx
 		}
 	}()
 
