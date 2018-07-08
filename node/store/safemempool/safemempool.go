@@ -129,18 +129,18 @@ func (s Service) AddTx(tx *statechain.Transaction) error {
 	if tx == nil {
 		return errors.New("cannot add a nil transaction")
 	}
+	if tx.Props().TxHash == nil {
+		return errors.New("nil tx hash")
+	}
 
 	bytesStr, err := tx.SerializeString()
 	if err != nil {
 		return err
 	}
 
-	hash, err := tx.Hash()
-	if err != nil {
-		return err
-	}
+	hash := tx.Props().TxHash
 	s.poolMut.mut.Lock()
-	s.poolMut.pool[buildKey(hash)] = bytesStr
+	s.poolMut.pool[buildKey(*hash)] = bytesStr
 	s.poolMut.mut.Unlock()
 
 	return nil

@@ -8,7 +8,7 @@ import (
 )
 
 // New ...
-func New(props *StateBlockProps) *Block {
+func New(props *BlockProps) *Block {
 	if props == nil {
 		return &Block{}
 	}
@@ -19,7 +19,7 @@ func New(props *StateBlockProps) *Block {
 }
 
 // Props ...
-func (b Block) Props() StateBlockProps {
+func (b Block) Props() BlockProps {
 	return b.props
 }
 
@@ -30,7 +30,11 @@ func (b Block) Serialize() ([]byte, error) {
 
 // Deserialize ...
 func (b *Block) Deserialize(bytes []byte) error {
-	var tmpProps StateBlockProps
+	if b == nil {
+		return ErrNilBlock
+	}
+
+	var tmpProps BlockProps
 	if err := json.Unmarshal(bytes, &tmpProps); err != nil {
 		return err
 	}
@@ -51,6 +55,10 @@ func (b Block) SerializeString() (string, error) {
 
 // DeserializeString ...
 func (b *Block) DeserializeString(hexStr string) error {
+	if b == nil {
+		return ErrNilBlock
+	}
+
 	str, err := hexutil.DecodeString(hexStr)
 	if err != nil {
 		return err
@@ -59,19 +67,21 @@ func (b *Block) DeserializeString(hexStr string) error {
 	return b.Deserialize([]byte(str))
 }
 
-// VerifyBlock verifies a block
-// TODO: everything
-func VerifyBlock(block *Block) (bool, error) {
-	return false, nil
-}
-
-// Hash ...
-func (b Block) Hash() (string, error) {
-	if b.props.BlockHash != nil {
-		return *b.props.BlockHash, nil
+// CalcHash ...
+func (b Block) CalcHash() (string, error) {
+	tmpBlock := Block{
+		props: BlockProps{
+			BlockNumber:       b.props.BlockNumber,
+			BlockTime:         b.props.BlockTime,
+			ImageHash:         b.props.ImageHash,
+			TxsMerkleHash:     b.props.TxsMerkleHash,
+			TxHashes:          b.props.TxHashes,
+			StatePrevDiffHash: b.props.StatePrevDiffHash,
+			StateCurrentHash:  b.props.StateCurrentHash,
+		},
 	}
 
-	bytes, err := b.Serialize()
+	bytes, err := tmpBlock.Serialize()
 	if err != nil {
 		return "", err
 	}
@@ -79,8 +89,18 @@ func (b Block) Hash() (string, error) {
 	return hashing.HashToHexString(bytes), nil
 }
 
-// BuildNextState ...
-// TODO: everything...
-func BuildNextState(imageHash string, transactions []*Transaction) (*Block, error) {
-	return nil, nil
+// SetHash ...
+func (b *Block) SetHash() error {
+	if b == nil {
+		return ErrNilBlock
+	}
+
+	hash, err := b.CalcHash()
+	if err != nil {
+		return err
+	}
+
+	b.props.BlockHash = &hash
+
+	return nil
 }

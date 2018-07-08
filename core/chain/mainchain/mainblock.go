@@ -5,37 +5,13 @@ import (
 
 	"github.com/c3systems/c3/common/hashing"
 	"github.com/c3systems/c3/common/hexutil"
-	"github.com/c3systems/c3/core/chain/statechain"
 )
 
-// ImageHash is the main chain identifier
-// The main chain does not have an image (i.e. the image hash is nil).
-// The hex encoded, sha256 hash of a nil bytes array is ImageHash
-// https://play.golang.org/p/33_3vY6XyjD
-const ImageHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-
-// Props ...
-type Props struct {
-	BlockHash       *string `json:"blockHash,omitempty"`
-	BlockNumber     string  `json:"blockNumber"`
-	BlockTime       string  `json:"blockTime"` // unix timestamp
-	ImageHash       string  `json:"imageHash"`
-	StateBlocksHash string  `json:"stateBlocksHash"`
-	PrevBlockHash   string  `json:"prevBlockHash"`
-	Nonce           string  `json:"nonce"`
-	Difficulty      string  `json:"difficulty"`
-}
-
-// Block ...
-type Block struct {
-	props Props
-}
-
 // New ...
-func New(props *Props) *Block {
+func New(props *BlockProps) *Block {
 	if props == nil {
 		return &Block{
-			props: Props{
+			props: BlockProps{
 				ImageHash: ImageHash,
 			},
 		}
@@ -48,7 +24,7 @@ func New(props *Props) *Block {
 }
 
 // Props ...
-func (b Block) Props() Props {
+func (b Block) Props() BlockProps {
 	return b.props
 }
 
@@ -59,7 +35,11 @@ func (b Block) Serialize() ([]byte, error) {
 
 // Deserialize ...
 func (b *Block) Deserialize(bytes []byte) error {
-	var tmpProps Props
+	if b == nil {
+		return ErrNilBlock
+	}
+
+	var tmpProps BlockProps
 	if err := json.Unmarshal(bytes, &tmpProps); err != nil {
 		return err
 	}
@@ -80,6 +60,10 @@ func (b Block) SerializeString() (string, error) {
 
 // DeserializeString ...
 func (b *Block) DeserializeString(hexStr string) error {
+	if b == nil {
+		return ErrNilBlock
+	}
+
 	str, err := hexutil.DecodeString(hexStr)
 	if err != nil {
 		return err
@@ -88,13 +72,23 @@ func (b *Block) DeserializeString(hexStr string) error {
 	return b.Deserialize([]byte(str))
 }
 
-// Hash ...
-func (b Block) Hash() (string, error) {
-	if b.props.BlockHash != nil {
-		return *b.props.BlockHash, nil
+// CalcHash ...
+func (b Block) CalcHash() (string, error) {
+	tmpBlock := Block{
+		props: BlockProps{
+			BlockNumber:           b.props.BlockNumber,
+			BlockTime:             b.props.BlockTime,
+			ImageHash:             b.props.ImageHash,
+			StateBlocksMerkleHash: b.props.StateBlocksMerkleHash,
+			StateBlockHashes:      b.props.StateBlockHashes,
+			PrevBlockHash:         b.props.PrevBlockHash,
+			Nonce:                 b.props.Nonce,
+			Difficulty:            b.props.Difficulty,
+			MinerAddress:          b.props.MinerAddress,
+		},
 	}
 
-	bytes, err := b.Serialize()
+	bytes, err := tmpBlock.Serialize()
 	if err != nil {
 		return "", err
 	}
@@ -102,28 +96,18 @@ func (b Block) Hash() (string, error) {
 	return hashing.HashToHexString(bytes), nil
 }
 
-// VerifyBlock verifies a block
-// TODO: everything
-func VerifyBlock(block *Block) (bool, error) {
-	return false, nil
-}
-
-// Hash ...
-func Hash(props Props) (string, error) {
-	if props.BlockHash != nil {
-		return *props.BlockHash, nil
+// SetHash ...
+func (b *Block) SetHash() error {
+	if b == nil {
+		return ErrNilBlock
 	}
 
-	bytes, err := json.Marshal(props)
+	hash, err := b.CalcHash()
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	return hashing.HashToHexString(bytes), nil
-}
+	b.props.BlockHash = &hash
 
-// NewFromStateBlocks ...
-// TODO: everything...
-func NewFromStateBlocks(stateBlocks []*statechain.Block) (*Block, error) {
-	return nil, nil
+	return nil
 }
