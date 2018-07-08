@@ -108,19 +108,7 @@ func Start(cfg *nodetypes.Config) error {
 		return fmt.Errorf("err starting node\n%v", err)
 	}
 
-	//go func() {
 	log.Printf("Node %s started", newNode.ID().Pretty())
-	hash := "fakeHash"
-	tx := statechain.NewTransaction(&statechain.TransactionProps{
-		TxHash:  &hash,
-		Method:  "foo",
-		Payload: "bar",
-	})
-	res, err := n.BroadcastTransaction(tx)
-	if err != nil {
-		log.Printf("err broadcasting tx\n%v", err)
-	}
-	log.Printf("tx resp\n%v", res)
 
 	for {
 		switch v := <-ch; v.(type) {
@@ -129,20 +117,10 @@ func Start(cfg *nodetypes.Config) error {
 
 		case *mainchain.Block, *statechain.Block, *statechain.Transaction:
 			// do a stoofs
-			log.Printf("received %T\n%v", v, v)
+			log.Printf("[node] received %T\n%v", v, v)
 
 		default:
 			log.Printf("[node] received an unknown message on channel of type %T\n%v", v, v)
 		}
 	}
-	//}()
-
-	//return nil
-	//blockchain := NewBlockchain(newNode)
-
-	//node.p2pNode = newNode
-	//node.mempool = NewMempool()
-	//node.pubsub = pubsub
-	//node.blockchain = blockchain
-	//node.wallet = NewWallet()
 }
