@@ -30,6 +30,14 @@ $ c3 push {imageID}
 $ c3 pull {ipfsHash}
 ```
 
+## Test
+
+```bash
+make test
+```
+
+Tests require docker daemon and IPFS daemon to be running
+
 ## License
 
--
+[Apache 2.0](LICENSE)

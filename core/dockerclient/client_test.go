@@ -35,7 +35,7 @@ func TestReadImage(t *testing.T) {
 
 func TestLoadImage(t *testing.T) {
 	client := New()
-	input, err := os.Open("/var/folders/k1/m2rmftgd48q97pj0xf9csdb00000gn/T/504639980/QmQuKQ6nmUoFZGKJLHcnqahq2xgq3xbgVsQBG6YL5eF7kh.tar")
+	input, err := os.Open("./test_data/hello-world.tar")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +47,32 @@ func TestLoadImage(t *testing.T) {
 
 func TestLoadImageByFilepath(t *testing.T) {
 	client := New()
-	err := client.LoadImageByFilepath("/var/folders/k1/m2rmftgd48q97pj0xf9csdb00000gn/T/504639980/QmQuKQ6nmUoFZGKJLHcnqahq2xgq3xbgVsQBG6YL5eF7kh.tar")
+	err := client.LoadImageByFilepath("./test_data/hello-world.tar")
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRunContainer(t *testing.T) {
+	client := New()
+	containerID, err := client.RunContainer("bash-counter", []string{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if containerID == "" {
+		t.Fatal("expected container ID")
+	}
+}
+
+func TestStopContainer(t *testing.T) {
+	client := New()
+	containerID, err := client.RunContainer("bash-counter", []string{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = client.StopContainer(containerID)
 	if err != nil {
 		t.Fatal(err)
 	}

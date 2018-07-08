@@ -19,6 +19,7 @@ func Build() {
 	var (
 		nodeURI string
 		dataDir string
+		peer    string
 	)
 
 	dittoSvc := ditto.New(&ditto.Config{})
@@ -79,14 +80,16 @@ For more info visit: https://github.com/c3systems/c3,
 		Run: func(cmd *cobra.Command, args []string) {
 			must(node.Start(&nodetypes.CFG{
 				URI:     nodeURI,
+				Peer:    peer,
 				DataDir: dataDir,
 			}))
 		},
 	}
-	startSubCmd.Flags().StringVarP(&nodeURI, "uri", "u", "localhost:8080", "The host on which to run the node")
-	startSubCmd.MarkFlagRequired("uri")
-	startSubCmd.Flags().StringVarP(&dataDir, "data-dir", "d", "/c3-data", "The directory in which to save data")
-	startSubCmd.MarkFlagRequired("data-dir")
+	startSubCmd.Flags().StringVarP(&nodeURI, "uri", "u", "/ip4/0.0.0.0/tcp/9000", "The host on which to run the node")
+	startSubCmd.Flags().StringVarP(&peer, "peer", "p", "", "A peer to which to connect")
+	//startSubCmd.MarkFlagRequired("uri")
+	startSubCmd.Flags().StringVarP(&dataDir, "data-dir", "d", "~/c3-data/", "The directory in which to save data")
+	//startSubCmd.MarkFlagRequired("data-dir")
 	// TODO: add more flags for blockstore and nodestore, etc.
 
 	nodeCmd.AddCommand(startSubCmd)
@@ -118,6 +121,10 @@ func logFatal(ierr interface{}) {
 		log.Println(v)
 	case string:
 		log.Println(v)
+	//case *errors.errorString:
+	//log.Println(v)
+	default:
+		log.Printf("%T\n%v", v, ierr)
 	}
 	os.Exit(1)
 }

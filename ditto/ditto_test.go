@@ -2,9 +2,12 @@ package ditto
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/c3systems/c3/core/dockerclient"
 )
 
 func TestNew(t *testing.T) {
@@ -26,8 +29,14 @@ func TestPushImage(t *testing.T) {
 }
 
 func TestPushImageByID(t *testing.T) {
+	client := dockerclient.New()
+	err := client.LoadImageByFilepath("./test_data/hello-world.tar")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	svc := New(&Config{})
-	err := svc.PushImageByID("hello-world")
+	err = svc.PushImageByID("hello-world")
 	if err != nil {
 		t.Error(err)
 	}

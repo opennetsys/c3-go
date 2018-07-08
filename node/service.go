@@ -6,6 +6,7 @@ import (
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/statechain"
 	nodetypes "github.com/c3systems/c3/node/types"
+	peer "github.com/libp2p/go-libp2p-peer"
 	//"github.com/c3systems/c3/node/wallet"
 	//ipfsaddr "github.com/ipfs/go-ipfs-addr"
 	//libp2p "github.com/libp2p/go-libp2p"
@@ -52,6 +53,11 @@ func (s Service) listenBlocks() error {
 				continue
 			}
 
+			if peer.ID(msg.GetFrom()).Pretty() == s.props.Host.ID().Pretty() {
+				// note: received a message from ourselves
+				continue
+			}
+
 			var block mainchain.Block
 			if err := block.Deserialize(msg.GetData()); err != nil {
 				s.props.CH <- err
@@ -83,6 +89,11 @@ func (s Service) listenTransactions() error {
 			msg, err := sub.Next(s.props.CTX)
 			if err != nil {
 				s.props.CH <- err
+				continue
+			}
+
+			if peer.ID(msg.GetFrom()).Pretty() == s.props.Host.ID().Pretty() {
+				// note: received a message from ourselves
 				continue
 			}
 

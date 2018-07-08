@@ -22,6 +22,7 @@ func TestPullImage(t *testing.T) {
 }
 
 func TestPushImage(t *testing.T) {
+	t.Skip()
 	registry := New(&Config{
 		Host: "localhost:5000",
 	})
