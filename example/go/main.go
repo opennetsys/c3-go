@@ -26,4 +26,5 @@ func main() {
 	data := &Data{}
 	client.RegisterMethod("setItem", []string{"string", "string"}, data.setItem)
 	client.RegisterMethod("getItem", []string{"string"}, data.getItem)
+	client.Serve()
 }

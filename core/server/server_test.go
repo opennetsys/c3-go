@@ -10,7 +10,9 @@ func TestNew(t *testing.T) {
 		Host: "localhost",
 		Port: 3333,
 	})
-	_ = server
+	if server == nil {
+		t.FailNow()
+	}
 }
 
 func TestRun(t *testing.T) {

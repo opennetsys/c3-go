@@ -2,7 +2,12 @@ package sandbox
 
 import (
 	"errors"
+	"fmt"
 	"log"
+	"net"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/c3systems/c3/core/dockerclient"
@@ -11,9 +16,10 @@ import (
 
 // Sandbox ...
 type Sandbox struct {
-	docker *dockerclient.Client
-	ditto  *ditto.Ditto
-	sock   string
+	docker            *dockerclient.Client
+	ditto             *ditto.Ditto
+	sock              string
+	runningContainers map[string]bool
 }
 
 // Config ...
@@ -22,32 +28,27 @@ type Config struct {
 
 // PlayConfig ...
 type PlayConfig struct {
-	ImageID    string // ipfs hash
-	StateBlock string
+	ImageID string // ipfs hash
+	Payload []byte
 }
 
 // NewSandbox ...
 func NewSandbox(config *Config) *Sandbox {
 	dckr := dockerclient.New()
 	dit := ditto.New(&ditto.Config{})
-
-	return &Sandbox{
-		docker: dckr,
-		ditto:  dit,
-		sock:   "/var/run/docker.sock",
+	sb := &Sandbox{
+		docker:            dckr,
+		ditto:             dit,
+		sock:              "/var/run/docker.sock",
+		runningContainers: map[string]bool{},
 	}
+
+	go sb.cleanupOnExit()
+
+	return sb
 }
 
-/*
-[The] simplest way is to just expose the Docker socket to your CI container, by bind-mounting it with the -v flag.
-
-Simply put, when you start your CI container (Jenkins or other), instead of hacking something together with Docker-in-Docker, start it with:
-
-docker run -v /var/run/docker.sock:/var/run/docker.sock ...
-Now this container will have access to the Docker socket, and will therefore be able to start containers. Except that instead of starting "child" containers, it will start "sibling" containers.
-*/
-
-// docker run -v /var/run/docker.sock:/var/run/docker.sock ...
+// TODO: include transaction inputs
 
 // Play ...
 func (s *Sandbox) Play(config *PlayConfig) error {
@@ -62,21 +63,35 @@ func (s *Sandbox) Play(config *PlayConfig) error {
 	}
 
 	log.Printf("running container %s", containerID)
+	s.runningContainers[containerID] = true
 
 	done := make(chan bool)
 	timedout := make(chan bool)
 
 	go func() {
+		// Wait for application to start up
+		// TODO: optimize
+		time.Sleep(1 * time.Second)
+		err := s.sendMessage(config.Payload)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	go func() {
 		select {
-		case <-time.After(10 * time.Second):
+		case <-time.After(1 * time.Minute):
 			err := s.docker.StopContainer(containerID)
 			if err != nil {
 				log.Fatal(err)
 			}
 
+			delete(s.runningContainers, containerID)
 			timedout <- true
 		}
 	}()
+
+	// TODO: return new state
 
 	select {
 	case <-timedout:
@@ -84,5 +99,36 @@ func (s *Sandbox) Play(config *PlayConfig) error {
 	case <-done:
 		log.Println("done")
 		return nil
+	}
+}
+
+func (s *Sandbox) sendMessage(msg []byte) error {
+	// TODO: use dynamic port
+	conn, err := net.Dial("tcp", "localhost:3333")
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	conn.Write(msg)
+	conn.Write([]byte("\n"))
+	return nil
+}
+
+func (s *Sandbox) cleanupOnExit() {
+	var gracefulStop = make(chan os.Signal)
+	signal.Notify(gracefulStop, syscall.SIGTERM)
+	signal.Notify(gracefulStop, syscall.SIGINT)
+	sig := <-gracefulStop
+	fmt.Printf("caught sig: %+v", sig)
+	s.cleanup()
+	os.Exit(0)
+}
+
+func (s *Sandbox) cleanup() {
+	for cid := range s.runningContainers {
+		err := s.docker.StopContainer(cid)
+		if err != nil {
+			log.Println("error", err)
+		}
 	}
 }

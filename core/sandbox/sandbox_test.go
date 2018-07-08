@@ -13,7 +13,8 @@ func TestRun(t *testing.T) {
 	sb := NewSandbox(&Config{})
 
 	err := sb.Play(&PlayConfig{
-		ImageID: "QmfWyWxPGStRbVC6qaN4bVERjjGtc67nxLMRubHU18f6JX",
+		ImageID: "QmULmGLSnqf3pkLhdgrC9QxFXv1SuwqYkJw15QpoVzFiEh",
+		Payload: []byte(`{"foo": "bar"}`),
 	})
 
 	if err != nil {
