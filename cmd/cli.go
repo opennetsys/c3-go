@@ -70,7 +70,8 @@ For more info visit: https://github.com/c3systems/c3,
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return dittoSvc.PullImage(args[0], "", "")
+			_, err := dittoSvc.PullImage(args[0])
+			return err
 		},
 	}
 

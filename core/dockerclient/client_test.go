@@ -55,7 +55,7 @@ func TestLoadImageByFilepath(t *testing.T) {
 
 func TestRunContainer(t *testing.T) {
 	client := New()
-	containerID, err := client.RunContainer("bash-counter", []string{})
+	containerID, err := client.RunContainer("hello-world", []string{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +67,7 @@ func TestRunContainer(t *testing.T) {
 
 func TestStopContainer(t *testing.T) {
 	client := New()
-	containerID, err := client.RunContainer("bash-counter", []string{})
+	containerID, err := client.RunContainer("hello-world", []string{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

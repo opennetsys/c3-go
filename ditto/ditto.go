@@ -85,18 +85,17 @@ func (s Ditto) DownloadImage(ipfsHash string) (string, error) {
 }
 
 // PullImage pull Docker image from IPFS
-func (s Ditto) PullImage(ipfsHash, imageName, imageTag string) error {
+func (s Ditto) PullImage(ipfsHash string) (string, error) {
 	go server.Run()
 	client := dockerclient.New()
 
-	url := "123.123.123.123:5000/" + util.DockerizeHash(ipfsHash)
-	err := client.PullImage(url)
+	dockerImageID := "123.123.123.123:5000/" + util.DockerizeHash(ipfsHash)
+	err := client.PullImage(dockerImageID)
 	if err != nil {
-		log.Fatal(err)
+		return dockerImageID, err
 	}
-	//server.Close()
 
-	return nil
+	return dockerImageID, nil
 }
 
 func mktmp() string {
@@ -112,22 +111,26 @@ func ipfsPrep(tmp string) (string, error) {
 	root := mktmp()
 	workdir := root
 	fmt.Println("preparing image in:", workdir)
-	reposJSON, err := readJSON(tmp + "/repositories")
-	if err != nil {
-		return "", err
-	}
-	if len(reposJSON) != 1 {
-		return "", errors.New("only one repository expected in input file")
-	}
-	var name string
-	for imageName, tags := range reposJSON {
-		fmt.Println(imageName, tags)
-		if len(tags) != 1 {
-			return "", fmt.Errorf("only one tag expected for %s", imageName)
+	name := "default"
+
+	// read human readable name of image
+	if _, err := os.Stat(tmp + "repositories"); err == nil {
+		reposJSON, err := readJSON(tmp + "/repositories")
+		if err != nil {
+			return "", err
 		}
-		for tag, hash := range tags {
-			name = normalizeImageName(imageName)
-			fmt.Printf("processing image:%s tag:%s hash:256:%s", name, tag, hash)
+		if len(reposJSON) != 1 {
+			return "", errors.New("only one repository expected in input file")
+		}
+		for imageName, tags := range reposJSON {
+			fmt.Println(imageName, tags)
+			if len(tags) != 1 {
+				return "", fmt.Errorf("only one tag expected for %s", imageName)
+			}
+			for tag, hash := range tags {
+				name = normalizeImageName(imageName)
+				fmt.Printf("processing image:%s tag:%s hash:256:%s", name, tag, hash)
+			}
 		}
 	}
 

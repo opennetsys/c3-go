@@ -37,6 +37,10 @@ clean:
 	@go clean && \
 	rm -rf bin/
 
+.PHONY: ipfs/daemon
+ipfs/daemon:
+	@ipfs daemon
+
 .PHONY: test/before
 test/before:
 	# proxy localhost to 123.123.123.123 required so that docker container can communicate with host machine
@@ -58,13 +62,18 @@ test/core/server:
 test/core/dockerclient:
 	@go test -v core/dockerclient/*.go $(ARGS)
 
+.PHONY: test/core/sandbox
+test/core/sandbox:
+	@go test -v core/sandbox/*.go $(ARGS)
+
 .PHONY: test/core/registry
 test/core/registry:
 	@go test -v core/registry/*.go
 
 .PHONY: test/ditto
 test/ditto:
-	@go test -v ditto/*.go $(ARGS)
+	@docker pull hello-world &&
+	go test -v ditto/*.go $(ARGS)
 
 .PHONY: test/docker/build/snapshot
 test/docker/build/snapshot:

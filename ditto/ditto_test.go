@@ -5,14 +5,15 @@ import (
 	"log"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/c3systems/c3/core/dockerclient"
 )
 
 func TestNew(t *testing.T) {
 	svc := New(&Config{})
-	_ = svc
+	if svc == nil {
+		t.FailNow()
+	}
 }
 
 func TestPushImage(t *testing.T) {
@@ -54,8 +55,8 @@ func TestDownloadImage(t *testing.T) {
 
 func TestPullImage(t *testing.T) {
 	svc := New(&Config{})
-	tag := time.Now().Unix()
-	err := svc.PullImage("QmQuKQ6nmUoFZGKJLHcnqahq2xgq3xbgVsQBG6YL5eF7kh", "hello-world", fmt.Sprintf("%v", tag))
+	//tag := time.Now().Unix()
+	_, err := svc.PullImage("QmQuKQ6nmUoFZGKJLHcnqahq2xgq3xbgVsQBG6YL5eF7kh")
 	if err != nil {
 		t.Error(err)
 	}

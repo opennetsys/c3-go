@@ -39,5 +39,7 @@ func TestNew(t *testing.T) {
 		t.Error(err)
 	}
 
-	_ = svc
+	if svc == nil {
+		t.FailNow()
+	}
 }

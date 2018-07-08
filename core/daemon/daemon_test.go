@@ -4,5 +4,7 @@ import "testing"
 
 func TestNew(t *testing.T) {
 	daemon := New()
-	_ = daemon
+	if daemon == nil {
+		t.FailNow()
+	}
 }

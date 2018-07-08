@@ -6,7 +6,9 @@ import (
 
 func TestNew(t *testing.T) {
 	registry := New(&Config{})
-	_ = registry
+	if registry == nil {
+		t.FailNow()
+	}
 }
 
 func TestPullImage(t *testing.T) {

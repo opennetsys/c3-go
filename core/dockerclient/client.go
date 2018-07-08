@@ -133,13 +133,72 @@ func (s *Client) PushImage(imageID string) error {
 	return nil
 }
 
+// RunContainerConfig ...
+type RunContainerConfig struct {
+	Volumes map[string]struct {
+		Type        string
+		Source      string
+		Destination string
+	}
+}
+
 // RunContainer ...
-func (s *Client) RunContainer(imageID string, cmd []string) (string, error) {
-	resp, err := s.client.ContainerCreate(context.Background(), &container.Config{
+func (s *Client) RunContainer(imageID string, cmd []string, config *RunContainerConfig) (string, error) {
+	dockerConfig := &container.Config{
 		Image: imageID,
 		Cmd:   cmd,
 		Tty:   true,
-	}, nil, nil, "")
+		Volumes: map[string]struct {
+		}{
+			"/var/run/docker.sock": {},
+		},
+	}
+
+	if config != nil {
+		//dockerConfig.Volumes = config.Volumes
+	}
+
+	resp, err := s.client.ContainerCreate(context.Background(), dockerConfig, nil, nil, "")
+	/*
+		container.Config{
+			Hostname:     "",
+			Domainname:   "",
+			User:         "",
+			AttachStdin:  false,
+			AttachStdout: false,
+			AttachStderr: false,
+			ExposedPorts: map[nat.Port]struct{}{
+				"": {},
+			},
+			Tty:       false,
+			OpenStdin: false,
+			StdinOnce: false,
+			Env:       nil,
+			Cmd:       nil,
+			Healthcheck: &container.HealthConfig{
+				Test:     nil,
+				Interval: 0,
+				Timeout:  0,
+				Retries:  0,
+			},
+			ArgsEscaped: false,
+			Image:       "",
+			Volumes: map[string]struct{}{
+				"": {},
+			},
+			WorkingDir:      "",
+			Entrypoint:      nil,
+			NetworkDisabled: false,
+			MacAddress:      "",
+			OnBuild:         nil,
+			Labels: map[string]string{
+				"": "",
+			},
+			StopSignal:  "",
+			StopTimeout: nil,
+			Shell:       nil,
+		}
+	*/
 	if err != nil {
 		log.Fatal(err)
 	}
