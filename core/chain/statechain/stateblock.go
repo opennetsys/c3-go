@@ -99,7 +99,7 @@ func (b Block) Hash() (string, error) {
 		return "", err
 	}
 
-	return hashing.HashToHexString(bytes, nil)
+	return hashing.HashToHexString(bytes), nil
 }
 
 // BuildNextState ...
