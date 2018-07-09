@@ -26,8 +26,8 @@ func (s Service) AddMainBlock(block *mainchain.Block) *cid.Cid {
 	return nil
 }
 
-// Transactions ...
-func (s Service) Transactions() []*statechain.Transaction {
+// PendingTransactions ...
+func (s Service) PendingTransactions() []*statechain.Transaction {
 	return nil
 }
 

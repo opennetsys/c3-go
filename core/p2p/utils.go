@@ -8,16 +8,9 @@ import (
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/statechain"
 
-	// cbor "gx/ipfs/QmSF1Ksgn5d7JCTBt4e1yp4wzs6tpYyweCZ4PcDYp3tNeK/go-ipld-cbor"
-	cbor "github.com/ipfs/go-ipld-cbor"
-
-	// bserv "gx/ipfs/QmSF1Ksgn5d7JCTBt4e1yp4wzs6tpYyweCZ4PcDYp3tNeK/go-ipfs/blockservice"
 	cid "github.com/ipfs/go-cid"
-	// cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	// cid "gx/ipfs/QmapdYm1b22Frv3k17fqrBYTFRxwiaVJkB299Mfn33edeB/go-cid"
-
-	// bserv "gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/blockservice"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
+	cbor "github.com/ipfs/go-ipld-cbor"
 )
 
 // GetCID ...
@@ -39,8 +32,12 @@ func GetCID(v interface{}) (*cid.Cid, error) {
 		tx, _ := v.(*statechain.Transaction)
 		return GetStatechainTransactionCID(tx)
 
+	case *statechain.Diff:
+		d, _ := v.(*statechain.Diff)
+		return GetStatechainDiffCID(d)
+
 	default:
-		return nil, errors.New("type must be one of pointer to mainchain block, statechain block or statechain tx")
+		return nil, errors.New("type must be one of pointer to mainchain block, statechain block, statechain tx, or statechain diff")
 
 	}
 }
@@ -87,11 +84,41 @@ func GetStatechainTransactionCID(tx *statechain.Transaction) (*cid.Cid, error) {
 	return nd.Cid(), nil
 }
 
+// GetStatechainDiffCID ...
+func GetStatechainDiffCID(d *statechain.Diff) (*cid.Cid, error) {
+	if d == nil {
+		return nil, errors.New("input cannot be nil")
+	}
+
+	nd, err := cbor.WrapObject(d, hashingAlgo, -1)
+	if err != nil {
+		return nil, err
+	}
+
+	return nd.Cid(), nil
+}
+
 // Fetch ...
-// TODO: how to do a generic fetch?
-//func Fetch(bs bserv.BlockService, c *cid.Cid) (v interface{}, error) {
-//return nil, nil
-//}
+func Fetch(bs bserv.BlockService, c *cid.Cid) (interface{}, error) {
+	if bs == nil || c == nil {
+		return nil, errors.New("arguments cannot be nil")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	data, err := bs.GetBlock(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+
+	var out interface{}
+	if err := cbor.DecodeInto(data.RawData(), &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
 
 // FetchMainchainBlock ...
 func FetchMainchainBlock(bs bserv.BlockService, c *cid.Cid) (*mainchain.Block, error) {
@@ -159,6 +186,28 @@ func FetchStateChainTransaction(bs bserv.BlockService, c *cid.Cid) (*statechain.
 	return &out, nil
 }
 
+// FetchStateChainDiff ...
+func FetchStateChainDiff(bs bserv.BlockService, c *cid.Cid) (*statechain.Diff, error) {
+	if bs == nil || c == nil {
+		return nil, errors.New("arguments cannot be nil")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	data, err := bs.GetBlock(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+
+	var out statechain.Diff
+	if err := cbor.DecodeInto(data.RawData(), &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
 // Put ...
 func Put(bs bserv.BlockService, v interface{}) (*cid.Cid, error) {
 	if bs == nil || v == nil {
@@ -178,8 +227,12 @@ func Put(bs bserv.BlockService, v interface{}) (*cid.Cid, error) {
 		tx, _ := v.(*statechain.Transaction)
 		return PutStatechainTransaction(bs, tx)
 
+	case *statechain.Diff:
+		d, _ := v.(*statechain.Diff)
+		return PutStatechainDiff(bs, d)
+
 	default:
-		return nil, errors.New("type must be one of pointer to mainchain block, statechain block or statechain tx")
+		return nil, errors.New("type must be one of pointer to mainchain block, statechain block, statechain tx, or statechain diff")
 
 	}
 }
@@ -227,6 +280,24 @@ func PutStatechainTransaction(bs bserv.BlockService, tx *statechain.Transaction)
 	}
 
 	nd, err := cbor.WrapObject(tx, hashingAlgo, 32)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := bs.AddBlock(nd); err != nil {
+		return nil, err
+	}
+
+	return nd.Cid(), nil
+}
+
+// PutStatechainDiff ...
+func PutStatechainDiff(bs bserv.BlockService, d *statechain.Diff) (*cid.Cid, error) {
+	if bs == nil || d == nil {
+		return nil, errors.New("arguments cannot be nil")
+	}
+
+	nd, err := cbor.WrapObject(d, hashingAlgo, 32)
 	if err != nil {
 		return nil, err
 	}

@@ -3,11 +3,11 @@ package node
 import (
 	"context"
 
+	"github.com/c3systems/c3/core/chain"
+
+	nodestore "github.com/c3systems/c3/node/store"
 	floodsub "github.com/libp2p/go-floodsub"
 	host "github.com/libp2p/go-libp2p-host"
-
-	"github.com/c3systems/c3/core/chain"
-	nodestore "github.com/c3systems/c3/node/store"
 )
 
 // Props ...
@@ -18,7 +18,7 @@ type Props struct {
 	Host       host.Host
 	Store      nodestore.Interface // store is used to temporarily store blocks and txs for mining and verification
 	Blockchain chain.Interface
-	Pubsub     *floodsub.PubSub
+	Pubsub     *floodsub.PubSub // note: how to make this into an interface?
 	//Wallet     wallet.Interface
 }
 

@@ -85,11 +85,15 @@ func (s Service) SetStatechainTransaction(tx *statechain.Transaction) (*cid.Cid,
 	return PutStatechainTransaction(s.peersOrLocal, tx)
 }
 
+// SetStatechainDiff ...
+func (s Service) SetStatechainDiff(d *statechain.Diff) (*cid.Cid, error) {
+	return PutStatechainDiff(s.peersOrLocal, d)
+}
+
 // Get ...
-// TODO: how to do a generic get?
-//func (s Service) Get(c *cid.Cid) (interface{}, error) {
-//return Fetch(s.peers, c)
-//}
+func (s Service) Get(c *cid.Cid) (interface{}, error) {
+	return Fetch(s.peersOrLocal, c)
+}
 
 // GetMainchainBlock ...
 func (s Service) GetMainchainBlock(c *cid.Cid) (*mainchain.Block, error) {
@@ -104,4 +108,9 @@ func (s Service) GetStatechainBlock(c *cid.Cid) (*statechain.Block, error) {
 // GetStatechainTransaction ...
 func (s Service) GetStatechainTransaction(c *cid.Cid) (*statechain.Transaction, error) {
 	return FetchStateChainTransaction(s.peersOrLocal, c)
+}
+
+// GetStatechainDiff ...
+func (s Service) GetStatechainDiff(c *cid.Cid) (*statechain.Diff, error) {
+	return FetchStateChainDiff(s.peersOrLocal, c)
 }

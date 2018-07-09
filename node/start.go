@@ -13,7 +13,6 @@ import (
 	"github.com/c3systems/c3/core/p2p/store/fsstore"
 	"github.com/c3systems/c3/node/store/safemempool"
 	nodetypes "github.com/c3systems/c3/node/types"
-	//"github.com/c3systems/c3/node/wallet"
 
 	ipfsaddr "github.com/ipfs/go-ipfs-addr"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
@@ -27,7 +26,6 @@ import (
 func Start(cfg *nodetypes.Config) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	//c := context.Background()
 
 	if cfg == nil {
 		// note: is this the correct way to fail an app with cobra?
@@ -74,6 +72,7 @@ func Start(cfg *nodetypes.Config) error {
 		return fmt.Errorf("err building disk store\n%v", err)
 	}
 	// wrap the datastore in a 'content addressed blocks' layer
+	// TODO: implement metrics? https://github.com/ipfs/go-ds-measure
 	blocks := bstore.NewBlockstore(diskStore)
 
 	p2p, err := p2p.New(&p2p.Props{
@@ -107,7 +106,6 @@ func Start(cfg *nodetypes.Config) error {
 	if err := n.Start(); err != nil {
 		return fmt.Errorf("err starting node\n%v", err)
 	}
-
 	log.Printf("Node %s started", newNode.ID().Pretty())
 
 	for {
@@ -115,9 +113,15 @@ func Start(cfg *nodetypes.Config) error {
 		case error:
 			log.Println("[node] received an error on the channel", err)
 
-		case *mainchain.Block, *statechain.Block, *statechain.Transaction:
-			// do a stoofs
-			log.Printf("[node] received %T\n%v", v, v)
+		case *mainchain.Block:
+			log.Print("[node] received mainchain block")
+			b, _ := v.(*mainchain.Block)
+			go s.handleReceiptOfMainchainBlock(b)
+
+		case *statechain.Transaction:
+			log.Print("[node] received statechain transaction")
+			tx, _ := v.(*statechain.Transaction)
+			go s.handleReceiptOfStatechainTransaction(tx)
 
 		default:
 			log.Printf("[node] received an unknown message on channel of type %T\n%v", v, v)

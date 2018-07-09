@@ -2,17 +2,12 @@ package node
 
 import (
 	"errors"
+	"log"
 
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/statechain"
 	nodetypes "github.com/c3systems/c3/node/types"
 	peer "github.com/libp2p/go-libp2p-peer"
-	//"github.com/c3systems/c3/node/wallet"
-	//ipfsaddr "github.com/ipfs/go-ipfs-addr"
-	//libp2p "github.com/libp2p/go-libp2p"
-	//host "github.com/libp2p/go-libp2p-host"
-	//peerstore "github.com/libp2p/go-libp2p-peerstore"
-	//floodsub "github.com/libp2p/go-floodsub"
 )
 
 // New ...
@@ -65,13 +60,6 @@ func (s Service) listenBlocks() error {
 			}
 
 			s.props.Channel <- &block
-
-			//log.Println("Block received over network, blockhash", block.Props().BlockHash)
-			//cid := node.blockchain.AddMainBlock(&block)
-			//if cid != nil {
-			//log.Println("Block added, cid:", cid)
-			//node.store.RemoveTxs(block.Transactions())
-			//}
 		}
 	}()
 
@@ -99,10 +87,6 @@ func (s Service) listenTransactions() error {
 
 			var tx statechain.Transaction
 			if err := tx.Deserialize(msg.GetData()); err != nil {
-				s.props.Channel <- err
-				continue
-			}
-			if err := s.props.Store.AddTx(&tx); err != nil {
 				s.props.Channel <- err
 				continue
 			}
@@ -179,4 +163,20 @@ func (s Service) GetInfo() (*nodetypes.GetInfoResponse, error) {
 	res.BlockHeight = head.Props().BlockNumber
 
 	return &res, err
+}
+
+func (s Service) handleReceiptOfMainchainBlock(block *mainchain.Block) {
+
+}
+
+func (s Service) handleReceiptOfStatechainTransaction(tx *statechain.Transaction) {
+	if tx == nil {
+		return
+	}
+
+	if !s.props.Store.HasTx(tx.Props().TxHash) {
+		if err := s.props.Store.AddTx(tx); err != nil {
+			log.Printf("[node] err adding tx to store\n%v", err)
+		}
+	}
 }
