@@ -33,6 +33,7 @@ func (tx *Transaction) Serialize() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return b.Bytes(), nil
 }
 
