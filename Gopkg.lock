@@ -115,12 +115,6 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/go-openapi/errors"
-  packages = ["."]
-  revision = "b2b2befaf267d082d779bcef52d682a47c779517"
-
-[[projects]]
   name = "github.com/gogo/protobuf"
   packages = [
     "io",
@@ -714,6 +708,12 @@
   version = "v0.3.7"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/obscuren/ecies"
+  packages = ["."]
+  revision = "7c0f4a9b18d992166452d8cd32caaefd92b26386"
+
+[[projects]]
   name = "github.com/opentracing/opentracing-go"
   packages = [
     ".",
@@ -912,6 +912,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2352881aab7301fa7438a9138497e036918e94ce07a7dcf2b23ba67b229a9842"
+  inputs-digest = "656ed89f34c1b1af833a8bd0a46f3df6ced5677c857559f4ce8ccdfa156cd3b8"
   solver-name = "gps-cdcl"
   solver-version = 1

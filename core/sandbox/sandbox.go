@@ -7,9 +7,11 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
+	"github.com/c3systems/c3/common/network"
 	"github.com/c3systems/c3/core/dockerclient"
 	"github.com/c3systems/c3/ditto"
 )
@@ -28,6 +30,9 @@ type Config struct {
 
 // NewSandbox ...
 func NewSandbox(config *Config) *Sandbox {
+	if config == nil {
+		config = &Config{}
+	}
 	docker := dockerclient.NewClient()
 	dit := ditto.NewDitto(&ditto.Config{})
 	sb := &Sandbox{
@@ -57,20 +62,26 @@ func (s *Sandbox) Play(config *PlayConfig) error {
 		return err
 	}
 
-	containerID, err := s.docker.RunContainer(dockerImageID, []string{}, &dockerclient.RunContainerConfig{})
+	hp, err := network.GetFreePort()
 	if err != nil {
 		return err
 	}
 
-	log.Printf("running container %s", containerID)
+	hostPort := strconv.Itoa(hp)
+
+	containerID, err := s.docker.RunContainer(dockerImageID, []string{}, &dockerclient.RunContainerConfig{
+		Volumes: map[string]string{
+			"/var/run/docker.sock": "/var/run/docker.sock",
+		},
+		Ports: map[string]string{
+			"3333": hostPort,
+		},
+	})
+	if err != nil {
+		return err
+	}
+
 	s.runningContainers[containerID] = true
-
-	info, err := s.docker.InspectContainer(containerID)
-	if err != nil {
-		return err
-	}
-
-	hostPort := info.NetworkSettings.Ports["3333/tcp"][0].HostPort
 
 	done := make(chan bool)
 	timedout := make(chan bool)
@@ -87,16 +98,18 @@ func (s *Sandbox) Play(config *PlayConfig) error {
 		done <- true
 	}()
 
+	timer := time.NewTimer(20 * time.Second)
+
 	go func() {
 		select {
-		case <-time.After(1 * time.Minute):
+		case <-timer.C:
+			timedout <- true
 			err := s.docker.StopContainer(containerID)
 			if err != nil {
 				log.Fatal(err)
 			}
 
 			delete(s.runningContainers, containerID)
-			timedout <- true
 		}
 	}()
 
@@ -104,21 +117,32 @@ func (s *Sandbox) Play(config *PlayConfig) error {
 
 	select {
 	case <-timedout:
+		close(timedout)
 		return errors.New("timedout")
 	case <-done:
 		log.Println("done")
+		close(timedout)
+		timer.Stop()
+		err := s.docker.StopContainer(containerID)
+		if err != nil {
+			return err
+		}
+
+		delete(s.runningContainers, containerID)
+
 		return nil
 	}
 }
 
 func (s *Sandbox) sendMessage(msg []byte, port string) error {
+	log.Printf("sending message %s", msg)
 	host := fmt.Sprintf("localhost:%s", port)
 	conn, err := net.Dial("tcp", host)
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
-	fmt.Printf("writing to %s", host)
+	log.Printf("writing to %s", host)
 	conn.Write(msg)
 	conn.Write([]byte("\n"))
 	return nil

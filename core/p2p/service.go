@@ -7,35 +7,11 @@ import (
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/statechain"
 
-	nonerouting "github.com/ipfs/go-ipfs-routing/none"
-	// nonerouting "gx/ipfs/QmZRcGYvxdauCd7hHnMYLYqcZRaDjv24c7eUNyJojAcdBb/go-ipfs-routing/none"
-
-	// cid "gx/ipfs/QmapdYm1b22Frv3k17fqrBYTFRxwiaVJkB299Mfn33edeB/go-cid"
-	// cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	cid "github.com/ipfs/go-cid"
-
-	// bserv "gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/blockservice"
-	//"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/exchange/bitswap"
-	//"gx/ipfs/QmcKwjeebv5SX3VFUGDFa4BNMYhy14RRaCzQP7JN3UQDpB/go-ipfs/exchange/bitswap/network"
-	// bserv "github.com/ipfs/go-ipfs/blockservice"
-	// "github.com/ipfs/go-ipfs/exchange/bitswap"
-	// "github.com/ipfs/go-ipfs/exchange/bitswap/network"
-	// cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	// cid "github.com/ipfs/go-cid"
-	// nonerouting "github.com/ipfs/go-ipfs-routing/none"
+	nonerouting "github.com/ipfs/go-ipfs-routing/none"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	"github.com/ipfs/go-ipfs/exchange/bitswap"
 	"github.com/ipfs/go-ipfs/exchange/bitswap/network"
-	//bserv "github.com/ipfs/go-ipfs/blockservice"
-	//"github.com/ipfs/go-ds-flatfs"
-	//"github.com/ipfs/go-ipfs/exchange/bitswap"
-	//"github.com/ipfs/go-ipfs/exchange/bitswap/network"
-	//bstore "github.com/ipfs/go-ipfs-blockstore"
-	//nonerouting "github.com/ipfs/go-ipfs-routing"
-	//mh "github.com/multiformats/go-multihash"
-	//cid "github.com/ipfs/go-cid"
-	//cbor "github.com/ipfs/go-ipld-cbor"
-	//host "github.com/libp2p/go-libp2p-host"
 )
 
 // New ...
@@ -57,11 +33,6 @@ func New(props *Props) (*Service, error) {
 		// cbor.RegisterCborType(mainchain.Block{})
 		// cbor.RegisterCborType(statechain.Block{})
 		// cbor.RegisterCborType(statechain.Transaction{})
-		// TODO: need to store merkle tree tx's
-
-		// wrap the datastore in a 'content addressed blocks' layer
-		// TODO: implement metrics? https://github.com/ipfs/go-ds-measure
-		// blocks := bstore.NewBlockstore(props.BlockStore)
 
 		// TODO: research if this is what we want...
 		nr, err1 := nonerouting.ConstructNilRouting(nil, nil, nil, nil)

@@ -94,7 +94,7 @@ func (s Service) listenTransactions() error {
 
 			if peer.ID(msg.GetFrom()).Pretty() == s.props.Host.ID().Pretty() {
 				// note: received a message from ourselves
-				continue
+				//continue
 			}
 
 			var tx statechain.Transaction
