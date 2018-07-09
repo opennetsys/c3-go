@@ -26,21 +26,6 @@ func New(props *Props) *Service {
 	}
 }
 
-// FetchCIDByMainBlockHash ...
-func (s Service) FetchCIDByMainBlockHash(hexHash string) (*cid.Cid, error) {
-	return nil, nil
-}
-
-// FetchCIDByStateBlockHash ...
-func (s Service) FetchCIDByStateBlockHash(hexHash string) (*cid.Cid, error) {
-	return nil, nil
-}
-
-// FetchCIDByTransactionHash ...
-func (s Service) FetchCIDByTransactionHash(hexhHash string) (*cid.Cid, error) {
-	return nil, nil
-}
-
 // FetchCIDByImageHashAndBlockNumber ...
 func (s Service) FetchCIDByImageHashAndBlockNumber(imageHash, blockNumber string) (*cid.Cid, error) {
 	return nil, nil

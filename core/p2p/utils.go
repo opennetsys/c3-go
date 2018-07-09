@@ -8,9 +8,11 @@ import (
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/statechain"
 
+	bfmt "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	cbor "github.com/ipfs/go-ipld-cbor"
+	mh "github.com/multiformats/go-multihash"
 )
 
 // GetCID ...
@@ -47,13 +49,21 @@ func GetMainchainBlockCID(block *mainchain.Block) (*cid.Cid, error) {
 	if block == nil {
 		return nil, errors.New("input cannot be nil")
 	}
+	if block.Props().BlockHash == nil {
+		return nil, errors.New("hash cannot be nil")
+	}
 
-	nd, err := cbor.WrapObject(block, hashingAlgo, -1)
+	bytes, err := block.Serialize()
 	if err != nil {
 		return nil, err
 	}
 
-	return nd.Cid(), nil
+	multiHash, err := mh.Sum(bytes, mhCode, -1)
+	if err != nil {
+		return nil, err
+	}
+
+	return cid.NewCidV1(mhCode, multiHash), nil
 }
 
 // GetStatechainBlockCID ...
@@ -61,13 +71,21 @@ func GetStatechainBlockCID(block *statechain.Block) (*cid.Cid, error) {
 	if block == nil {
 		return nil, errors.New("input cannot be nil")
 	}
+	if block.Props().BlockHash == nil {
+		return nil, errors.New("hash cannot be nil")
+	}
 
-	nd, err := cbor.WrapObject(block, hashingAlgo, -1)
+	bytes, err := block.Serialize()
 	if err != nil {
 		return nil, err
 	}
 
-	return nd.Cid(), nil
+	multiHash, err := mh.Sum(bytes, mhCode, -1)
+	if err != nil {
+		return nil, err
+	}
+
+	return cid.NewCidV1(mhCode, multiHash), nil
 }
 
 // GetStatechainTransactionCID ...
@@ -75,13 +93,21 @@ func GetStatechainTransactionCID(tx *statechain.Transaction) (*cid.Cid, error) {
 	if tx == nil {
 		return nil, errors.New("input cannot be nil")
 	}
+	if tx.Props().TxHash == nil {
+		return nil, errors.New("hash cannot be nil")
+	}
 
-	nd, err := cbor.WrapObject(tx, hashingAlgo, -1)
+	bytes, err := tx.Serialize()
 	if err != nil {
 		return nil, err
 	}
 
-	return nd.Cid(), nil
+	multiHash, err := mh.Sum(bytes, mhCode, -1)
+	if err != nil {
+		return nil, err
+	}
+
+	return cid.NewCidV1(mhCode, multiHash), nil
 }
 
 // GetStatechainDiffCID ...
@@ -89,13 +115,21 @@ func GetStatechainDiffCID(d *statechain.Diff) (*cid.Cid, error) {
 	if d == nil {
 		return nil, errors.New("input cannot be nil")
 	}
+	if d.Props().DiffHash == nil {
+		return nil, errors.New("hash cannot be nil")
+	}
 
-	nd, err := cbor.WrapObject(d, hashingAlgo, -1)
+	bytes, err := d.Serialize()
 	if err != nil {
 		return nil, err
 	}
 
-	return nd.Cid(), nil
+	multiHash, err := mh.Sum(bytes, mhCode, -1)
+	if err != nil {
+		return nil, err
+	}
+
+	return cid.NewCidV1(mhCode, multiHash), nil
 }
 
 // Fetch ...
@@ -243,16 +277,26 @@ func PutMainchainBlock(bs bserv.BlockService, block *mainchain.Block) (*cid.Cid,
 		return nil, errors.New("arguments cannot be nil")
 	}
 
-	nd, err := cbor.WrapObject(block, hashingAlgo, 32)
+	c, err := GetMainchainBlockCID(block)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := bs.AddBlock(nd); err != nil {
+	bytes, err := block.Serialize()
+	if err != nil {
 		return nil, err
 	}
 
-	return nd.Cid(), nil
+	basicIPFSBlock, err := bfmt.NewBlockWithCid(bytes, c)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := bs.AddBlock(basicIPFSBlock); err != nil {
+		return nil, err
+	}
+
+	return c, nil
 }
 
 // PutStatechainBlock ...
@@ -261,16 +305,26 @@ func PutStatechainBlock(bs bserv.BlockService, block *statechain.Block) (*cid.Ci
 		return nil, errors.New("arguments cannot be nil")
 	}
 
-	nd, err := cbor.WrapObject(block, hashingAlgo, 32)
+	c, err := GetStatechainBlockCID(block)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := bs.AddBlock(nd); err != nil {
+	bytes, err := block.Serialize()
+	if err != nil {
 		return nil, err
 	}
 
-	return nd.Cid(), nil
+	basicIPFSBlock, err := bfmt.NewBlockWithCid(bytes, c)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := bs.AddBlock(basicIPFSBlock); err != nil {
+		return nil, err
+	}
+
+	return c, nil
 }
 
 // PutStatechainTransaction ...
@@ -279,16 +333,26 @@ func PutStatechainTransaction(bs bserv.BlockService, tx *statechain.Transaction)
 		return nil, errors.New("arguments cannot be nil")
 	}
 
-	nd, err := cbor.WrapObject(tx, hashingAlgo, 32)
+	c, err := GetStatechainTransactionCID(tx)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := bs.AddBlock(nd); err != nil {
+	bytes, err := tx.Serialize()
+	if err != nil {
 		return nil, err
 	}
 
-	return nd.Cid(), nil
+	basicIPFSBlock, err := bfmt.NewBlockWithCid(bytes, c)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := bs.AddBlock(basicIPFSBlock); err != nil {
+		return nil, err
+	}
+
+	return c, nil
 }
 
 // PutStatechainDiff ...
@@ -297,14 +361,24 @@ func PutStatechainDiff(bs bserv.BlockService, d *statechain.Diff) (*cid.Cid, err
 		return nil, errors.New("arguments cannot be nil")
 	}
 
-	nd, err := cbor.WrapObject(d, hashingAlgo, 32)
+	c, err := GetStatechainDiffCID(d)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := bs.AddBlock(nd); err != nil {
+	bytes, err := d.Serialize()
+	if err != nil {
 		return nil, err
 	}
 
-	return nd.Cid(), nil
+	basicIPFSBlock, err := bfmt.NewBlockWithCid(bytes, c)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := bs.AddBlock(basicIPFSBlock); err != nil {
+		return nil, err
+	}
+
+	return c, nil
 }

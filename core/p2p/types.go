@@ -9,7 +9,9 @@ import (
 	mh "github.com/multiformats/go-multihash"
 )
 
-const hashingAlgo = mh.SHA2_256
+const (
+	mhCode = mh.SHA2_512
+)
 
 var (
 	service *Service

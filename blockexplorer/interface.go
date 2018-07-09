@@ -7,11 +7,9 @@ import (
 	cid "github.com/c3systems/go-cid"
 )
 
+// Interface ...
 type Interface interface {
 	// Fetch CID's
-	FetchCIDByMainBlockHash(hexHash string) (*cid.Cid, error)
-	FetchCIDByStateBlockHash(hexHash string) (*cid.Cid, error)
-	FetchCIDByTransactionHash(hexhHash string) (*cid.Cid, error)
 	FetchCIDByImageHashAndBlockNumber(imageHash, blockNumber string) (*cid.Cid, error)
 
 	// Fetch the block that includes a tx or stateblock, or tx's sent by a user
