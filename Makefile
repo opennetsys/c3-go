@@ -121,7 +121,7 @@ docker/build/example:
 
 .PHONY: docker/run/example
 docker/run/example:
-	@docker run -p 3333 -t goexample
+	@docker run -p 3333 --mount type=bind,src=/tmp,target=/tmp -t goexample
 
 .PHONY: docker/build/example/bash
 docker/build/example/bash:
