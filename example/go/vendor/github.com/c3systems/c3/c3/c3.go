@@ -50,8 +50,14 @@ func (c3 *C3) RegisterMethod(methodName string, types []string, ifn interface{})
 		case func(string, string) error:
 			key, ok := args[0].(string)
 			if !ok {
+				log.Fatal("not ok")
 			}
-			value, ok := args[0].(string)
+			value, ok := args[1].(string)
+			if !ok {
+				log.Fatal("not ok")
+			}
+
+			log.Printf("executed method %s with args: %s %s", methodName, key, value)
 			v(key, value)
 		}
 		return nil
