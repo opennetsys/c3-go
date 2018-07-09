@@ -55,7 +55,7 @@ type PlayConfig struct {
 
 // TODO: include transaction inputs
 
-// Play ...
+// Play in the sandbox
 func (s *Sandbox) Play(config *PlayConfig) error {
 	dockerImageID, err := s.ditto.PullImage(config.ImageID)
 	if err != nil {
@@ -72,6 +72,7 @@ func (s *Sandbox) Play(config *PlayConfig) error {
 	containerID, err := s.docker.RunContainer(dockerImageID, []string{}, &dockerclient.RunContainerConfig{
 		Volumes: map[string]string{
 			"/var/run/docker.sock": "/var/run/docker.sock",
+			"/tmp":                 "/tmp",
 		},
 		Ports: map[string]string{
 			"3333": hostPort,
@@ -136,6 +137,7 @@ func (s *Sandbox) Play(config *PlayConfig) error {
 
 func (s *Sandbox) sendMessage(msg []byte, port string) error {
 	log.Printf("sending message %s", msg)
+	// TODO: communicate over IPC
 	host := fmt.Sprintf("localhost:%s", port)
 	conn, err := net.Dial("tcp", host)
 	if err != nil {

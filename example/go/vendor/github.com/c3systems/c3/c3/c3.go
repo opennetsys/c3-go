@@ -14,6 +14,11 @@ type Service struct {
 
 // New ...
 func New() *Service {
+	go server.New(&server.Config{
+		Host: config.ServerHost,
+		Port: config.ServerPort,
+	}).Run()
+
 	return &Service{
 		registeredMethods: map[string]func(args ...interface{}) interface{}{},
 	}
@@ -37,12 +42,4 @@ func (s *Service) RegisterMethod(methodName string, types []string, ifn interfac
 		return nil
 	}
 	return nil
-}
-
-// Serve ...
-func (s *Service) Serve() {
-	server.New(&server.Config{
-		Host: config.ServerHost,
-		Port: config.ServerPort,
-	}).Run()
 }

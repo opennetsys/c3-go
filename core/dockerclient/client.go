@@ -144,6 +144,10 @@ type RunContainerConfig struct {
 
 // RunContainer ...
 func (s *Client) RunContainer(imageID string, cmd []string, config *RunContainerConfig) (string, error) {
+	if config == nil {
+		config = &RunContainerConfig{}
+	}
+
 	dockerConfig := &container.Config{
 		Image:        imageID,
 		Cmd:          cmd,

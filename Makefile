@@ -52,7 +52,11 @@ test/cleanup:
 	@. scripts/test_cleanup.sh
 
 .PHONY: test
-test: test/core/server test/core/dockerclient test/core/registry test/core/sandbox test/ditto test/cleanup
+test: test/c3 test/core/server test/core/dockerclient test/core/registry test/core/sandbox test/ditto test/cleanup
+
+.PHONY: test/c3
+test/c3:
+	@go test -v c3/*.go
 
 .PHONY: test/core/server
 test/core/server:

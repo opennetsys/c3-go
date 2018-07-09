@@ -6,24 +6,24 @@ import (
 	"github.com/c3systems/c3/c3"
 )
 
-// Data ...
-type Data struct {
-	items map[string]string
+var client = c3.NewC3()
+
+// App ...
+type App struct {
 }
 
-func (s *Data) setItem(key, value string) error {
-	s.items[key] = value
+func (s *App) setItem(key, value string) error {
+	client.Store.Set(key, value)
 	return nil
 }
 
-func (s *Data) getItem(key string) string {
-	return s.items[key]
+func (s *App) getItem(key string) string {
+	return client.Store.Get(key)
 }
 
 func main() {
 	fmt.Println("running")
-	client := c3.NewC3()
-	data := &Data{}
+	data := &App{}
 	client.RegisterMethod("setItem", []string{"string", "string"}, data.setItem)
 	client.RegisterMethod("getItem", []string{"string"}, data.getItem)
 	client.Serve()

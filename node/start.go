@@ -137,12 +137,13 @@ func Start(cfg *nodetypes.Config) error {
 	}
 }
 
+// handleTransaction performs container actions after receiving tx
 func handleTransaction(tx *statechain.Transaction) error {
 	data := tx.Props()
 	if data.Method == "c3_invokeMethod" {
 		payload, ok := data.Payload.([]byte)
 		if !ok {
-			return errors.New("could not parsed payload")
+			return errors.New("could not parse payload")
 		}
 
 		var parsed []string
@@ -161,6 +162,7 @@ func handleTransaction(tx *statechain.Transaction) error {
 			return err
 		}
 
+		// run container, passing the tx inputs
 		sb := sandbox.NewSandbox(&sandbox.Config{})
 		if err := sb.Play(&sandbox.PlayConfig{
 			ImageID: data.ImageHash,
