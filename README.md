@@ -1,6 +1,14 @@
+<p align="center">
+	<img src="https://user-images.githubusercontent.com/168240/42129996-3bd8e646-7c8a-11e8-940d-89cea5ef87b8.png" width="500" alt="sandbox" />
+	<br>
+	<br>
+</p>
+
 # C3
 
 > Implementation of the C3 protocol
+
+[![License](http://img.shields.io/badge/license-Apache-blue.svg)](https://raw.githubusercontent.com/c3systems/c3/master/LICENSE.md) [![Build Status](https://travis-ci.org/c3systems/c3.svg?branch=master)](https://travis-ci.org/c3systems/c3) [![Go Report Card](https://goreportcard.com/badge/github.com/c3systems/c3?)](https://goreportcard.com/report/github.com/c3systems/c3) [![GoDoc](https://godoc.org/github.com/c3systems/c3?status.svg)](https://godoc.org/github.com/c3systems/c3)
 
 ## Install
 
