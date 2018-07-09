@@ -2,6 +2,7 @@ package node
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -11,6 +12,7 @@ import (
 	"github.com/c3systems/c3/core/chain/statechain"
 	"github.com/c3systems/c3/core/p2p"
 	"github.com/c3systems/c3/core/p2p/store/fsstore"
+	"github.com/c3systems/c3/core/sandbox"
 	"github.com/c3systems/c3/node/store/safemempool"
 	nodetypes "github.com/c3systems/c3/node/types"
 	//"github.com/c3systems/c3/node/wallet"
@@ -115,12 +117,58 @@ func Start(cfg *nodetypes.Config) error {
 		case error:
 			log.Println("[node] received an error on the channel", err)
 
-		case *mainchain.Block, *statechain.Block, *statechain.Transaction:
+		case *mainchain.Block:
 			// do a stoofs
 			log.Printf("[node] received %T\n%v", v, v)
+		case *statechain.Block:
+			log.Printf("[node] received %T\n%v", v, v)
+		case *statechain.Transaction:
+			log.Printf("[node] received %T\n%v", v, v)
+			tx, ok := v.(*statechain.Transaction)
+			if !ok {
+				continue
+			}
+
+			handleTransaction(tx)
 
 		default:
 			log.Printf("[node] received an unknown message on channel of type %T\n%v", v, v)
 		}
 	}
+}
+
+func handleTransaction(tx *statechain.Transaction) error {
+	data := tx.Props()
+	if data.Method == "c3_invokeMethod" {
+		payload, ok := data.Payload.([]byte)
+		if !ok {
+			return errors.New("could not parsed payload")
+		}
+
+		var parsed []string
+		if err := json.Unmarshal(payload, &parsed); err != nil {
+			return err
+		}
+
+		inputsJSON, err := json.Marshal(struct {
+			Method string   `json:"method"`
+			Params []string `json:"params"`
+		}{
+			Method: parsed[0],
+			Params: parsed[1:],
+		})
+		if err != nil {
+			return err
+		}
+
+		sb := sandbox.NewSandbox(&sandbox.Config{})
+		if err := sb.Play(&sandbox.PlayConfig{
+			ImageID: data.ImageHash,
+			Payload: inputsJSON,
+		}); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
