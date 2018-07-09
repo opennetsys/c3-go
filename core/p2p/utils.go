@@ -15,6 +15,16 @@ import (
 	mh "github.com/multiformats/go-multihash"
 )
 
+// GetCIDByHash ...
+func GetCIDByHash(hash string) (*cid.Cid, error) {
+	multiHash, err := mh.Sum([]byte(hash), mhCode, -1)
+	if err != nil {
+		return nil, err
+	}
+
+	return cid.NewCidV1(mhCode, multiHash), nil
+}
+
 // GetCID ...
 func GetCID(v interface{}) (*cid.Cid, error) {
 	if v == nil {
@@ -53,17 +63,13 @@ func GetMainchainBlockCID(block *mainchain.Block) (*cid.Cid, error) {
 		return nil, errors.New("hash cannot be nil")
 	}
 
-	bytes, err := block.Serialize()
-	if err != nil {
-		return nil, err
-	}
+	// note: will this work? We may need to pass the same bytes into the basicblock function
+	//bytes, err := block.Serialize()
+	//if err != nil {
+	//return nil, err
+	//}
+	return GetCIDByHash(*block.Props().BlockHash)
 
-	multiHash, err := mh.Sum(bytes, mhCode, -1)
-	if err != nil {
-		return nil, err
-	}
-
-	return cid.NewCidV1(mhCode, multiHash), nil
 }
 
 // GetStatechainBlockCID ...
@@ -75,17 +81,11 @@ func GetStatechainBlockCID(block *statechain.Block) (*cid.Cid, error) {
 		return nil, errors.New("hash cannot be nil")
 	}
 
-	bytes, err := block.Serialize()
-	if err != nil {
-		return nil, err
-	}
-
-	multiHash, err := mh.Sum(bytes, mhCode, -1)
-	if err != nil {
-		return nil, err
-	}
-
-	return cid.NewCidV1(mhCode, multiHash), nil
+	//bytes, err := block.Serialize()
+	//if err != nil {
+	//return nil, err
+	//}
+	return GetCIDByHash(*block.Props().BlockHash)
 }
 
 // GetStatechainTransactionCID ...
@@ -97,17 +97,11 @@ func GetStatechainTransactionCID(tx *statechain.Transaction) (*cid.Cid, error) {
 		return nil, errors.New("hash cannot be nil")
 	}
 
-	bytes, err := tx.Serialize()
-	if err != nil {
-		return nil, err
-	}
-
-	multiHash, err := mh.Sum(bytes, mhCode, -1)
-	if err != nil {
-		return nil, err
-	}
-
-	return cid.NewCidV1(mhCode, multiHash), nil
+	//bytes, err := tx.Serialize()
+	//if err != nil {
+	//return nil, err
+	//}
+	return GetCIDByHash(*tx.Props().TxHash)
 }
 
 // GetStatechainDiffCID ...
@@ -119,17 +113,11 @@ func GetStatechainDiffCID(d *statechain.Diff) (*cid.Cid, error) {
 		return nil, errors.New("hash cannot be nil")
 	}
 
-	bytes, err := d.Serialize()
-	if err != nil {
-		return nil, err
-	}
-
-	multiHash, err := mh.Sum(bytes, mhCode, -1)
-	if err != nil {
-		return nil, err
-	}
-
-	return cid.NewCidV1(mhCode, multiHash), nil
+	//bytes, err := d.Serialize()
+	//if err != nil {
+	//return nil, err
+	//}
+	return GetCIDByHash(*d.Props().DiffHash)
 }
 
 // Fetch ...

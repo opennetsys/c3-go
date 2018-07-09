@@ -19,6 +19,11 @@ func New(props *Props) (*Service, error) {
 	}, nil
 }
 
+// Props ...
+func (s Service) Props() Props {
+	return s.props
+}
+
 // TODO: implement methods
 
 // AddMainBlock ...

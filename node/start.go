@@ -116,12 +116,12 @@ func Start(cfg *nodetypes.Config) error {
 		case *mainchain.Block:
 			log.Print("[node] received mainchain block")
 			b, _ := v.(*mainchain.Block)
-			go s.handleReceiptOfMainchainBlock(b)
+			go n.handleReceiptOfMainchainBlock(b)
 
 		case *statechain.Transaction:
 			log.Print("[node] received statechain transaction")
 			tx, _ := v.(*statechain.Transaction)
-			go s.handleReceiptOfStatechainTransaction(tx)
+			go n.handleReceiptOfStatechainTransaction(tx)
 
 		default:
 			log.Printf("[node] received an unknown message on channel of type %T\n%v", v, v)

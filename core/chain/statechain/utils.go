@@ -96,5 +96,4 @@ func PubFromTx(tx *Transaction) (*ecdsa.PublicKey, error) {
 	}
 
 	return pub, nil
-
 }
