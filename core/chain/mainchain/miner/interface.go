@@ -1,7 +1,15 @@
 package miner
 
-// Interface defines the methods of the package
-type Interfce interface {
+import (
+	"github.com/c3systems/c3/core/chain/mainchain"
+	"github.com/c3systems/c3/core/chain/statechain"
+)
+
+// Interface ...
+// TODO: finish
+type Interface interface {
 	Props() Props
-	StartMiner()
+	Start() error
+	VerifyMainchainBlock(block *mainchain.Block) (bool, error)
+	VerifyStatechainBlock(block *statechain.Block) (bool, error)
 }

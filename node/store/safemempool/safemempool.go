@@ -7,9 +7,9 @@ import (
 	"github.com/c3systems/c3/core/chain/statechain"
 )
 
-const (
-	transactionsMembersName = "transactions"
-)
+//const (
+//transactionsMembersName = "transactions"
+//)
 
 type poolMut struct {
 	mut  sync.Mutex
@@ -71,10 +71,10 @@ func (s Service) GetTx(hash string) (*statechain.Transaction, error) {
 		return nil, nil
 	}
 
-	var tx statechain.Transaction
+	tx := new(statechain.Transaction)
 	err := tx.DeserializeString(byteStr)
 
-	return &tx, err
+	return tx, err
 }
 
 // GetTxs ...
@@ -89,12 +89,12 @@ func (s Service) GetTxs(hashes []string) ([]*statechain.Transaction, error) {
 	for _, key := range keys {
 		byteStr := s.poolMut.pool[key]
 		if byteStr != "" {
-			var tx statechain.Transaction
+			tx := new(statechain.Transaction)
 			if err := tx.DeserializeString(byteStr); err != nil {
 				return nil, err
 			}
 
-			txs = append(txs, &tx)
+			txs = append(txs, tx)
 		}
 	}
 
@@ -154,12 +154,12 @@ func (s Service) GatherTransactions() ([]*statechain.Transaction, error) {
 	txs := make([]*statechain.Transaction, len(s.poolMut.pool), len(s.poolMut.pool))
 	idx := 0
 	for _, byteStr := range s.poolMut.pool {
-		var tx statechain.Transaction
+		tx := new(statechain.Transaction)
 		if err := tx.DeserializeString(byteStr); err != nil {
 			return nil, err
 		}
 
-		txs[idx] = &tx
+		txs[idx] = tx
 		idx++
 	}
 

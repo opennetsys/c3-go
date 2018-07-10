@@ -17,17 +17,21 @@ import (
 func TestNew(t *testing.T) {
 	priv, pub, err := ci.GenerateKeyPairWithReader(ci.RSA, 2048, rand.Reader)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	pid, err := peer.IDFromPrivateKey(priv)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	ps := peerstore.NewPeerstore()
-	ps.AddPubKey(pid, pub)
-	ps.AddPrivKey(pid, priv)
+	if err := ps.AddPubKey(pid, pub); err != nil {
+		t.Fatal(err)
+	}
+	if err := ps.AddPrivKey(pid, priv); err != nil {
+		t.Fatal(err)
+	}
 
 	swrm := swarm.NewSwarm(context.Background(), pid, ps, nil)
 	host := blankhost.NewBlankHost(swrm)

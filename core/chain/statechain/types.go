@@ -13,6 +13,8 @@ var (
 	ErrInvalidFromAddress = errors.New("from address is not valid")
 	// ErrNilBlock ...
 	ErrNilBlock = errors.New("block is nil")
+	// ErrNilDiff ...
+	ErrNilDiff = errors.New("diff is nil")
 )
 
 // TxSig ...
@@ -54,4 +56,17 @@ type BlockProps struct {
 // Block ...
 type Block struct {
 	props BlockProps
+}
+
+// DiffProps ...
+// note @miguelmota: any better system than simply storing as a string?
+type DiffProps struct {
+	DiffHash *string `json:"diffHash,omitempty"`
+	// what's the best way to store a diff?
+	Data string `json:"data"`
+}
+
+// Diff ...
+type Diff struct {
+	props DiffProps
 }

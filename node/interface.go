@@ -8,6 +8,6 @@ type Interface interface {
 	//FetchBlock(hash string) (*mainchain.Block, error)
 	//FetchHeadBlock() (*mainchain.Block, error)
 	//BroadcastTransaction(tx *statechain.Transaction) error
-	//GatherTransactions() (statechain.TransactionMap, error)
+	//GatherTransactions() ([]*statechain.Transaction, error)
 	//GetInfo() *nodetypes.GetInfoResponse
 }

@@ -18,7 +18,7 @@ var (
 
 // DecodeUint64 decodes a hex string into a uint64
 func DecodeUint64(hexStr string) (uint64, error) {
-	str, err := stripLeader(hexStr)
+	str, err := StripLeader(hexStr)
 	if err != nil {
 		return 0, err
 	}
@@ -33,17 +33,17 @@ func DecodeUint64(hexStr string) (uint64, error) {
 
 // EncodeUint64 encodes i as a hex string
 func EncodeUint64(i uint64) string {
-	return addLeader(strconv.FormatUint(i, 16))
+	return AddLeader(strconv.FormatUint(i, 16))
 }
 
 // EncodeString ...
 func EncodeString(str string) string {
-	return addLeader(hex.EncodeToString([]byte(str)))
+	return AddLeader(hex.EncodeToString([]byte(str)))
 }
 
 // DecodeString ...
 func DecodeString(hexStr string) (string, error) {
-	str, err := stripLeader(hexStr)
+	str, err := StripLeader(hexStr)
 	if err != nil {
 		return "", err
 	}
@@ -53,7 +53,7 @@ func DecodeString(hexStr string) (string, error) {
 		return "", err
 	}
 
-	return addLeader(string(bytes)), nil
+	return AddLeader(string(bytes)), nil
 }
 
 // EncodeBytes ...
@@ -124,7 +124,7 @@ func DecodeFloat64(hexStr string) (float64, error) {
 	return strconv.ParseFloat(f, 64)
 }
 
-func stripLeader(hexStr string) (string, error) {
+func StripLeader(hexStr string) (string, error) {
 	leaderLen := len(Leader)
 	if len(hexStr) <= leaderLen {
 		return "", ErrNotHexString
@@ -137,6 +137,6 @@ func stripLeader(hexStr string) (string, error) {
 	return hexStr[leaderLen:], nil
 }
 
-func addLeader(str string) string {
+func AddLeader(str string) string {
 	return fmt.Sprintf("%s%s", Leader, str)
 }

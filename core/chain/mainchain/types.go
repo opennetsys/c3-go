@@ -1,6 +1,8 @@
 package mainchain
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
 	// ErrNilBlock ...
@@ -9,9 +11,9 @@ var (
 
 // ImageHash is the main chain identifier
 // The main chain does not have an image (i.e. the image hash is nil).
-// The hex encoded, sha256 hash of a nil bytes array is ImageHash
-// https://play.golang.org/p/33_3vY6XyjD
-const ImageHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+// The hex encoded, sha512_256 hash of a nil bytes array is ImageHash
+// https://play.golang.org/p/69Z8ot5uly5
+const ImageHash = "0xc672b8d1ef56ed28ab87c3622c5114069bdd3ad7b8f9737498d0c01ecef0967a"
 
 // BlockSig ...
 type BlockSig struct {
@@ -19,14 +21,14 @@ type BlockSig struct {
 	S string `json:"s"`
 }
 
-// BlockProps ...
-type BlockProps struct {
+// Props ...
+type Props struct {
 	BlockHash             *string   `json:"blockHash,omitempty"`
 	BlockNumber           string    `json:"blockNumber"`
 	BlockTime             string    `json:"blockTime"` // unix timestamp
 	ImageHash             string    `json:"imageHash"`
 	StateBlocksMerkleHash string    `json:"stateBlocksMerkleHash"`
-	StateBlockHashes      []string  `json:"stateBlockHashes"`
+	StateBlockHashes      []*string `json:"stateBlockHashes"`
 	PrevBlockHash         string    `json:"prevBlockHash"`
 	Nonce                 string    `json:"nonce"`
 	Difficulty            string    `json:"difficulty"`
@@ -36,5 +38,5 @@ type BlockProps struct {
 
 // Block ...
 type Block struct {
-	props BlockProps
+	props Props
 }

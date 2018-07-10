@@ -19,6 +19,11 @@ func New(props *Props) (*Service, error) {
 	}, nil
 }
 
+// Props ...
+func (s Service) Props() Props {
+	return s.props
+}
+
 // TODO: implement methods
 
 // AddMainBlock ...
@@ -26,8 +31,8 @@ func (s Service) AddMainBlock(block *mainchain.Block) *cid.Cid {
 	return nil
 }
 
-// Transactions ...
-func (s Service) Transactions() []*statechain.Transaction {
+// PendingTransactions ...
+func (s Service) PendingTransactions() []*statechain.Transaction {
 	return nil
 }
 

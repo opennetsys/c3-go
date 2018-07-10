@@ -9,8 +9,9 @@ import (
 
 // Interface ...
 type Interface interface {
+	Props() Props
 	AddMainBlock(block *mainchain.Block) *cid.Cid
-	Transactions() []*statechain.Transaction
+	PendingTransactions() []*statechain.Transaction
 	MainHead() (*mainchain.Block, error)
 	StateHead(hash string) (*statechain.Block, error)
 }

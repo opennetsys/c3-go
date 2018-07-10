@@ -2,20 +2,17 @@ package node
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 
-	"github.com/c3systems/c3/core/chain"
 	"github.com/c3systems/c3/core/chain/mainchain"
+	"github.com/c3systems/c3/core/chain/mainchain/miner"
 	"github.com/c3systems/c3/core/chain/statechain"
 	"github.com/c3systems/c3/core/p2p"
 	"github.com/c3systems/c3/core/p2p/store/fsstore"
-	"github.com/c3systems/c3/core/sandbox"
 	"github.com/c3systems/c3/node/store/safemempool"
 	nodetypes "github.com/c3systems/c3/node/types"
-	//"github.com/c3systems/c3/node/wallet"
 
 	ipfsaddr "github.com/ipfs/go-ipfs-addr"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
@@ -29,7 +26,6 @@ import (
 func Start(cfg *nodetypes.Config) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	//c := context.Background()
 
 	if cfg == nil {
 		// note: is this the correct way to fail an app with cobra?
@@ -76,9 +72,10 @@ func Start(cfg *nodetypes.Config) error {
 		return fmt.Errorf("err building disk store\n%v", err)
 	}
 	// wrap the datastore in a 'content addressed blocks' layer
+	// TODO: implement metrics? https://github.com/ipfs/go-ds-measure
 	blocks := bstore.NewBlockstore(diskStore)
 
-	p2p, err := p2p.New(&p2p.Props{
+	p2pSvc, err := p2p.New(&p2p.Props{
 		BlockStore: blocks,
 		Host:       newNode,
 	})
@@ -86,30 +83,40 @@ func Start(cfg *nodetypes.Config) error {
 		return fmt.Errorf("err starting ipfs p2p network\n%v", err)
 	}
 
-	blockchain, err := chain.New(&chain.Props{
-		P2P: p2p,
+	n := new(Service)
+
+	minerChannel := make(chan interface{})
+	minerSvc, err := miner.New(&miner.Props{
+		Difficulty:         3, // TODO: need to get this from the network
+		Channel:            minerChannel,
+		Async:              true, // TODO: need to make this a cli flag
+		P2P:                p2pSvc,
+		GatherTransactions: n.props.Store.GatherTransactions,
+		FetchHeadBlock:     n.fetchHeadBlock,
 	})
 	if err != nil {
-		return fmt.Errorf("err building the blockchain\n%v", err)
+		return fmt.Errorf("err building miner\n%v", err)
 	}
 
 	ch := make(chan interface{})
-	n, err := New(&Props{
-		Context:    ctx,
-		Channel:    ch,
-		Host:       newNode,
-		Store:      memPool,
-		Blockchain: blockchain,
-		Pubsub:     pubsub,
+	n, err = New(&Props{
+		Context: ctx,
+		Channel: ch,
+		Host:    newNode,
+		Store:   memPool,
+		Miner:   minerSvc,
+		Pubsub:  pubsub,
 	})
 	if err != nil {
 		return fmt.Errorf("err building the node\n%v", err)
 	}
 
-	if err := n.Start(); err != nil {
-		return fmt.Errorf("err starting node\n%v", err)
+	if err := n.listenForEvents(); err != nil {
+		return fmt.Errorf("err starting listener\n%v", err)
 	}
-
+	if err := n.startMiner(p2pSvc); err != nil {
+		return fmt.Errorf("err starting miner\n%v", err)
+	}
 	log.Printf("Node %s started", newNode.ID().Pretty())
 
 	for {
@@ -118,18 +125,16 @@ func Start(cfg *nodetypes.Config) error {
 			log.Println("[node] received an error on the channel", err)
 
 		case *mainchain.Block:
-			// do a stoofs
-			log.Printf("[node] received %T\n%v", v, v)
-		case *statechain.Block:
-			log.Printf("[node] received %T\n%v", v, v)
-		case *statechain.Transaction:
-			log.Printf("[node] received %T\n%v", v, v)
-			tx, ok := v.(*statechain.Transaction)
-			if !ok {
-				continue
-			}
+			log.Print("[node] received mainchain block")
+			b, _ := v.(*mainchain.Block)
+			go n.handleReceiptOfMainchainBlock(b)
 
-			handleTransaction(tx)
+		case *statechain.Transaction:
+			log.Print("[node] received statechain transaction")
+			tx, _ := v.(*statechain.Transaction)
+			go n.handleReceiptOfStatechainTransaction(tx)
+			// TODO: move this to the miner and handle multiple tx's
+			// handleTransaction(tx)
 
 		default:
 			log.Printf("[node] received an unknown message on channel of type %T\n%v", v, v)
@@ -137,7 +142,9 @@ func Start(cfg *nodetypes.Config) error {
 	}
 }
 
+// TODO: move this to the miner
 // handleTransaction performs container actions after receiving tx
+/*
 func handleTransaction(tx *statechain.Transaction) error {
 	data := tx.Props()
 	if data.Method == "c3_invokeMethod" {
@@ -178,3 +185,4 @@ func handleTransaction(tx *statechain.Transaction) error {
 
 	return nil
 }
+*/
