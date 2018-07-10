@@ -133,56 +133,9 @@ func Start(cfg *nodetypes.Config) error {
 			log.Print("[node] received statechain transaction")
 			tx, _ := v.(*statechain.Transaction)
 			go n.handleReceiptOfStatechainTransaction(tx)
-			// TODO: move this to the miner and handle multiple tx's
-			// handleTransaction(tx)
 
 		default:
 			log.Printf("[node] received an unknown message on channel of type %T\n%v", v, v)
 		}
 	}
 }
-
-// TODO: move this to the miner
-// handleTransaction performs container actions after receiving tx
-/*
-func handleTransaction(tx *statechain.Transaction) error {
-	data := tx.Props()
-	if data.Method == "c3_invokeMethod" {
-		payload, ok := data.Payload.([]byte)
-		if !ok {
-			return errors.New("could not parse payload")
-		}
-
-		var parsed []string
-		if err := json.Unmarshal(payload, &parsed); err != nil {
-			return err
-		}
-
-		inputsJSON, err := json.Marshal(struct {
-			Method string   `json:"method"`
-			Params []string `json:"params"`
-		}{
-			Method: parsed[0],
-			Params: parsed[1:],
-		})
-		if err != nil {
-			return err
-		}
-
-		// run container, passing the tx inputs
-		sb := sandbox.NewSandbox(&sandbox.Config{})
-		result, err := sb.Play(&sandbox.PlayConfig{
-			ImageID: data.ImageHash,
-			Payload: inputsJSON,
-		})
-
-		if err != nil {
-			return err
-		}
-
-		log.Printf("tx result: %s", string(result))
-	}
-
-	return nil
-}
-*/

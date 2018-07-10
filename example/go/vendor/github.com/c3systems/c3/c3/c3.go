@@ -1,11 +1,14 @@
 package c3
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"regexp"
 
 	"github.com/c3systems/c3/config"
 	"github.com/c3systems/c3/core/server"
@@ -115,12 +118,24 @@ func (c3 *C3) setInitialState() {
 	if _, err := os.Stat(c3.statefile); err == nil {
 		src, err := ioutil.ReadFile(c3.statefile)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalln("fail to read", err)
 		}
 
-		err = json.Unmarshal(src, &c3.state)
+		b := new(bytes.Buffer)
+
+		re := regexp.MustCompile(`\\n`)
+		s := re.ReplaceAllString(string(src), "")
+		fmt.Println("raw data", s)
+
+		if err := json.Compact(b, []byte(s)); err != nil {
+			log.Fatalln("fail to compact", err)
+		}
+
+		log.Println("json data", string(b.Bytes()))
+
+		err = json.Unmarshal(b.Bytes(), &c3.state)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalln("fail to unmarshal", err)
 		}
 	}
 }

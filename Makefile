@@ -52,11 +52,19 @@ test/cleanup:
 	@. scripts/test_cleanup.sh
 
 .PHONY: test
-test: test/c3 test/core/server test/core/docker test/core/registry test/core/sandbox test/ditto test/cleanup
+test: test/c3 test/common/network test/common/stringutil test/core/server test/core/docker test/core/registry test/core/sandbox test/ditto test/cleanup
 
 .PHONY: test/c3
 test/c3:
 	@go test -v c3/*.go
+
+.PHONY: test/common/network
+test/common/network:
+	@go test -v common/network/*.go
+
+.PHONY: test/common/stringutil
+test/common/stringutil:
+	@go test -v common/stringutil/*.go
 
 .PHONY: test/core/server
 test/core/server:
@@ -121,7 +129,11 @@ docker/build/example:
 
 .PHONY: docker/run/example
 docker/run/example:
-	@docker run -p 3333 --mount type=bind,src=/tmp,target=/tmp -t goexample
+	@docker run -p 3333 --mount type=bind,src=/tmp/633029102,target=/tmp -t goexample
+
+.PHONY: docker/example/cat
+docker/example/cat:
+	@docker exec -it e795688997e9 bash -c cat /tmp/state.json
 
 .PHONY: docker/example/send
 docker/example/send:

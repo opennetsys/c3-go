@@ -11,11 +11,11 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
-	"strings"
 	"syscall"
 	"time"
 
 	"github.com/c3systems/c3/common/network"
+	"github.com/c3systems/c3/common/stringutil"
 	c3config "github.com/c3systems/c3/config"
 	"github.com/c3systems/c3/core/docker"
 	"github.com/c3systems/c3/ditto"
@@ -74,13 +74,29 @@ func (s *Sandbox) Play(config *PlayConfig) ([]byte, error) {
 		return nil, err
 	}
 
-	hostPort := strconv.Itoa(hp)
+	// TODO: read from blockchain
+	prevState := []byte(`{"hello":"world"}`)
 
+	tmpdir, err := ioutil.TempDir("/tmp", "")
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println("state loaded in tmp dir", tmpdir)
+	statefile := tmpdir + "/state.json"
+
+	err = ioutil.WriteFile(statefile, prevState, 0600)
+	if err != nil {
+		return nil, err
+	}
+
+	hostPort := strconv.Itoa(hp)
 	containerID, err := s.docker.RunContainer(dockerImageID, []string{}, &docker.RunContainerConfig{
 		Volumes: map[string]string{
-		// sock binding will be required for spawning sibling containers
-		//"/var/run/docker.sock": "/var/run/docker.sock",
-		//"/tmp":                 "/tmp",
+			// sock binding will be required for spawning sibling containers
+			// container:host
+			//"/var/run/docker.sock": "/var/run/docker.sock",
+			"/tmp": tmpdir,
 		},
 		Ports: map[string]string{
 			"3333": hostPort,
@@ -94,6 +110,7 @@ func (s *Sandbox) Play(config *PlayConfig) ([]byte, error) {
 
 	done := make(chan bool)
 	timedout := make(chan bool)
+	errEvent := make(chan error)
 
 	go func() {
 		// Wait for application to start up
@@ -101,7 +118,8 @@ func (s *Sandbox) Play(config *PlayConfig) ([]byte, error) {
 		time.Sleep(1 * time.Second)
 		err := s.sendMessage(config.Payload, hostPort)
 		if err != nil {
-			log.Fatal(err)
+			errEvent <- err
+			return
 		}
 
 		done <- true
@@ -113,22 +131,33 @@ func (s *Sandbox) Play(config *PlayConfig) ([]byte, error) {
 		select {
 		case <-timer.C:
 			timedout <- true
-			err := s.docker.StopContainer(containerID)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			delete(s.runningContainers, containerID)
 		}
 	}()
 
 	select {
+	case e := <-errEvent:
+		timer.Stop()
+		close(timedout)
+		close(errEvent)
+		err := s.killContainer(containerID)
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, e
 	case <-timedout:
 		close(timedout)
+		close(errEvent)
+
+		err := s.killContainer(containerID)
+		if err != nil {
+			return nil, err
+		}
+
 		return nil, errors.New("timedout")
 	case <-done:
 		log.Println("reading new state...")
-		cmd := []string{"bash", "-c", fmt.Sprintf(`echo "$(cat %s)" | tr -d '\n'`, c3config.TempContainerStatePath)}
+		cmd := []string{"bash", "-c", "cat " + c3config.TempContainerStatePath}
 		resp, err := s.docker.ContainerExec(containerID, cmd)
 		if err != nil {
 			return nil, err
@@ -141,16 +170,25 @@ func (s *Sandbox) Play(config *PlayConfig) ([]byte, error) {
 
 		log.Println("done")
 		close(timedout)
+		close(errEvent)
 		timer.Stop()
-		err = s.docker.StopContainer(containerID)
+
+		err = s.killContainer(containerID)
 		if err != nil {
 			return nil, err
 		}
 
-		delete(s.runningContainers, containerID)
-
 		return result, nil
 	}
+}
+
+func (s *Sandbox) killContainer(containerID string) error {
+	delete(s.runningContainers, containerID)
+	if err := s.docker.StopContainer(containerID); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func parseNewState(reader io.Reader) ([]byte, error) {
@@ -161,15 +199,20 @@ func parseNewState(reader io.Reader) ([]byte, error) {
 		return nil, err
 	}
 
-	data := []byte(strings.TrimSpace(strings.Trim(strings.Trim(string(src), "\x01"), "\x00")))
+	log.Println("new state", src, string(src))
 
-	err = json.Unmarshal(data, &state)
+	b, err := stringutil.CompactJSON(src)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(b, &state)
 	if err != nil {
 		return nil, err
 	}
 
 	log.Println("new state", state)
-	return data, nil
+	return b, nil
 }
 
 func (s *Sandbox) sendMessage(msg []byte, port string) error {

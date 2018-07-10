@@ -8,18 +8,20 @@ import (
 	"net/http"
 	"strings"
 
+	c3config "github.com/c3systems/c3/config"
 	"github.com/c3systems/c3/ditto/util"
 )
 
 var listener net.Listener
-var ipfsGateway = "http://127.0.0.1:9001"
-var serverHost = "0.0.0.0:5000"
+var serverHost = fmt.Sprintf("0.0.0.0:%v", c3config.DockerRegistryPort)
 
 // Run ...
-func Run() {
+func Run() error {
+	//  already listening
 	if listener != nil {
-		return
+		return nil
 	}
+
 	var gw string
 
 	contentTypes := map[string]string{
@@ -59,12 +61,17 @@ func Run() {
 		}
 
 		s := strings.Split(uri, "/")
+		if len(s) <= 2 {
+			fmt.Fprintln(w, "out of range")
+			return
+		}
+
 		hash := util.IpfsifyHash(s[2])
 		rest := strings.Join(s[3:], "/") // tag
 		path := hash + "/" + rest
 
 		// blob request
-		location := ipfsGateway + "/ipfs/" + path
+		location := ipfsURL(path)
 
 		if suffix != "" {
 			// manifest request
@@ -74,18 +81,21 @@ func Run() {
 
 		req, err := http.NewRequest("GET", location, nil)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Fprintf(w, err.Error())
+			return
 		}
 
 		httpClient := http.Client{}
 		resp, err := httpClient.Do(req)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Fprintf(w, err.Error())
+			return
 		}
 
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Fprintf(w, err.Error())
+			return
 		}
 
 		//w.Header().Set("Location", location) // not required since we're fetching the content and proxying
@@ -99,16 +109,20 @@ func Run() {
 	var err error
 	listener, err = net.Listen("tcp", serverHost)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	port := listener.Addr().(*net.TCPAddr).Port
 	log.Println("PORT", port)
 
-	log.Fatal(http.Serve(listener, nil))
+	return http.Serve(listener, nil)
 }
 
 // Close ...
 func Close() {
 	listener.Close()
+}
+
+func ipfsURL(hash string) string {
+	return c3config.IPFSGateway + "/ipfs/" + hash
 }

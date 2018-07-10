@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/c3systems/c3/common/stringutil"
 	"github.com/c3systems/c3/config"
 	"github.com/c3systems/c3/core/server"
 )
@@ -44,8 +45,17 @@ func NewC3() *C3 {
 		c3,
 	}
 
-	go c3.setInitialState()
-	go c3.listen()
+	go func() {
+		err := c3.setInitialState()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = c3.listen()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	return c3
 }
@@ -62,11 +72,11 @@ func (c3 *C3) RegisterMethod(methodName string, types []string, ifn interface{})
 		case func(string, string) error:
 			key, ok := args[0].(string)
 			if !ok {
-				log.Fatal("not ok")
+				return errors.New("not ok")
 			}
 			value, ok := args[1].(string)
 			if !ok {
-				log.Fatal("not ok")
+				return errors.New("not ok")
 			}
 
 			log.Printf("executed method %s with args: %s %s", methodName, key, value)
@@ -88,20 +98,22 @@ func (c3 *C3) Serve() {
 
 // Set ...
 // TODO: accept interfaces
-func (s *store) Set(key, value string) {
+func (s *store) Set(key, value string) error {
 	s.state[key] = value
 
 	b, err := json.Marshal(s.state)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	f, err := os.OpenFile(s.statefile, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+
 	f.Write(b)
 	f.Close()
+	return nil
 }
 
 // Get ...
@@ -111,27 +123,39 @@ func (s *store) Get(key string) string {
 	return v
 }
 
-func (c3 *C3) setInitialState() {
+func (c3 *C3) setInitialState() error {
 	if _, err := os.Stat(c3.statefile); err == nil {
 		src, err := ioutil.ReadFile(c3.statefile)
 		if err != nil {
-			log.Fatal(err)
+			log.Println("fail to read", err)
+			return err
 		}
 
-		err = json.Unmarshal(src, &c3.state)
+		log.Println("json data", string(src))
+
+		b, err := stringutil.CompactJSON(src)
 		if err != nil {
-			log.Fatal(err)
+			return err
+		}
+
+		err = json.Unmarshal(b, &c3.state)
+		if err != nil {
+			log.Println("fail to unmarshal", err)
+			return err
 		}
 	}
+
+	return nil
 }
 
 // listen ...
-func (c3 *C3) listen() {
+func (c3 *C3) listen() error {
 	for payload := range c3.receiver {
 
 		var parsed []string
 		if err := json.Unmarshal(payload, &parsed); err != nil {
-			log.Fatal(err)
+			log.Println(err)
+			return err
 		}
 
 		method := parsed[0]
@@ -140,7 +164,10 @@ func (c3 *C3) listen() {
 			args = append(args, v)
 		}
 		if err := c3.registeredMethods[method](args...); err != nil {
-			log.Fatal(err)
+			log.Println(err)
+			return err
 		}
 	}
+
+	return nil
 }

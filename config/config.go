@@ -11,3 +11,9 @@ var DefaultStoreDirectory = "~/.c3"
 
 // TempContainerStatePath ...
 var TempContainerStatePath = "/tmp/state.json"
+
+// DockerRegistryPort ...
+const DockerRegistryPort = 5000
+
+// IPFSGateway ...
+const IPFSGateway = "http://127.0.0.1:9001"

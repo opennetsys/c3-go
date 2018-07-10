@@ -17,6 +17,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/c3systems/c3/common/network"
+	c3config "github.com/c3systems/c3/config"
 	"github.com/c3systems/c3/core/docker"
 	"github.com/c3systems/c3/ditto/server"
 	"github.com/c3systems/c3/ditto/util"
@@ -49,7 +51,10 @@ func (ditto *Ditto) PushImageByID(imageID string) error {
 
 // PushImage uploads Docker image to IPFS
 func (ditto *Ditto) PushImage(reader io.Reader) error {
-	tmp := mktmp()
+	tmp, err := mktmp()
+	if err != nil {
+		return err
+	}
 	fmt.Println("temp:", tmp)
 
 	if err := untar(reader, tmp); err != nil {
@@ -75,9 +80,16 @@ func (ditto *Ditto) PushImage(reader io.Reader) error {
 
 // DownloadImage download Docker image from IPFS
 func (ditto *Ditto) DownloadImage(ipfsHash string) (string, error) {
-	tmp := mktmp()
+	tmp, err := mktmp()
+	if err != nil {
+		return "", err
+	}
+
 	path := tmp + "/" + ipfsHash + ".tar"
-	outstr, errstr := ipfsCmd(fmt.Sprintf("get %s -a -o %s", ipfsHash, path))
+	outstr, errstr, err := ipfsCmd(fmt.Sprintf("get %s -a -o %s", ipfsHash, path))
+	if err != nil {
+		return "", err
+	}
 	_ = outstr
 	_ = errstr
 
@@ -89,8 +101,16 @@ func (ditto *Ditto) PullImage(ipfsHash string) (string, error) {
 	go server.Run()
 	client := docker.NewClient()
 
-	dockerImageID := "123.123.123.123:5000/" + util.DockerizeHash(ipfsHash)
-	err := client.PullImage(dockerImageID)
+	localIP, err := network.LocalIP()
+	if err != nil {
+		return "", err
+	}
+
+	dockerImageID := fmt.Sprintf("%s:%v/%s", localIP.String(), c3config.DockerRegistryPort, util.DockerizeHash(ipfsHash))
+
+	log.Printf("attempting to pull %s", dockerImageID)
+
+	err = client.PullImage(dockerImageID)
 	if err != nil {
 		return dockerImageID, err
 	}
@@ -98,17 +118,21 @@ func (ditto *Ditto) PullImage(ipfsHash string) (string, error) {
 	return dockerImageID, nil
 }
 
-func mktmp() string {
+func mktmp() (string, error) {
 	tmp, err := ioutil.TempDir("", "")
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
-	return tmp
+	return tmp, err
 }
 
 func ipfsPrep(tmp string) (string, error) {
-	root := mktmp()
+	root, err := mktmp()
+	if err != nil {
+		return "", err
+	}
+
 	workdir := root
 	fmt.Println("preparing image in:", workdir)
 	name := "default"
@@ -156,17 +180,30 @@ func ipfsPrep(tmp string) (string, error) {
 	configDest := workdir + "/blobs/sha256:" + string(configFile[:len(configFile)-5])
 	fmt.Println("\nDIST", configDest)
 	mkdir(configDest)
-	copyfile(tmp+"/"+configFile, configDest+"/"+configFile)
+	if err := copyFile(tmp+"/"+configFile, configDest+"/"+configFile); err != nil {
+		return "", err
+	}
 
-	mf := makeV2Manifest(manifest, configFile, configDest, tmp, workdir)
+	mf, err := makeV2Manifest(manifest, configFile, configDest, tmp, workdir)
+	if err != nil {
+		return "", err
+	}
+
 	spew.Dump(mf)
 
-	writeJSON(mf, workdir+"/manifests/latest-v2")
+	err = writeJSON(mf, workdir+"/manifests/latest-v2")
+	if err != nil {
+		return "", err
+	}
+
 	return root, nil
 }
 
 func uploadDir(root string) (string, error) {
-	outstr, errstr := ipfsCmd(fmt.Sprintf("add -r -q %s", root))
+	outstr, errstr, err := ipfsCmd(fmt.Sprintf("add -r -q %s", root))
+	if err != nil {
+		return "", err
+	}
 
 	if errstr != "" {
 		return "", errors.New(errstr)
@@ -180,10 +217,10 @@ func uploadDir(root string) (string, error) {
 	return "", errors.New("no result")
 }
 
-func ipfsCmd(cmdStr string) (string, string) {
+func ipfsCmd(cmdStr string) (string, string, error) {
 	path, err := exec.LookPath("ipfs")
 	if err != nil {
-		log.Fatal("ipfs command was not found. Please install ipfs")
+		return "", "", errors.New("ipfs command was not found. Please install ipfs")
 	}
 	cmd := exec.Command("sh", "-c", fmt.Sprintf("%s %s", path, cmdStr))
 	stdoutIn, _ := cmd.StdoutPipe()
@@ -193,7 +230,7 @@ func ipfsCmd(cmdStr string) (string, string) {
 	stderr := io.MultiWriter(os.Stderr, &stderrBuf)
 	err = cmd.Start()
 	if err != nil {
-		log.Fatal(err)
+		return "", "", err
 	}
 
 	go copyio(stdoutIn, stdout)
@@ -201,44 +238,57 @@ func ipfsCmd(cmdStr string) (string, string) {
 
 	err = cmd.Wait()
 	if err != nil {
-		log.Fatal(err)
+		return "", "", err
 	}
 
 	outstr := strings.TrimSpace(string(stdoutBuf.Bytes()))
 	errstr := strings.TrimSpace(string(stderrBuf.Bytes()))
-	return outstr, errstr
+
+	return outstr, errstr, nil
 }
 
-func copyio(out io.Reader, in io.Writer) {
+func copyio(out io.Reader, in io.Writer) error {
 	_, err := io.Copy(in, out)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+
+	return nil
 }
 
-func writeJSON(idate interface{}, path string) {
+func writeJSON(idate interface{}, path string) error {
 	data, err := json.Marshal(idate)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+
 	err = ioutil.WriteFile(path, data, os.ModePerm)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+
+	return nil
 }
 
 // produce v2 manifest of type/application/vnd.docker.distribution.manifest.v2+json
-func makeV2Manifest(manifest map[string]interface{}, configFile, configDest, tmp, workdir string) map[string]interface{} {
-	v2manifest := prepareV2Manifest(manifest, tmp, workdir+"/blobs")
+func makeV2Manifest(manifest map[string]interface{}, configFile, configDest, tmp, workdir string) (map[string]interface{}, error) {
+	v2manifest, err := prepareV2Manifest(manifest, tmp, workdir+"/blobs")
+	if err != nil {
+		return nil, err
+	}
 	config := make(map[string]interface{})
 	config["digest"] = "sha256:" + string(configFile[:len(configFile)-5])
-	config["size"] = fileSize(configDest + "/" + configFile)
+	config["size"], err = fileSize(configDest + "/" + configFile)
+	if err != nil {
+		return nil, err
+	}
 	config["mediaType"] = "application/vnd.docker.container.image.v1+json"
 	conf, ok := v2manifest["config"].(map[string]interface{})
 	if !ok {
+		return nil, errors.New("not ok")
 	}
 	v2manifest["config"] = mergemap(conf, config)
-	return v2manifest
+	return v2manifest, nil
 }
 
 func mergemap(a, b map[string]interface{}) map[string]interface{} {
@@ -248,7 +298,7 @@ func mergemap(a, b map[string]interface{}) map[string]interface{} {
 	return a
 }
 
-func prepareV2Manifest(mf map[string]interface{}, tmp, blobDir string) map[string]interface{} {
+func prepareV2Manifest(mf map[string]interface{}, tmp, blobDir string) (map[string]interface{}, error) {
 	res := make(map[string]interface{})
 	res["schemaVersion"] = 2
 	res["mediaType"] = "application/vnd.docker.distribution.manifest.v2+json"
@@ -258,79 +308,95 @@ func prepareV2Manifest(mf map[string]interface{}, tmp, blobDir string) map[strin
 	mediaType := "application/vnd.docker.image.rootfs.diff.tar.gzip"
 	ls, ok := mf["Layers"].([]interface{})
 	if !ok {
-		log.Fatal("expected layers")
+		return nil, errors.New("expected layers")
 	}
 	for _, ifc := range ls {
 		layer, ok := ifc.(string)
 		if !ok {
-			log.Fatal("expected string")
+			return nil, errors.New("expected string")
 		}
 		obj := make(map[string]interface{})
 		obj["mediaType"] = mediaType
-		size, digest := compressLayer(tmp+"/"+layer, blobDir)
+		size, digest, err := compressLayer(tmp+"/"+layer, blobDir)
+		if err != nil {
+			return nil, err
+		}
 		obj["size"] = size
 		obj["digest"] = "sha256:" + digest
 		layers = append(layers, obj)
 	}
 	res["layers"] = layers
-	return res
+	return res, nil
 }
 
-func compressLayer(path, blobDir string) (int64, string) {
+func compressLayer(path, blobDir string) (int64, string, error) {
 	log.Printf("compressing layer: %s", path)
 	tmp := blobDir + "/layer.tmp.tgz"
 
-	gzipfile(path, tmp)
+	err := gzipFile(path, tmp)
+	if err != nil {
+		return int64(0), "", err
+	}
 
-	digest := sha256File(tmp)
-	size := fileSize(tmp)
-	renameFile(tmp, blobDir+"/sha256:"+digest)
+	digest, err := sha256File(tmp)
+	if err != nil {
+		return int64(0), "", err
+	}
 
-	return size, digest
+	size, err := fileSize(tmp)
+	if err != nil {
+		return int64(0), "", err
+	}
+
+	err = renameFile(tmp, blobDir+"/sha256:"+digest)
+	if err != nil {
+		return int64(0), "", err
+	}
+
+	return size, digest, nil
 }
 
-func gzipfile(src, dst string) {
+func gzipFile(src, dst string) error {
 	data, _ := ioutil.ReadFile(src)
 	var b bytes.Buffer
 	w := gzip.NewWriter(&b)
 	w.Write(data)
 	w.Close()
 
-	err := ioutil.WriteFile(dst, b.Bytes(), os.ModePerm)
-	if err != nil {
-		log.Fatal(err)
-	}
+	return ioutil.WriteFile(dst, b.Bytes(), os.ModePerm)
 }
 
-func fileSize(path string) int64 {
+func fileSize(path string) (int64, error) {
 	fi, err := os.Stat(path)
 	if err != nil {
-		log.Fatal(err)
+		return int64(0), err
 	}
 
-	return fi.Size()
+	return fi.Size(), nil
 }
 
-func sha256File(path string) string {
+func sha256File(path string) (string, error) {
 	// TODO: stream instead of reading whole image in memory
 	f, err := os.Open(path)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 	defer f.Close()
 	h := sha256.New()
 
 	if _, err := io.Copy(h, f); err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
-	return hex.EncodeToString(h.Sum(nil))
+	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
-func renameFile(src, dst string) {
+func renameFile(src, dst string) error {
 	if err := os.Rename(src, dst); err != nil {
-		log.Fatal(err)
+		return err
 	}
+
+	return nil
 }
 
 func mkdir(path string) {
@@ -339,15 +405,12 @@ func mkdir(path string) {
 	}
 }
 
-func copyfile(src, dst string) {
+func copyFile(src, dst string) error {
 	data, err := ioutil.ReadFile(src)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-	err = ioutil.WriteFile(dst, data, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
+	return ioutil.WriteFile(dst, data, 0644)
 }
 
 func untar(reader io.Reader, dst string) error {

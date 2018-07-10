@@ -119,6 +119,7 @@ func (s *Client) PullImage(imageID string) error {
 	if err != nil {
 		return err
 	}
+
 	io.Copy(os.Stdout, reader)
 	return nil
 }
@@ -182,7 +183,7 @@ func (s *Client) RunContainer(imageID string, cmd []string, config *RunContainer
 		for k, v := range config.Ports {
 			t, err := nat.NewPort("tcp", k)
 			if err != nil {
-				log.Fatal(err)
+				return "", err
 			}
 			dockerConfig.ExposedPorts[t] = struct{}{}
 			hostConfig.PortBindings[t] = []nat.PortBinding{
@@ -367,8 +368,7 @@ func (s *Client) InspectContainer(containerID string) (types.ContainerJSON, erro
 func (s *Client) ContainerExec(containerID string, cmd []string) (io.Reader, error) {
 	id, err := s.client.ContainerExecCreate(context.Background(), containerID, types.ExecConfig{
 		AttachStdout: true,
-		// cat file as single line
-		Cmd: cmd,
+		Cmd:          cmd,
 	})
 
 	log.Println("exec ID", id.ID)
