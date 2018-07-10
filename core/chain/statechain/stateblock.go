@@ -1,7 +1,8 @@
 package statechain
 
 import (
-	"encoding/json"
+	"bytes"
+	"encoding/gob"
 
 	"github.com/c3systems/c3/common/hashing"
 	"github.com/c3systems/c3/common/hexutil"
@@ -25,19 +26,24 @@ func (b Block) Props() BlockProps {
 
 // Serialize ...
 func (b Block) Serialize() ([]byte, error) {
-	return json.Marshal(b.props)
+	data := new(bytes.Buffer)
+	err := gob.NewEncoder(data).Encode(b.props)
+	if err != nil {
+		return nil, err
+	}
+
+	return data.Bytes(), nil
 }
 
 // Deserialize ...
-func (b *Block) Deserialize(bytes []byte) error {
+func (b *Block) Deserialize(data []byte) error {
 	if b == nil {
 		return ErrNilBlock
 	}
 
 	var tmpProps BlockProps
-	if err := json.Unmarshal(bytes, &tmpProps); err != nil {
-		return err
-	}
+	byts := bytes.NewBuffer(data)
+	gob.NewDecoder(byts).Decode(&tmpProps)
 
 	b.props = tmpProps
 	return nil

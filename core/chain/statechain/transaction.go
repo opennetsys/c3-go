@@ -1,8 +1,9 @@
 package statechain
 
 import (
+	"bytes"
 	"crypto/ecdsa"
-	"encoding/json"
+	"encoding/gob"
 
 	"github.com/c3systems/c3/common/hashing"
 	"github.com/c3systems/c3/common/hexutil"
@@ -21,38 +22,43 @@ func NewTransaction(props *TransactionProps) *Transaction {
 }
 
 // Props ...
-func (tx Transaction) Props() TransactionProps {
+func (tx *Transaction) Props() TransactionProps {
 	return tx.props
 }
 
 // Serialize ...
-func (tx Transaction) Serialize() ([]byte, error) {
-	return json.Marshal(tx.props)
+func (tx *Transaction) Serialize() ([]byte, error) {
+	b := new(bytes.Buffer)
+	err := gob.NewEncoder(b).Encode(tx.props)
+	if err != nil {
+		return nil, err
+	}
+
+	return b.Bytes(), nil
 }
 
 // Deserialize ...
-func (tx *Transaction) Deserialize(bytes []byte) error {
+func (tx *Transaction) Deserialize(data []byte) error {
 	if tx == nil {
 		return ErrNilTx
 	}
 
 	var tmpProps TransactionProps
-	if err := json.Unmarshal(bytes, &tmpProps); err != nil {
-		return err
-	}
+	b := bytes.NewBuffer(data)
+	gob.NewDecoder(b).Decode(&tmpProps)
 
 	tx.props = tmpProps
 	return nil
 }
 
 // SerializeString ...
-func (tx Transaction) SerializeString() (string, error) {
-	bytes, err := tx.Serialize()
+func (tx *Transaction) SerializeString() (string, error) {
+	data, err := tx.Serialize()
 	if err != nil {
 		return "", err
 	}
 
-	return hexutil.EncodeString(string(bytes)), nil
+	return hexutil.EncodeString(string(data)), nil
 }
 
 // DeserializeString ...
@@ -70,7 +76,7 @@ func (tx *Transaction) DeserializeString(hexStr string) error {
 }
 
 // CalcHash ...
-func (tx Transaction) CalcHash() (string, error) {
+func (tx *Transaction) CalcHash() (string, error) {
 	tmpTx := Transaction{
 		props: TransactionProps{
 			ImageHash: tx.props.ImageHash,
@@ -80,12 +86,12 @@ func (tx Transaction) CalcHash() (string, error) {
 		},
 	}
 
-	bytes, err := tmpTx.Serialize()
+	data, err := tmpTx.Serialize()
 	if err != nil {
 		return "", err
 	}
 
-	return hashing.HashToHexString(bytes), nil
+	return hashing.HashToHexString(data), nil
 }
 
 // SetHash ...
@@ -105,7 +111,7 @@ func (tx *Transaction) SetHash() error {
 }
 
 // CalcSig ...
-func (tx Transaction) CalcSig(priv *ecdsa.PrivateKey) (*TxSig, error) {
+func (tx *Transaction) CalcSig(priv *ecdsa.PrivateKey) (*TxSig, error) {
 	hash, err := tx.CalcHash()
 	if err != nil {
 		return nil, err

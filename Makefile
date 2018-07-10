@@ -52,7 +52,11 @@ test/cleanup:
 	@. scripts/test_cleanup.sh
 
 .PHONY: test
-test: test/core/server test/core/dockerclient test/core/registry test/core/sandbox test/ditto test/cleanup
+test: test/c3 test/core/server test/core/dockerclient test/core/registry test/core/sandbox test/ditto test/cleanup
+
+.PHONY: test/c3
+test/c3:
+	@go test -v c3/*.go
 
 .PHONY: test/core/server
 test/core/server:
@@ -117,7 +121,7 @@ docker/build/example:
 
 .PHONY: docker/run/example
 docker/run/example:
-	@docker run -p 3333 -t goexample
+	@docker run -p 3333 --mount type=bind,src=/tmp,target=/tmp -t goexample
 
 .PHONY: docker/build/example/bash
 docker/build/example/bash:

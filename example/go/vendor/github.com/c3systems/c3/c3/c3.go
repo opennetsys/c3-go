@@ -1,37 +1,63 @@
 package c3
 
 import (
+	"encoding/json"
 	"errors"
+	"log"
+	"time"
 
+	"github.com/c3systems/c3/common/fscache"
 	"github.com/c3systems/c3/config"
 	"github.com/c3systems/c3/core/server"
 )
 
-// Service ...
-type Service struct {
-	registeredMethods map[string]func(args ...interface{}) interface{}
+var (
+	// ErrMethodAlreadyRegistred ...
+	ErrMethodAlreadyRegistred = errors.New("method already registered")
+)
+
+// C3 ...
+type C3 struct {
+	Store             store
+	registeredMethods map[string]func(args ...interface{}) error
+	receiver          chan []byte
 }
 
-// New ...
-func New() *Service {
-	return &Service{
-		registeredMethods: map[string]func(args ...interface{}) interface{}{},
+// store
+type store struct{}
+
+// NewC3 ...
+func NewC3() *C3 {
+	receiver := make(chan []byte)
+	c3 := &C3{
+		registeredMethods: map[string]func(args ...interface{}) error{},
+		receiver:          receiver,
 	}
+
+	go c3.listen()
+
+	return c3
 }
 
 // RegisterMethod ...
-func (s *Service) RegisterMethod(methodName string, types []string, ifn interface{}) error {
-	if _, ok := s.registeredMethods[methodName]; ok {
-		return errors.New("method already registered")
+func (c3 *C3) RegisterMethod(methodName string, types []string, ifn interface{}) error {
+	if _, ok := c3.registeredMethods[methodName]; ok {
+		return ErrMethodAlreadyRegistred
 	}
 
-	s.registeredMethods[methodName] = func(args ...interface{}) interface{} {
+	c3.registeredMethods[methodName] = func(args ...interface{}) error {
 		switch v := ifn.(type) {
 		case func(string, string) error:
 			key, ok := args[0].(string)
 			if !ok {
+				log.Fatal("not ok")
 			}
-			value, ok := args[0].(string)
+			value, ok := args[1].(string)
+			if !ok {
+				log.Fatal("not ok")
+			}
+
+			log.Printf("executed method %s with args: %s %s", methodName, key, value)
 			v(key, value)
 		}
 		return nil
@@ -40,9 +66,54 @@ func (s *Service) RegisterMethod(methodName string, types []string, ifn interfac
 }
 
 // Serve ...
-func (s *Service) Serve() {
-	server.New(&server.Config{
-		Host: config.ServerHost,
-		Port: config.ServerPort,
+func (c3 *C3) Serve() {
+	server.NewServer(&server.Config{
+		Host:     config.ServerHost,
+		Port:     config.ServerPort,
+		Receiver: c3.receiver,
 	}).Run()
+}
+
+// Set ...
+// TODO: accept interfaces
+func (s *store) Set(key, value string) {
+	err := fscache.Set(key, value, 1*time.Minute)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+// Get ...
+// TODO: accept interfaces
+func (s *store) Get(key string) string {
+	var value string
+	found, err := fscache.Get(key, &value)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if found {
+		return value
+	}
+
+	return ""
+}
+
+// listen ...
+func (c3 *C3) listen() {
+	for payload := range c3.receiver {
+
+		var parsed []string
+		if err := json.Unmarshal(payload, &parsed); err != nil {
+			log.Fatal(err)
+		}
+
+		method := parsed[0]
+		var args []interface{}
+		for _, v := range parsed[1:] {
+			args = append(args, v)
+		}
+		if err := c3.registeredMethods[method](args...); err != nil {
+			log.Fatal(err)
+		}
+	}
 }

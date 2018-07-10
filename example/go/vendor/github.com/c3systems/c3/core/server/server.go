@@ -3,51 +3,55 @@ package server
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"net"
 )
 
 // Server ...
 type Server struct {
-	host string
-	port int
+	host     string
+	port     int
+	receiver chan []byte
 }
 
 // Client ...
 type Client struct {
-	conn net.Conn
+	conn    net.Conn
+	channel chan []byte
 }
 
 // Config ...
 type Config struct {
-	Host string
-	Port int
+	Host     string
+	Port     int
+	Receiver chan []byte
 }
 
-// New ...
-func New(config *Config) *Server {
+// NewServer ...
+func NewServer(config *Config) *Server {
 	return &Server{
-		host: config.Host,
-		port: config.Port,
+		host:     config.Host,
+		port:     config.Port,
+		receiver: config.Receiver,
 	}
 }
 
 // Run ...
-func (server *Server) Run() {
+func (server *Server) Run() error {
 	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%v", server.host, server.port))
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer listener.Close()
 
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 
 		client := &Client{
-			conn: conn,
+			conn:    conn,
+			channel: server.receiver,
 		}
 		go client.handleRequest()
 	}
@@ -61,7 +65,8 @@ func (client *Client) handleRequest() {
 			client.conn.Close()
 			return
 		}
-		fmt.Printf("Message incoming: %s", string(message))
+		fmt.Printf("Message incoming: %s", message)
+		client.channel <- []byte(message)
 		client.conn.Write([]byte("Message received.\n"))
 	}
 }

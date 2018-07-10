@@ -10,10 +10,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 
-	"github.com/c3systems/c3/common/network"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -139,59 +137,64 @@ func (s *Client) PushImage(imageID string) error {
 
 // RunContainerConfig ...
 type RunContainerConfig struct {
-	Volumes map[string]struct {
-		Type        string
-		Source      string
-		Destination string
-	}
+	// container:host
+	Volumes map[string]string
+	Ports   map[string]string
 }
 
 // RunContainer ...
 func (s *Client) RunContainer(imageID string, cmd []string, config *RunContainerConfig) (string, error) {
-	hostPort, err := network.GetFreePort()
-	if err != nil {
-		return "", err
+	if config == nil {
+		config = &RunContainerConfig{}
 	}
 
 	dockerConfig := &container.Config{
-		Image: imageID,
-		Cmd:   cmd,
-		Tty:   false,
-		Volumes: map[string]struct {
-		}{
-			"/var/run/docker.sock": {},
-		},
-		ExposedPorts: map[nat.Port]struct{}{
-			"3333/tcp": {},
-		},
+		Image:        imageID,
+		Cmd:          cmd,
+		Tty:          false,
+		Volumes:      map[string]struct{}{},
+		ExposedPorts: map[nat.Port]struct{}{},
 	}
 
-	if config != nil {
-		//dockerConfig.Volumes = config.Volumes
+	hostConfig := &container.HostConfig{
+		Binds:        nil,
+		PortBindings: map[nat.Port][]nat.PortBinding{},
+		AutoRemove:   true,
+		IpcMode:      "",
+		Privileged:   false,
+		Mounts:       []mount.Mount{},
 	}
 
-	resp, err := s.client.ContainerCreate(context.Background(), dockerConfig, &container.HostConfig{
-		Binds: nil,
-		PortBindings: map[nat.Port][]nat.PortBinding{
-			"3333/tcp": []nat.PortBinding{
+	if len(config.Volumes) > 0 {
+		for k, v := range config.Volumes {
+			dockerConfig.Volumes[k] = struct{}{}
+
+			hostConfig.Mounts = append(hostConfig.Mounts, mount.Mount{
+				Type:     "bind",
+				Source:   v,
+				Target:   k,
+				ReadOnly: false,
+			})
+		}
+	}
+
+	if len(config.Ports) > 0 {
+		for k, v := range config.Ports {
+			t, err := nat.NewPort("tcp", k)
+			if err != nil {
+				log.Fatal(err)
+			}
+			dockerConfig.ExposedPorts[t] = struct{}{}
+			hostConfig.PortBindings[t] = []nat.PortBinding{
 				{
 					HostIP:   "0.0.0.0",
-					HostPort: strconv.Itoa(hostPort),
+					HostPort: v,
 				},
-			},
-		},
-		AutoRemove: true,
-		IpcMode:    "",
-		Privileged: false,
-		Mounts: []mount.Mount{
-			mount.Mount{
-				Type:     "bind",
-				Source:   "/var/run/docker.sock",
-				Target:   "/var/run/docker.sock",
-				ReadOnly: false,
-			},
-		},
-	}, nil, "")
+			}
+		}
+	}
+
+	resp, err := s.client.ContainerCreate(context.Background(), dockerConfig, hostConfig, nil, "")
 
 	/*
 			container.Config{
@@ -340,14 +343,13 @@ func (s *Client) RunContainer(imageID string, cmd []string, config *RunContainer
 
 // StopContainer ...
 func (s *Client) StopContainer(containerID string) error {
+	log.Printf("stopping container %s", containerID)
 	err := s.client.ContainerStop(context.Background(), containerID, nil)
-
 	if err != nil {
 		return err
 	}
 
-	log.Printf("stopping container %s", containerID)
-
+	log.Println("container stopped")
 	return nil
 }
 

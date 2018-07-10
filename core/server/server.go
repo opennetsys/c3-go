@@ -8,26 +8,30 @@ import (
 
 // Server ...
 type Server struct {
-	host string
-	port int
+	host     string
+	port     int
+	receiver chan []byte
 }
 
 // Client ...
 type Client struct {
-	conn net.Conn
+	conn    net.Conn
+	channel chan []byte
 }
 
 // Config ...
 type Config struct {
-	Host string
-	Port int
+	Host     string
+	Port     int
+	Receiver chan []byte
 }
 
 // NewServer ...
 func NewServer(config *Config) *Server {
 	return &Server{
-		host: config.Host,
-		port: config.Port,
+		host:     config.Host,
+		port:     config.Port,
+		receiver: config.Receiver,
 	}
 }
 
@@ -46,7 +50,8 @@ func (server *Server) Run() error {
 		}
 
 		client := &Client{
-			conn: conn,
+			conn:    conn,
+			channel: server.receiver,
 		}
 		go client.handleRequest()
 	}
@@ -60,7 +65,8 @@ func (client *Client) handleRequest() {
 			client.conn.Close()
 			return
 		}
-		fmt.Printf("Message incoming: %s", string(message))
+		fmt.Printf("Message incoming: %s", message)
+		client.channel <- []byte(message)
 		client.conn.Write([]byte("Message received.\n"))
 	}
 }
