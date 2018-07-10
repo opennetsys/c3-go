@@ -17,13 +17,13 @@ import (
 
 	"github.com/c3systems/c3/common/network"
 	c3config "github.com/c3systems/c3/config"
-	"github.com/c3systems/c3/core/dockerclient"
+	"github.com/c3systems/c3/core/docker"
 	"github.com/c3systems/c3/ditto"
 )
 
 // Sandbox ...
 type Sandbox struct {
-	docker            *dockerclient.Client
+	docker            *docker.Client
 	ditto             *ditto.Ditto
 	sock              string
 	runningContainers map[string]bool
@@ -38,7 +38,7 @@ func NewSandbox(config *Config) *Sandbox {
 	if config == nil {
 		config = &Config{}
 	}
-	docker := dockerclient.NewClient()
+	docker := docker.NewClient()
 	dit := ditto.NewDitto(&ditto.Config{})
 	sb := &Sandbox{
 		docker:            docker,
@@ -76,7 +76,7 @@ func (s *Sandbox) Play(config *PlayConfig) ([]byte, error) {
 
 	hostPort := strconv.Itoa(hp)
 
-	containerID, err := s.docker.RunContainer(dockerImageID, []string{}, &dockerclient.RunContainerConfig{
+	containerID, err := s.docker.RunContainer(dockerImageID, []string{}, &docker.RunContainerConfig{
 		Volumes: map[string]string{
 		// sock binding will be required for spawning sibling containers
 		//"/var/run/docker.sock": "/var/run/docker.sock",

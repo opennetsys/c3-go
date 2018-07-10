@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/c3systems/c3/core/dockerclient"
+	"github.com/c3systems/c3/core/docker"
 )
 
 // Registry ...
 type Registry struct {
-	client *dockerclient.Client
+	client *docker.Client
 	host   string
 }
 
@@ -20,7 +20,7 @@ type Config struct {
 
 // NewRegistry ...
 func NewRegistry(config *Config) *Registry {
-	client := dockerclient.NewClient()
+	client := docker.NewClient()
 	return &Registry{
 		client: client,
 		host:   config.Host,

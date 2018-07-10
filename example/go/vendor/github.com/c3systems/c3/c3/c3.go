@@ -37,7 +37,7 @@ func NewC3() *C3 {
 		registeredMethods: map[string]func(args ...interface{}) error{},
 		receiver:          receiver,
 		state:             map[string]string{},
-		statefile:         "/tmp/state.json",
+		statefile:         config.TempContainerStatePath,
 	}
 
 	c3.Store = &store{
@@ -58,6 +58,7 @@ func (c3 *C3) RegisterMethod(methodName string, types []string, ifn interface{})
 
 	c3.registeredMethods[methodName] = func(args ...interface{}) error {
 		switch v := ifn.(type) {
+		// TODO: accept arbitrary args
 		case func(string, string) error:
 			key, ok := args[0].(string)
 			if !ok {

@@ -17,7 +17,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/c3systems/c3/core/dockerclient"
+	"github.com/c3systems/c3/core/docker"
 	"github.com/c3systems/c3/ditto/server"
 	"github.com/c3systems/c3/ditto/util"
 	"github.com/davecgh/go-spew/spew"
@@ -38,7 +38,7 @@ func NewDitto(config *Config) *Ditto {
 
 // PushImageByID uploads Docker image by image ID (hash/name) to IPFS
 func (ditto *Ditto) PushImageByID(imageID string) error {
-	client := dockerclient.NewClient()
+	client := docker.NewClient()
 	reader, err := client.ReadImage(imageID)
 	if err != nil {
 		return err
@@ -87,7 +87,7 @@ func (ditto *Ditto) DownloadImage(ipfsHash string) (string, error) {
 // PullImage pull Docker image from IPFS
 func (ditto *Ditto) PullImage(ipfsHash string) (string, error) {
 	go server.Run()
-	client := dockerclient.NewClient()
+	client := docker.NewClient()
 
 	dockerImageID := "123.123.123.123:5000/" + util.DockerizeHash(ipfsHash)
 	err := client.PullImage(dockerImageID)

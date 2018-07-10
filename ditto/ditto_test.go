@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/c3systems/c3/core/dockerclient"
+	"github.com/c3systems/c3/core/docker"
 )
 
 func TestNew(t *testing.T) {
@@ -30,7 +30,7 @@ func TestPushImage(t *testing.T) {
 }
 
 func TestPushImageByID(t *testing.T) {
-	client := dockerclient.New()
+	client := docker.NewClient()
 	err := client.LoadImageByFilepath("./test_data/hello-world.tar")
 	if err != nil {
 		log.Fatal(err)

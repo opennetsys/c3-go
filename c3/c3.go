@@ -58,6 +58,7 @@ func (c3 *C3) RegisterMethod(methodName string, types []string, ifn interface{})
 
 	c3.registeredMethods[methodName] = func(args ...interface{}) error {
 		switch v := ifn.(type) {
+		// TODO: accept arbitrary args
 		case func(string, string) error:
 			key, ok := args[0].(string)
 			if !ok {
