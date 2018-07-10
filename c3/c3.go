@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/c3systems/c3/common/stringutil"
-	"github.com/c3systems/c3/config"
+	c3config "github.com/c3systems/c3/config"
 	"github.com/c3systems/c3/core/server"
 )
 
@@ -38,7 +38,7 @@ func NewC3() *C3 {
 		registeredMethods: map[string]func(args ...interface{}) error{},
 		receiver:          receiver,
 		state:             map[string]string{},
-		statefile:         config.TempContainerStatePath,
+		statefile:         c3config.TempContainerStateFilePath,
 	}
 
 	c3.Store = &store{
@@ -90,8 +90,8 @@ func (c3 *C3) RegisterMethod(methodName string, types []string, ifn interface{})
 // Serve ...
 func (c3 *C3) Serve() {
 	server.NewServer(&server.Config{
-		Host:     config.ServerHost,
-		Port:     config.ServerPort,
+		Host:     c3config.ServerHost,
+		Port:     c3config.ServerPort,
 		Receiver: c3.receiver,
 	}).Run()
 }

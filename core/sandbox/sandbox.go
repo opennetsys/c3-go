@@ -54,8 +54,9 @@ func NewSandbox(config *Config) *Sandbox {
 
 // PlayConfig ...
 type PlayConfig struct {
-	ImageID string // ipfs hash
-	Payload []byte
+	ImageID      string // ipfs hash
+	Payload      []byte
+	InitialState []byte
 }
 
 // Play in the sandbox
@@ -74,18 +75,15 @@ func (s *Sandbox) Play(config *PlayConfig) ([]byte, error) {
 		return nil, err
 	}
 
-	// TODO: read from blockchain
-	prevState := []byte(`{"hello":"world"}`)
-
 	tmpdir, err := ioutil.TempDir("/tmp", "")
 	if err != nil {
 		return nil, err
 	}
 
 	fmt.Println("state loaded in tmp dir", tmpdir)
-	statefile := tmpdir + "/state.json"
+	hostStateFilePath := fmt.Sprintf("%s/%s", tmpdir, c3config.TempContainerStateFileName)
 
-	err = ioutil.WriteFile(statefile, prevState, 0600)
+	err = ioutil.WriteFile(hostStateFilePath, config.InitialState, 0600)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +155,7 @@ func (s *Sandbox) Play(config *PlayConfig) ([]byte, error) {
 		return nil, errors.New("timedout")
 	case <-done:
 		log.Println("reading new state...")
-		cmd := []string{"bash", "-c", "cat " + c3config.TempContainerStatePath}
+		cmd := []string{"bash", "-c", "cat " + c3config.TempContainerStateFilePath}
 		resp, err := s.docker.ContainerExec(containerID, cmd)
 		if err != nil {
 			return nil, err

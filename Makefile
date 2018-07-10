@@ -56,19 +56,19 @@ test: test/c3 test/common/network test/common/stringutil test/core/server test/c
 
 .PHONY: test/c3
 test/c3:
-	@go test -v c3/*.go
+	@go test -v c3/*.go $(ARGS)
 
 .PHONY: test/common/network
 test/common/network:
-	@go test -v common/network/*.go
+	@go test -v common/network/*.go $(ARGS)
 
 .PHONY: test/common/stringutil
 test/common/stringutil:
-	@go test -v common/stringutil/*.go
+	@go test -v common/stringutil/*.go $(ARGS)
 
 .PHONY: test/core/server
 test/core/server:
-	@go test -v core/server/*.go
+	@go test -v core/server/*.go $(ARGS)
 
 .PHONY: test/core/docker
 test/core/docker:
@@ -142,3 +142,8 @@ docker/build/example/bash:
 .PHONY: docker/run/example/bash
 docker/run/example/bash:
 	@$(MAKE) -C example/bash run
+
+.PHONY: docker/deploy/example
+docker/deploy/example: docker/build/example
+	# build image -> push to ipfs -> pull from ipfs
+	@go run main.go pull $$(go run main.go push $$(docker images -q | grep -m1 "") | grep "uploaded to" | sed -E 's/.*uploaded to \/ipfs\///g' | tr -d ' ' | tr -d '\n')

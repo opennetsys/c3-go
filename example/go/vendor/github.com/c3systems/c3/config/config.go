@@ -1,5 +1,7 @@
 package config
 
+import "fmt"
+
 // ServerHost ...
 const ServerHost = "0.0.0.0"
 
@@ -10,4 +12,16 @@ const ServerPort = 3333
 var DefaultStoreDirectory = "~/.c3"
 
 // TempContainerStatePath ...
-var TempContainerStatePath = "/tmp/state.json"
+var TempContainerStatePath = "/tmp"
+
+// TempContainerStateFileName ...
+var TempContainerStateFileName = "state.json"
+
+// TempContainerStateFilePath ...
+var TempContainerStateFilePath = fmt.Sprintf("%s/%s", TempContainerStatePath, TempContainerStateFileName)
+
+// DockerRegistryPort ...
+const DockerRegistryPort = 5000
+
+// IPFSGateway ...
+const IPFSGateway = "http://127.0.0.1:9001"
