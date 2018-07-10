@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/c3systems/c3/core/chain"
 	"github.com/c3systems/c3/core/chain/mainchain"
+	"github.com/c3systems/c3/core/chain/mainchain/miner"
 	"github.com/c3systems/c3/core/chain/statechain"
 	"github.com/c3systems/c3/core/p2p"
 	"github.com/c3systems/c3/core/p2p/store/fsstore"
@@ -75,7 +75,7 @@ func Start(cfg *nodetypes.Config) error {
 	// TODO: implement metrics? https://github.com/ipfs/go-ds-measure
 	blocks := bstore.NewBlockstore(diskStore)
 
-	p2p, err := p2p.New(&p2p.Props{
+	p2pSvc, err := p2p.New(&p2p.Props{
 		BlockStore: blocks,
 		Host:       newNode,
 	})
@@ -83,28 +83,39 @@ func Start(cfg *nodetypes.Config) error {
 		return fmt.Errorf("err starting ipfs p2p network\n%v", err)
 	}
 
-	blockchain, err := chain.New(&chain.Props{
-		P2P: p2p,
+	n := new(Service)
+
+	minerChannel := make(chan interface{})
+	minerSvc, err := miner.New(&miner.Props{
+		Difficulty:         3, // TODO: need to get this from the network
+		Channel:            minerChannel,
+		Async:              true, // TODO: need to make this a cli flag
+		P2P:                p2pSvc,
+		GatherTransactions: n.props.Store.GatherTransactions,
+		FetchHeadBlock:     n.fetchHeadBlock,
 	})
 	if err != nil {
-		return fmt.Errorf("err building the blockchain\n%v", err)
+		return fmt.Errorf("err building miner\n%v", err)
 	}
 
 	ch := make(chan interface{})
-	n, err := New(&Props{
-		Context:    ctx,
-		Channel:    ch,
-		Host:       newNode,
-		Store:      memPool,
-		Blockchain: blockchain,
-		Pubsub:     pubsub,
+	n, err = New(&Props{
+		Context: ctx,
+		Channel: ch,
+		Host:    newNode,
+		Store:   memPool,
+		Miner:   minerSvc,
+		Pubsub:  pubsub,
 	})
 	if err != nil {
 		return fmt.Errorf("err building the node\n%v", err)
 	}
 
-	if err := n.Start(); err != nil {
-		return fmt.Errorf("err starting node\n%v", err)
+	if err := n.listenForEvents(); err != nil {
+		return fmt.Errorf("err starting listener\n%v", err)
+	}
+	if err := n.startMiner(p2pSvc); err != nil {
+		return fmt.Errorf("err starting miner\n%v", err)
 	}
 	log.Printf("Node %s started", newNode.ID().Pretty())
 

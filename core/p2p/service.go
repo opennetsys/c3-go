@@ -90,6 +90,32 @@ func (s Service) SetStatechainDiff(d *statechain.Diff) (*cid.Cid, error) {
 	return PutStatechainDiff(s.peersOrLocal, d)
 }
 
+//// SaveLocal ...
+//func (s Service) SaveLocal(v interface{}) (*cid.Cid, error) {
+//return Put(s.local, v)
+//}
+
+//// SaveLocalMainchainBlock ...
+//// note: this function does not do any validation!
+//func (s Service) SaveLocalMainchainBlock(block *mainchain.Block) (*cid.Cid, error) {
+//return PutMainchainBlock(s.local, block)
+//}
+
+//// SaveLocalStatechainBlock ...
+//func (s Service) SaveLocalStatechainBlock(block *statechain.Block) (*cid.Cid, error) {
+//return PutStatechainBlock(s.local, block)
+//}
+
+//// SaveLocalStatechainTransaction ...
+//func (s Service) SaveLocalStatechainTransaction(tx *statechain.Transaction) (*cid.Cid, error) {
+//return PutStatechainTransaction(s.local, tx)
+//}
+
+//// SaveLocalStatechainDiff ...
+//func (s Service) SaveLocalStatechainDiff(d *statechain.Diff) (*cid.Cid, error) {
+//return PutStatechainDiff(s.local, d)
+//}
+
 // Get ...
 func (s Service) Get(c *cid.Cid) (interface{}, error) {
 	return Fetch(s.peersOrLocal, c)

@@ -8,10 +8,10 @@ import (
 )
 
 // New ...
-func New(props *BlockProps) *Block {
+func New(props *Props) *Block {
 	if props == nil {
 		return &Block{
-			props: BlockProps{
+			props: Props{
 				ImageHash: ImageHash,
 			},
 		}
@@ -24,7 +24,7 @@ func New(props *BlockProps) *Block {
 }
 
 // Props ...
-func (b Block) Props() BlockProps {
+func (b Block) Props() Props {
 	return b.props
 }
 
@@ -39,7 +39,7 @@ func (b *Block) Deserialize(bytes []byte) error {
 		return ErrNilBlock
 	}
 
-	var tmpProps BlockProps
+	var tmpProps Props
 	if err := json.Unmarshal(bytes, &tmpProps); err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func (b *Block) DeserializeString(hexStr string) error {
 // CalcHash ...
 func (b Block) CalcHash() (string, error) {
 	tmpBlock := Block{
-		props: BlockProps{
+		props: Props{
 			BlockNumber:           b.props.BlockNumber,
 			BlockTime:             b.props.BlockTime,
 			ImageHash:             b.props.ImageHash,

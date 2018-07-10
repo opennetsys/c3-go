@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/c3systems/c3/core/chain/mainchain"
+	"github.com/c3systems/c3/core/chain/mainchain/miner"
 	"github.com/c3systems/c3/core/chain/statechain"
 	"github.com/c3systems/c3/core/p2p"
 	nodetypes "github.com/c3systems/c3/node/types"
@@ -17,8 +18,8 @@ func New(props *Props) (*Service, error) {
 		return nil, errors.New("props cannot be nil")
 	}
 	if props.Store == nil ||
-		props.Blockchain == nil || props.Pubsub == nil {
-		return nil, errors.New("p2p node, store, blockchain and pubsub are required")
+		props.Miner == nil || props.Pubsub == nil {
+		return nil, errors.New("p2p node, store, miner and pubsub are required")
 	}
 
 	return &Service{
@@ -26,16 +27,45 @@ func New(props *Props) (*Service, error) {
 	}, nil
 }
 
-// Start ...
-func (s Service) Start() error {
-	if err := s.listenBlocks(); err != nil {
+func (s Service) startMiner(p2pSvc p2p.Interface) error {
+	if err := s.props.Miner.Start(); err != nil {
 		return err
 	}
 
-	return s.listenTransactions()
+	return s.spawnMinerListener()
 }
 
-func (s Service) listenBlocks() error {
+func (s Service) spawnMinerListener() error {
+	go func() {
+		for {
+			switch v := <-s.props.Channel; v.(type) {
+			case error:
+				err, _ := v.(error)
+				log.Printf("received an error from the miner\n%v", err)
+
+			case *mainchain.Block:
+				block, _ := v.(*mainchain.Block)
+				// TODO: do something with the block
+				log.Println(block)
+
+			default:
+				log.Printf("received message of unknown type from the miner\ntype %T\n%v", v, v)
+			}
+		}
+	}()
+
+	return nil
+}
+
+func (s Service) listenForEvents() error {
+	if err := s.spawnBlocksListener(); err != nil {
+		return err
+	}
+
+	return s.spawnTransactionsListener()
+}
+
+func (s Service) spawnBlocksListener() error {
 	sub, err := s.props.Pubsub.Subscribe("blocks")
 	if err != nil {
 		return err
@@ -67,7 +97,7 @@ func (s Service) listenBlocks() error {
 	return nil
 }
 
-func (s Service) listenTransactions() error {
+func (s Service) spawnTransactionsListener() error {
 	sub, err := s.props.Pubsub.Subscribe("transactions")
 	if err != nil {
 		return err
@@ -152,19 +182,19 @@ func (s Service) BroadcastTransaction(tx *statechain.Transaction) (*nodetypes.Se
 	return &res, nil
 }
 
-// GetInfo ...
-func (s Service) GetInfo() (*nodetypes.GetInfoResponse, error) {
-	var res nodetypes.GetInfoResponse
+//// GetInfo ...
+//func (s Service) GetInfo() (*nodetypes.GetInfoResponse, error) {
+//var res nodetypes.GetInfoResponse
 
-	head, err := s.props.Blockchain.MainHead()
-	if err != nil {
-		return nil, err
-	}
+//head, err := s.props.Blockchain.MainHead()
+//if err != nil {
+//return nil, err
+//}
 
-	res.BlockHeight = head.Props().BlockNumber
+//res.BlockHeight = head.Props().BlockNumber
 
-	return &res, err
-}
+//return &res, err
+//}
 
 func (s Service) handleReceiptOfMainchainBlock(block *mainchain.Block) {
 	if block == nil {
@@ -179,7 +209,7 @@ func (s Service) handleReceiptOfMainchainBlock(block *mainchain.Block) {
 	// TODO: handle this err better?
 	//  1) try again?
 	//  2) ping the network to see if other nodes have accepted?
-	ok, err := mainchain.VerifyBlock(block)
+	ok, err := s.props.Miner.VerifyMainchainBlock(block)
 	if err != nil {
 		log.Printf("[node] received err while verifying mainchain block\nblock: %v\nerr: %v", *block, err)
 		return
@@ -191,7 +221,8 @@ func (s Service) handleReceiptOfMainchainBlock(block *mainchain.Block) {
 		return
 	}
 
-	_, err = s.props.Blockchain.Props().P2P.SetMainchainBlock(block)
+	// note: just want to set locally?
+	_, err = s.props.Miner.Props().P2P.Set(block)
 	if err != nil {
 		// TODO: need to handle this err better
 		log.Printf("[node] err setting main chain block: %v\nerr: %v", *block, err)
@@ -201,14 +232,19 @@ func (s Service) handleReceiptOfMainchainBlock(block *mainchain.Block) {
 	// TODO: add cid to the block explorer
 	// TODO: do the inner loop in a go function; and generally move these all to functions
 	for _, stateblockHash := range block.Props().StateBlockHashes {
-		stateblockCid, err := p2p.GetCIDByHash(stateblockHash)
+		if stateblockHash == nil {
+			log.Println("got nil stateblock hash")
+			return
+		}
+
+		stateblockCid, err := p2p.GetCIDByHash(*stateblockHash)
 		if err != nil {
 			// TODO: handle this err better
 			log.Printf("[node] err getting statechain block cid\n%v", err)
 			continue
 		}
 
-		stateblock, err := s.props.Blockchain.Props().P2P.GetStatechainBlock(stateblockCid)
+		stateblock, err := s.props.Miner.Props().P2P.GetStatechainBlock(stateblockCid)
 		if err != nil {
 			// TODO: handle this err better
 			log.Printf("[node] err getting statechain block\n%v", err)
@@ -216,7 +252,7 @@ func (s Service) handleReceiptOfMainchainBlock(block *mainchain.Block) {
 		}
 
 		// note: just want to set locally?
-		if _, err := s.props.Blockchain.Props().P2P.Set(stateblock); err != nil {
+		if _, err := s.props.Miner.Props().P2P.Set(stateblock); err != nil {
 			// TODO: handle this err better
 			log.Printf("[node] err setting statechain block\n%v", err)
 			// note: don't continue, here, because we want to get and set all the tx's and diffs
@@ -242,14 +278,15 @@ func (s Service) handleReceiptOfMainchainBlock(block *mainchain.Block) {
 				continue
 			}
 
-			tx, err := s.props.Blockchain.Props().P2P.GetStatechainTransaction(txCid)
+			tx, err := s.props.Miner.Props().P2P.GetStatechainTransaction(txCid)
 			if err != nil {
 				// TODO: handle this err better
 				log.Printf("[node] err getting statechain transaction\n%v", err)
 				continue
 			}
 
-			if _, err := s.props.Blockchain.Props().P2P.Set(tx); err != nil {
+			// note: just want to set locally?
+			if _, err := s.props.Miner.Props().P2P.Set(tx); err != nil {
 				// TODO: handle this err better
 				log.Printf("[node] err setting statechain tx\n%v", err)
 				// note: don't continue, here, because we want to remove the tx from our available pool
@@ -264,14 +301,15 @@ func (s Service) handleReceiptOfMainchainBlock(block *mainchain.Block) {
 			continue
 		}
 
-		d, err := s.props.Blockchain.Props().P2P.GetStatechainDiff(diffCid)
+		d, err := s.props.Miner.Props().P2P.GetStatechainDiff(diffCid)
 		if err != nil {
 			// TODO: handle this err better
 			log.Printf("[node] err getting statechain diff\n%v", err)
 			continue
 		}
 
-		if _, err := s.props.Blockchain.Props().P2P.Set(d); err != nil {
+		// note: just want to set locally?
+		if _, err := s.props.Miner.Props().P2P.Set(d); err != nil {
 			// TODO: handle this err better
 			log.Printf("[node] err setting statechain diff\n%v", err)
 			continue
@@ -284,7 +322,7 @@ func (s Service) handleReceiptOfStatechainTransaction(tx *statechain.Transaction
 		return
 	}
 
-	ok, err := statechain.VerifyTransaction(tx)
+	ok, err := miner.VerifyTransaction(tx)
 	if err != nil {
 		log.Printf("[node] err verifying tx: %v\nerr: %v", *tx, err)
 		return
@@ -295,6 +333,7 @@ func (s Service) handleReceiptOfStatechainTransaction(tx *statechain.Transaction
 	}
 
 	// TODO: also check the block explorer to be sure this tx isn't already in a block
+	// TODO: check the miner to see if it needs to stop
 	// note: verify tx checks that TxHash is not nil
 	ok, err = s.props.Store.HasTx(*tx.Props().TxHash)
 	if err == nil && ok {
@@ -308,7 +347,8 @@ func (s Service) handleReceiptOfStatechainTransaction(tx *statechain.Transaction
 		log.Printf("[node] err checking if store has tx\n%v", err)
 	}
 
-	_, err = s.props.Blockchain.Props().P2P.SetStatechainTransaction(tx)
+	// note: just want to set locally?
+	_, err = s.props.Miner.Props().P2P.SetStatechainTransaction(tx)
 	if err != nil {
 		// TODO: need to handle this err better
 		log.Printf("[node] err setting tx: %v\nerr: %v", *tx, err)
@@ -316,4 +356,9 @@ func (s Service) handleReceiptOfStatechainTransaction(tx *statechain.Transaction
 	}
 
 	// TODO: add cid to the block explorer
+}
+
+// TODO: everything
+func (s Service) fetchHeadBlock() (*mainchain.Block, error) {
+	return nil, nil
 }
