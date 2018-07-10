@@ -1,4 +1,4 @@
-package fscache
+package filecache
 
 import (
 	"bytes"
@@ -23,7 +23,7 @@ var fmutex sync.RWMutex
 // Set writes item to cache
 func Set(key string, data interface{}, expire time.Duration) error {
 	key = regexp.MustCompile("[^a-zA-Z0-9_-]").ReplaceAllLiteralString(key, "")
-	file := fmt.Sprintf("fscache.%s.%v", key, strconv.FormatInt(time.Now().Add(expire).Unix(), 10))
+	file := fmt.Sprintf("filecache.%s.%v", key, strconv.FormatInt(time.Now().Add(expire).Unix(), 10))
 	fpath := filepath.Join(cachedir, file)
 
 	clean(key)
@@ -51,7 +51,7 @@ func Set(key string, data interface{}, expire time.Duration) error {
 // Get reads item from cache
 func Get(key string, dst interface{}) (bool, error) {
 	key = regexp.MustCompile("[^a-zA-Z0-9_-]").ReplaceAllLiteralString(key, "")
-	pattern := filepath.Join(cachedir, fmt.Sprintf("fscache.%s.*", key))
+	pattern := filepath.Join(cachedir, fmt.Sprintf("filecache.%s.*", key))
 	files, err := filepath.Glob(pattern)
 	if err != nil {
 		return false, err
@@ -105,7 +105,7 @@ func Get(key string, dst interface{}) (bool, error) {
 func clean(key string) error {
 	fmutex.Lock()
 	defer fmutex.Unlock()
-	pattern := filepath.Join(cachedir, fmt.Sprintf("fscache.%s.*", key))
+	pattern := filepath.Join(cachedir, fmt.Sprintf("filecache.%s.*", key))
 	files, _ := filepath.Glob(pattern)
 	for _, file := range files {
 		if _, err := os.Stat(file); err == nil {

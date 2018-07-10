@@ -1,1 +1,3 @@
-> Spawns docker daemon
+# daemon
+
+> Spawns the docker daemon

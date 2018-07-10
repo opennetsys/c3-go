@@ -1,1 +1,3 @@
-> client to interact with docker daemon
+# docker
+
+> The client to interact with the docker daemon
