@@ -1,6 +1,8 @@
 package chain
 
-import "github.com/c3systems/c3/core/p2p"
+import (
+	"github.com/c3systems/c3/core/p2p"
+)
 
 // Props ...
 type Props struct {
