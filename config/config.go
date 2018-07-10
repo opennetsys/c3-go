@@ -8,3 +8,6 @@ const ServerPort = 3333
 
 // DefaultStoreDirectory is the default directory where the file system store will live.
 var DefaultStoreDirectory = "~/.c3"
+
+// TempContainerStatePath ...
+var TempContainerStatePath = "/tmp/state.json"

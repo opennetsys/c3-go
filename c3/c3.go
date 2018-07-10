@@ -37,7 +37,7 @@ func NewC3() *C3 {
 		registeredMethods: map[string]func(args ...interface{}) error{},
 		receiver:          receiver,
 		state:             map[string]string{},
-		statefile:         "/tmp/state.json",
+		statefile:         config.TempContainerStatePath,
 	}
 
 	c3.Store = &store{

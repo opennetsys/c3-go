@@ -1,17 +1,22 @@
 package sandbox
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/c3systems/c3/common/network"
+	c3config "github.com/c3systems/c3/config"
 	"github.com/c3systems/c3/core/dockerclient"
 	"github.com/c3systems/c3/ditto"
 )
@@ -52,8 +57,6 @@ type PlayConfig struct {
 	ImageID string // ipfs hash
 	Payload []byte
 }
-
-// TODO: include transaction inputs
 
 // Play in the sandbox
 func (s *Sandbox) Play(config *PlayConfig) ([]byte, error) {
@@ -119,15 +122,19 @@ func (s *Sandbox) Play(config *PlayConfig) ([]byte, error) {
 		}
 	}()
 
-	// TODO: return new state
-
 	select {
 	case <-timedout:
 		close(timedout)
 		return nil, errors.New("timedout")
 	case <-done:
 		log.Println("reading new state...")
-		result, err := s.docker.ContainerExec(containerID)
+		cmd := []string{"bash", "-c", fmt.Sprintf(`echo "$(cat %s)" | tr -d '\n'`, c3config.TempContainerStatePath)}
+		resp, err := s.docker.ContainerExec(containerID, cmd)
+		if err != nil {
+			return nil, err
+		}
+
+		result, err := parseNewState(resp)
 		if err != nil {
 			return nil, err
 		}
@@ -144,6 +151,25 @@ func (s *Sandbox) Play(config *PlayConfig) ([]byte, error) {
 
 		return result, nil
 	}
+}
+
+func parseNewState(reader io.Reader) ([]byte, error) {
+	var state map[string]string
+
+	src, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	data := []byte(strings.TrimSpace(strings.Trim(strings.Trim(string(src), "\x01"), "\x00")))
+
+	err = json.Unmarshal(data, &state)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Println("new state", state)
+	return data, nil
 }
 
 func (s *Sandbox) sendMessage(msg []byte, port string) error {

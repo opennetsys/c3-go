@@ -2,7 +2,6 @@ package dockerclient
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -365,11 +364,11 @@ func (s *Client) InspectContainer(containerID string) (types.ContainerJSON, erro
 }
 
 // ContainerExec ...
-func (s *Client) ContainerExec(containerID string) ([]byte, error) {
+func (s *Client) ContainerExec(containerID string, cmd []string) (io.Reader, error) {
 	id, err := s.client.ContainerExecCreate(context.Background(), containerID, types.ExecConfig{
 		AttachStdout: true,
 		// cat file as single line
-		Cmd: []string{"bash", "-c", `echo "$(cat /tmp/state.json)" | tr -d '\n'`},
+		Cmd: cmd,
 	})
 
 	log.Println("exec ID", id.ID)
@@ -382,24 +381,7 @@ func (s *Client) ContainerExec(containerID string) ([]byte, error) {
 		return nil, err
 	}
 
-	defer resp.Close()
-	var state map[string]string
-
-	src, err := ioutil.ReadAll(resp.Reader)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	data := []byte(strings.TrimSpace(strings.Trim(strings.Trim(string(src), "\x01"), "\x00")))
-
-	err = json.Unmarshal(data, &state)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Println("new state", state)
-
-	return data, nil
+	return resp.Reader, nil
 }
 
 // ReadImage ...
