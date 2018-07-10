@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/c3systems/c3/core/chain/mainchain"
+	"github.com/c3systems/c3/core/chain/merkle"
 	"github.com/c3systems/c3/core/chain/statechain"
 
 	cid "github.com/ipfs/go-cid"
@@ -27,12 +28,6 @@ func New(props *Props) (*Service, error) {
 			err = errors.New("host and blockstore are required")
 			return
 		}
-
-		// Register our types with the cbor encoder. This pregenerates serializers
-		// for these types.
-		// cbor.RegisterCborType(mainchain.Block{})
-		// cbor.RegisterCborType(statechain.Block{})
-		// cbor.RegisterCborType(statechain.Transaction{})
 
 		// TODO: research if this is what we want...
 		nr, err1 := nonerouting.ConstructNilRouting(nil, nil, nil, nil)
@@ -90,6 +85,11 @@ func (s Service) SetStatechainDiff(d *statechain.Diff) (*cid.Cid, error) {
 	return PutStatechainDiff(s.peersOrLocal, d)
 }
 
+// SetMerkleTree ..
+func (s Service) SetMerkleTree(tree *merkle.Tree) (*cid.Cid, error) {
+	return PutMerkleTree(s.peersOrLocal, tree)
+}
+
 //// SaveLocal ...
 //func (s Service) SaveLocal(v interface{}) (*cid.Cid, error) {
 //return Put(s.local, v)
@@ -116,10 +116,11 @@ func (s Service) SetStatechainDiff(d *statechain.Diff) (*cid.Cid, error) {
 //return PutStatechainDiff(s.local, d)
 //}
 
+// note: cannot do generic get bc need to know the type to deserialize into
 // Get ...
-func (s Service) Get(c *cid.Cid) (interface{}, error) {
-	return Fetch(s.peersOrLocal, c)
-}
+//func (s Service) Get(c *cid.Cid) (interface{}, error) {
+//return Fetch(s.peersOrLocal, c)
+//}
 
 // GetMainchainBlock ...
 func (s Service) GetMainchainBlock(c *cid.Cid) (*mainchain.Block, error) {
@@ -139,4 +140,9 @@ func (s Service) GetStatechainTransaction(c *cid.Cid) (*statechain.Transaction, 
 // GetStatechainDiff ...
 func (s Service) GetStatechainDiff(c *cid.Cid) (*statechain.Diff, error) {
 	return FetchStateChainDiff(s.peersOrLocal, c)
+}
+
+// GetMerkleTree ...
+func (s Service) GetMerkleTree(c *cid.Cid) (*merkle.Tree, error) {
+	return FetchMerkleTree(s.peersOrLocal, c)
 }

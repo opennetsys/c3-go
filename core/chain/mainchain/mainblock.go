@@ -6,6 +6,7 @@ import (
 
 	"github.com/c3systems/c3/common/hashing"
 	"github.com/c3systems/c3/common/hexutil"
+	"github.com/c3systems/merkletree"
 )
 
 // New ...
@@ -49,7 +50,9 @@ func (b *Block) Deserialize(data []byte) error {
 	// note: may not be able to recreate in other languages?
 	var tmpProps Props
 	byts := bytes.NewBuffer(data)
-	gob.NewDecoder(byts).Decode(&tmpProps)
+	if err := gob.NewDecoder(byts).Decode(&tmpProps); err != nil {
+		return err
+	}
 
 	b.props = tmpProps
 	return nil
@@ -79,8 +82,18 @@ func (b *Block) DeserializeString(hexStr string) error {
 	return b.Deserialize([]byte(str))
 }
 
-// CalcHash ...
-func (b Block) CalcHash() (string, error) {
+// CalculateHash ...
+func (b Block) CalculateHash() (string, error) {
+	bytes, err := b.CalculateHashBytes()
+	if err != nil {
+		return "", err
+	}
+
+	return hexutil.EncodeString(string(bytes)), nil
+}
+
+// CalculateHashBytes ...
+func (b Block) CalculateHashBytes() ([]byte, error) {
 	tmpBlock := Block{
 		props: Props{
 			BlockNumber:           b.props.BlockNumber,
@@ -97,10 +110,26 @@ func (b Block) CalcHash() (string, error) {
 
 	bytes, err := tmpBlock.Serialize()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return hashing.HashToHexString(bytes), nil
+	hashedBytes := hashing.Hash(bytes)
+	return hashedBytes[:], nil
+}
+
+// Equals ...
+func (b Block) Equals(other merkletree.Content) (bool, error) {
+	bHash, err := b.CalculateHashBytes()
+	if err != nil {
+		return false, err
+	}
+
+	oHash, err := other.CalculateHashBytes()
+	if err != nil {
+		return false, err
+	}
+
+	return string(bHash) == string(oHash), nil
 }
 
 // SetHash ...
@@ -109,7 +138,7 @@ func (b *Block) SetHash() error {
 		return ErrNilBlock
 	}
 
-	hash, err := b.CalcHash()
+	hash, err := b.CalculateHash()
 	if err != nil {
 		return err
 	}

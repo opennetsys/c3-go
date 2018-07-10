@@ -9,24 +9,8 @@ import (
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/statechain"
 
-	"github.com/cbergoon/merkletree"
+	"github.com/c3systems/merkletree"
 )
-
-type statechainBlockMerkleContent struct {
-	c *statechain.Block
-}
-
-// CalculateHash hashes the values of a TestContent
-func (s statechainBlockMerkleContent) CalculateHash() []byte {
-	// note: can't handle err??
-	hash, _ := s.c.CalcHash()
-	return []byte(hash)
-}
-
-// Equals tests for equality of two Contents
-func (s statechainBlockMerkleContent) Equals(other merkletree.Content) bool {
-	return string(s.CalculateHash()) == string(other.CalculateHash())
-}
 
 // NewFromStateBlocks ...
 func NewFromStateBlocks(stateBlocks []*statechain.Block) (*mainchain.Block, error) {
@@ -36,7 +20,7 @@ func NewFromStateBlocks(stateBlocks []*statechain.Block) (*mainchain.Block, erro
 	)
 
 	for _, statechainBlock := range stateBlocks {
-		list = append(list, statechainBlockMerkleContent{c: statechainBlock})
+		list = append(list, statechainBlock)
 		statechainBlockHashes = append(statechainBlockHashes, statechainBlock.Props().BlockHash)
 	}
 
@@ -174,7 +158,7 @@ func VerifyTransaction(tx *statechain.Transaction) (bool, error) {
 	}
 
 	// 3. verify the hash
-	tmpHash, err := tx.CalcHash()
+	tmpHash, err := tx.CalculateHash()
 	if err != nil {
 		return false, err
 	}
