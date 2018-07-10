@@ -52,7 +52,7 @@ test/cleanup:
 	@. scripts/test_cleanup.sh
 
 .PHONY: test
-test: test/c3 test/common/network test/common/stringutil test/core/server test/core/docker test/core/registry test/core/sandbox test/ditto test/cleanup
+test: test/c3 test/common/network test/common/stringutil test/core/server test/core/docker test/core/sandbox test/registry test/cleanup
 
 .PHONY: test/c3
 test/c3:
@@ -78,14 +78,10 @@ test/core/docker:
 test/core/sandbox:
 	@go test -v core/sandbox/*.go $(ARGS)
 
-.PHONY: test/core/registry
-test/core/registry:
-	@go test -v core/registry/*.go
-
-.PHONY: test/ditto
-test/ditto:
+.PHONY: test/registry
+test/registry:
 	@docker pull hello-world && \
-	go test -v ditto/*.go $(ARGS)
+	go test -v registry/*.go $(ARGS)
 
 .PHONY: test/docker/build/snapshot
 test/docker/build/snapshot:

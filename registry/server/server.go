@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	c3config "github.com/c3systems/c3/config"
-	"github.com/c3systems/c3/ditto/util"
+	"github.com/c3systems/c3/registry/util"
 )
 
 var listener net.Listener

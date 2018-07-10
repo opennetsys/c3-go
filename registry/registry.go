@@ -1,4 +1,4 @@
-package ditto
+package registry
 
 import (
 	"archive/tar"
@@ -20,37 +20,37 @@ import (
 	"github.com/c3systems/c3/common/network"
 	c3config "github.com/c3systems/c3/config"
 	"github.com/c3systems/c3/core/docker"
-	"github.com/c3systems/c3/ditto/server"
-	"github.com/c3systems/c3/ditto/util"
+	"github.com/c3systems/c3/registry/server"
+	"github.com/c3systems/c3/registry/util"
 	"github.com/davecgh/go-spew/spew"
 )
 
-// Ditto ...
-type Ditto struct {
+// Registry ...
+type Registry struct {
 }
 
 // Config ...
 type Config struct {
 }
 
-// NewDitto ...
-func NewDitto(config *Config) *Ditto {
-	return &Ditto{}
+// NewRegistry ...
+func NewRegistry(config *Config) *Registry {
+	return &Registry{}
 }
 
 // PushImageByID uploads Docker image by image ID (hash/name) to IPFS
-func (ditto *Ditto) PushImageByID(imageID string) error {
+func (registry *Registry) PushImageByID(imageID string) error {
 	client := docker.NewClient()
 	reader, err := client.ReadImage(imageID)
 	if err != nil {
 		return err
 	}
 
-	return ditto.PushImage(reader)
+	return registry.PushImage(reader)
 }
 
 // PushImage uploads Docker image to IPFS
-func (ditto *Ditto) PushImage(reader io.Reader) error {
+func (registry *Registry) PushImage(reader io.Reader) error {
 	tmp, err := mktmp()
 	if err != nil {
 		return err
@@ -79,7 +79,7 @@ func (ditto *Ditto) PushImage(reader io.Reader) error {
 }
 
 // DownloadImage download Docker image from IPFS
-func (ditto *Ditto) DownloadImage(ipfsHash string) (string, error) {
+func (registry *Registry) DownloadImage(ipfsHash string) (string, error) {
 	tmp, err := mktmp()
 	if err != nil {
 		return "", err
@@ -97,7 +97,7 @@ func (ditto *Ditto) DownloadImage(ipfsHash string) (string, error) {
 }
 
 // PullImage pull Docker image from IPFS
-func (ditto *Ditto) PullImage(ipfsHash string) (string, error) {
+func (registry *Registry) PullImage(ipfsHash string) (string, error) {
 	go server.Run()
 	client := docker.NewClient()
 

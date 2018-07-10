@@ -18,13 +18,13 @@ import (
 	"github.com/c3systems/c3/common/stringutil"
 	c3config "github.com/c3systems/c3/config"
 	"github.com/c3systems/c3/core/docker"
-	"github.com/c3systems/c3/ditto"
+	"github.com/c3systems/c3/registry"
 )
 
 // Sandbox ...
 type Sandbox struct {
 	docker            *docker.Client
-	ditto             *ditto.Ditto
+	registry          *registry.Registry
 	sock              string
 	runningContainers map[string]bool
 }
@@ -39,10 +39,10 @@ func NewSandbox(config *Config) *Sandbox {
 		config = &Config{}
 	}
 	docker := docker.NewClient()
-	dit := ditto.NewDitto(&ditto.Config{})
+	dit := registry.NewRegistry(&registry.Config{})
 	sb := &Sandbox{
 		docker:            docker,
-		ditto:             dit,
+		registry:          dit,
 		sock:              "/var/run/docker.sock",
 		runningContainers: map[string]bool{},
 	}
@@ -64,7 +64,7 @@ func (s *Sandbox) Play(config *PlayConfig) ([]byte, error) {
 		return nil, errors.New("config is required")
 	}
 
-	dockerImageID, err := s.ditto.PullImage(config.ImageID)
+	dockerImageID, err := s.registry.PullImage(config.ImageID)
 	if err != nil {
 		return nil, err
 	}
