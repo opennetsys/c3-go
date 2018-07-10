@@ -1,6 +1,8 @@
 package sandbox
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestNew(t *testing.T) {
 	sb := NewSandbox(&Config{})
@@ -11,12 +13,16 @@ func TestNew(t *testing.T) {
 
 func TestRun(t *testing.T) {
 	sb := NewSandbox(&Config{})
-	err := sb.Play(&PlayConfig{
-		ImageID: "QmULmGLSnqf3pkLhdgrC9QxFXv1SuwqYkJw15QpoVzFiEh",
-		Payload: []byte(`{"foo": "bar"}`),
+	result, err := sb.Play(&PlayConfig{
+		ImageID: "QmcavsCi4EtPWuY2Vto8SuR8qw8RfpNWBE8NTTJ8zLLMxo",
+		Payload: []byte(`["setItem", "foo", "bar"]`),
 	})
 
 	if err != nil {
 		t.Error(err)
+	}
+
+	if string(result) != `{"foo":"bar"}` {
+		t.Error("expected correct result")
 	}
 }

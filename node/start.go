@@ -164,12 +164,16 @@ func handleTransaction(tx *statechain.Transaction) error {
 
 		// run container, passing the tx inputs
 		sb := sandbox.NewSandbox(&sandbox.Config{})
-		if err := sb.Play(&sandbox.PlayConfig{
+		result, err := sb.Play(&sandbox.PlayConfig{
 			ImageID: data.ImageHash,
 			Payload: inputsJSON,
-		}); err != nil {
+		})
+
+		if err != nil {
 			return err
 		}
+
+		log.Printf("tx result: %s", string(result))
 	}
 
 	return nil

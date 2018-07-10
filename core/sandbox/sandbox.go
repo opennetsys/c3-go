@@ -56,30 +56,35 @@ type PlayConfig struct {
 // TODO: include transaction inputs
 
 // Play in the sandbox
-func (s *Sandbox) Play(config *PlayConfig) error {
+func (s *Sandbox) Play(config *PlayConfig) ([]byte, error) {
+	if config == nil {
+		return nil, errors.New("config is required")
+	}
+
 	dockerImageID, err := s.ditto.PullImage(config.ImageID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	hp, err := network.GetFreePort()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	hostPort := strconv.Itoa(hp)
 
 	containerID, err := s.docker.RunContainer(dockerImageID, []string{}, &dockerclient.RunContainerConfig{
 		Volumes: map[string]string{
-			"/var/run/docker.sock": "/var/run/docker.sock",
-			"/tmp":                 "/tmp",
+		// sock binding will be required for spawning sibling containers
+		//"/var/run/docker.sock": "/var/run/docker.sock",
+		//"/tmp":                 "/tmp",
 		},
 		Ports: map[string]string{
 			"3333": hostPort,
 		},
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	s.runningContainers[containerID] = true
@@ -119,19 +124,25 @@ func (s *Sandbox) Play(config *PlayConfig) error {
 	select {
 	case <-timedout:
 		close(timedout)
-		return errors.New("timedout")
+		return nil, errors.New("timedout")
 	case <-done:
+		log.Println("reading new state...")
+		result, err := s.docker.ContainerExec(containerID)
+		if err != nil {
+			return nil, err
+		}
+
 		log.Println("done")
 		close(timedout)
 		timer.Stop()
-		err := s.docker.StopContainer(containerID)
+		err = s.docker.StopContainer(containerID)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		delete(s.runningContainers, containerID)
 
-		return nil
+		return result, nil
 	}
 }
 

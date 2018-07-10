@@ -123,6 +123,10 @@ docker/build/example:
 docker/run/example:
 	@docker run -p 3333 --mount type=bind,src=/tmp,target=/tmp -t goexample
 
+.PHONY: docker/example/send
+docker/example/send:
+	@echo '["setItem", "foo", "bar"]' | nc localhost 32776
+
 .PHONY: docker/build/example/bash
 docker/build/example/bash:
 	@$(MAKE) -C example/bash build

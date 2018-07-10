@@ -3,10 +3,10 @@ package c3
 import (
 	"encoding/json"
 	"errors"
+	"io/ioutil"
 	"log"
-	"time"
+	"os"
 
-	"github.com/c3systems/c3/common/fscache"
 	"github.com/c3systems/c3/config"
 	"github.com/c3systems/c3/core/server"
 )
@@ -18,13 +18,17 @@ var (
 
 // C3 ...
 type C3 struct {
-	Store             store
+	Store             *store
 	registeredMethods map[string]func(args ...interface{}) error
 	receiver          chan []byte
+	state             map[string]string
+	statefile         string
 }
 
 // store
-type store struct{}
+type store struct {
+	*C3
+}
 
 // NewC3 ...
 func NewC3() *C3 {
@@ -32,8 +36,15 @@ func NewC3() *C3 {
 	c3 := &C3{
 		registeredMethods: map[string]func(args ...interface{}) error{},
 		receiver:          receiver,
+		state:             map[string]string{},
+		statefile:         "/tmp/state.json",
 	}
 
+	c3.Store = &store{
+		c3,
+	}
+
+	go c3.setInitialState()
 	go c3.listen()
 
 	return c3
@@ -77,25 +88,40 @@ func (c3 *C3) Serve() {
 // Set ...
 // TODO: accept interfaces
 func (s *store) Set(key, value string) {
-	err := fscache.Set(key, value, 1*time.Minute)
+	s.state[key] = value
+
+	b, err := json.Marshal(s.state)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	f, err := os.OpenFile(s.statefile, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0600)
+	if err != nil {
+		log.Fatal(err)
+	}
+	f.Write(b)
+	f.Close()
 }
 
 // Get ...
 // TODO: accept interfaces
 func (s *store) Get(key string) string {
-	var value string
-	found, err := fscache.Get(key, &value)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if found {
-		return value
-	}
+	v := s.state[key]
+	return v
+}
 
-	return ""
+func (c3 *C3) setInitialState() {
+	if _, err := os.Stat(c3.statefile); err == nil {
+		src, err := ioutil.ReadFile(c3.statefile)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = json.Unmarshal(src, &c3.state)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 }
 
 // listen ...
