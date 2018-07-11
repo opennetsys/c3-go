@@ -65,7 +65,5 @@ jobs:
       - run:
           name: Tests
           command: |
-            ifconfig
-            sudo ifconfig lo 123.123.123.123/24
-            export DOCKER_LOCAL_REGISTRY_HOST="123.123.123.123"
+            export DOCKER_LOCAL_REGISTRY_HOST="127.0.0.1"
             make test
