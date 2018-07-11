@@ -4,6 +4,8 @@
 version: 2
 jobs:
   build:
+    machine: true
+
     docker:
       # specify the version
       - image: circleci/golang:1.9
@@ -32,16 +34,6 @@ jobs:
             curl -L -o /tmp/docker-$VER.tgz https://download.docker.com/linux/static/stable/x86_64/docker-$VER.tgz
             tar -xz -C /tmp -f /tmp/docker-$VER.tgz
             sudo mv /tmp/docker/* /usr/bin
-            sudo mkdir /etc/docker
-            sudo touch /etc/docker/daemon.json
-            cat <<'EOF' | sudo tee /etc/docker/daemon.json
-            {
-              "insecure-registries": [
-                "$IP:5000",
-                "123.123.123.123:5000",
-              ]
-            }
-            EOF
 
       - run:
           name: Install IPFS
@@ -58,12 +50,25 @@ jobs:
             ipfs init
             ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001
             ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/9001
-            export IP=$(ifconfig | grep inet | grep broad | awk {'print $2'})
             ipfs daemon &
 
       # specify any bash command here prefixed with `run: `
       - run:
           name: Tests
           command: |
-            export DOCKER_LOCAL_REGISTRY_HOST="127.0.0.1"
+            export IP=$(ifconfig | grep inet | grep broad | awk {'print $2'})
+            cat <<'EOF' | sudo tee /etc/docker/daemon.json
+            {
+              "insecure-registries": [
+                "$IP:5000",
+                "123.123.123.123:5000",
+              ]
+            }
+            EOF
             make test
+
+workflows:
+  version: 2
+  all:
+    jobs:
+      - build
