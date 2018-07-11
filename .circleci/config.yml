@@ -48,6 +48,8 @@ jobs:
             ipfs init
             ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001
             ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/9001
+            export IP=$(ifconfig | grep inet | grep broad | awk {'print $2'})
+            sudo echo "{\"insecure-registries\":[\"$IP:5000\"]}" > /etc/docker/daemon.json
             ipfs daemon &
 
       # specify any bash command here prefixed with `run: `
