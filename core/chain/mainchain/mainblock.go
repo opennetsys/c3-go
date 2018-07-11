@@ -100,7 +100,6 @@ func (b Block) CalculateHashBytes() ([]byte, error) {
 			BlockTime:             b.props.BlockTime,
 			ImageHash:             b.props.ImageHash,
 			StateBlocksMerkleHash: b.props.StateBlocksMerkleHash,
-			StateBlockHashes:      b.props.StateBlockHashes,
 			PrevBlockHash:         b.props.PrevBlockHash,
 			Nonce:                 b.props.Nonce,
 			Difficulty:            b.props.Difficulty,

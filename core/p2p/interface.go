@@ -28,4 +28,5 @@ type Interface interface {
 	GetStatechainTransaction(c *cid.Cid) (*statechain.Transaction, error)
 	GetStatechainDiff(c *cid.Cid) (*statechain.Diff, error)
 	GetMerkleTree(c *cid.Cid) (*merkle.Tree, error)
+	FetchMostRecentStateBlock(imageHash string, block *mainchain.Block) (*statechain.Block, error)
 }

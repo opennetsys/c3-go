@@ -1,6 +1,9 @@
 package disk
 
-import "github.com/c3systems/c3/core/chain/statechain"
+import (
+	"github.com/c3systems/c3/core/chain/mainchain"
+	"github.com/c3systems/c3/core/chain/statechain"
+)
 
 // TODO: everything...
 
@@ -10,7 +13,8 @@ type Props struct {
 
 // Service ...
 type Service struct {
-	props Props
+	props     Props
+	headBlock mainchain.Block
 }
 
 // New ...
@@ -56,4 +60,15 @@ func (s Service) AddTx(tx *statechain.Transaction) error {
 // GatherTransactions ...
 func (s Service) GatherTransactions() (*[]statechain.Transaction, error) {
 	return nil, nil
+}
+
+// GetHeadBlock ...
+func (s Service) GetHeadBlock() (mainchain.Block, error) {
+	return s.headBlock, nil
+}
+
+// SetHeadBlock ...
+func (s Service) SetHeadBlock(block mainchain.Block) error {
+	s.headBlock = block
+	return nil
 }

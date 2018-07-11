@@ -146,3 +146,88 @@ func (s Service) GetStatechainDiff(c *cid.Cid) (*statechain.Diff, error) {
 func (s Service) GetMerkleTree(c *cid.Cid) (*merkle.Tree, error) {
 	return FetchMerkleTree(s.peersOrLocal, c)
 }
+
+// FetchMostRecentSTateBlock ...
+func (s Service) FetchMostRecentStateBlock(imageHash string, block *mainchain.Block) (*statechain.Block, error) {
+	if block == nil {
+		return nil, errors.New("block is nil")
+	}
+
+	if block.Props().BlockHash == nil {
+		return nil, errors.New("block hash is nil")
+	}
+
+	// 1. search the current block
+	treeCID, err := GetCIDByHash(block.Props().StateBlocksMerkleHash)
+	if err != nil {
+		return nil, err
+	}
+
+	tree, err := s.GetMerkleTree(treeCID)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: check kind
+	// TODO: use go routines
+	for _, stateBlockHash := range tree.Props().Hashes {
+		stateBlockCID, err := GetCIDByHash(stateBlockHash)
+		if err != nil {
+			return nil, err
+		}
+
+		stateBlock, err := s.GetStatechainBlock(stateBlockCID)
+		if err != nil {
+			return nil, err
+		}
+
+		if stateBlock.Props().ImageHash == imageHash {
+			return stateBlock, nil
+		}
+	}
+
+	// walk the mainchain
+	head := block
+	for head.Props().BlockNumber != mainchain.GenesisBlock.Props().BlockNumber {
+		prevCID, err := GetCIDByHash(head.Props().PrevBlockHash)
+		if err != nil {
+			return nil, err
+		}
+
+		prevBlock, err := s.GetMainchainBlock(prevCID)
+		if err != nil {
+			return nil, err
+		}
+		head = prevBlock
+
+		treeCID, err := GetCIDByHash(prevBlock.Props().StateBlocksMerkleHash)
+		if err != nil {
+			return nil, err
+		}
+
+		tree, err := s.GetMerkleTree(treeCID)
+		if err != nil {
+			return nil, err
+		}
+
+		// TODO: check kind
+		// TODO: use go routines
+		for _, stateBlockHash := range tree.Props().Hashes {
+			stateBlockCID, err := GetCIDByHash(stateBlockHash)
+			if err != nil {
+				return nil, err
+			}
+
+			stateBlock, err := s.GetStatechainBlock(stateBlockCID)
+			if err != nil {
+				return nil, err
+			}
+
+			if stateBlock.Props().ImageHash == imageHash {
+				return stateBlock, nil
+			}
+		}
+	}
+
+	return nil, nil
+}

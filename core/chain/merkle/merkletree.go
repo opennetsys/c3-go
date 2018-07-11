@@ -16,6 +16,8 @@ var (
 	ErrUnknownKind = errors.New("unknown kind")
 	// ErrNilChainObjects ...
 	ErrNilChainObjects = errors.New("nil chain objects")
+	// ErrNilChainObject ...
+	ErrNilChainObject = errors.New("nil chain object")
 	// ErrInconsistentKinds ...
 	ErrInconsistentKinds = errors.New("inconsistent kinds")
 	// ErrNilMerkleTree ...
@@ -77,6 +79,10 @@ func BuildFromObjects(chainObjects []chaintypes.ChainObject, kind string) (*Tree
 	}
 
 	for _, chainObject := range chainObjects {
+		if chainObject == nil {
+			return nil, ErrNilChainObject
+		}
+
 		list = append(list, chainObject)
 
 		hash, err := chainObject.CalculateHashBytes()

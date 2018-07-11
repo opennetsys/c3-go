@@ -1,6 +1,9 @@
 package store
 
-import "github.com/c3systems/c3/core/chain/statechain"
+import (
+	"github.com/c3systems/c3/core/chain/mainchain"
+	"github.com/c3systems/c3/core/chain/statechain"
+)
 
 // Interface ...
 type Interface interface {
@@ -10,5 +13,11 @@ type Interface interface {
 	RemoveTx(hash string) error
 	RemoveTxs(hashes []string) error
 	AddTx(tx *statechain.Transaction) error
-	GatherTransactions() ([]*statechain.Transaction, error)
+	GatherPendingTransactions() ([]*statechain.Transaction, error)
+	GetHeadBlock() (mainchain.Block, error)
+	SetHeadBlock(block mainchain.Block) error
+	SetPendingMainchainBlock(block *mainchain.Block) error
+	GetPendingMainchainBlocks() ([]*mainchain.Block, error)
+	RemovePendingMainchainBlock(blockHash string) error
+	RemovePendingMainchainBlocks(blockHashes []string) error
 }

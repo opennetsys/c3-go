@@ -67,6 +67,11 @@ func Start(cfg *nodetypes.Config) error {
 	if err != nil {
 		return fmt.Errorf("err initializing mempool\n%v", err)
 	}
+	// TODO: ping the network for the newest block. For now we always start at 0
+	if err := memPool.SetHeadBlock(mainchain.GenesisBlock); err != nil {
+		return fmt.Errorf("err setting head block\n%v", err)
+	}
+
 	diskStore, err := fsstore.New(cfg.DataDir)
 	if err != nil {
 		return fmt.Errorf("err building disk store\n%v", err)
@@ -83,29 +88,14 @@ func Start(cfg *nodetypes.Config) error {
 		return fmt.Errorf("err starting ipfs p2p network\n%v", err)
 	}
 
-	n := new(Service)
-
-	minerChannel := make(chan interface{})
-	minerSvc, err := miner.New(&miner.Props{
-		Difficulty:         3, // TODO: need to get this from the network
-		Channel:            minerChannel,
-		Async:              true, // TODO: need to make this a cli flag
-		P2P:                p2pSvc,
-		GatherTransactions: n.props.Store.GatherTransactions,
-		FetchHeadBlock:     n.fetchHeadBlock,
-	})
-	if err != nil {
-		return fmt.Errorf("err building miner\n%v", err)
-	}
-
-	ch := make(chan interface{})
-	n, err = New(&Props{
-		Context: ctx,
-		Channel: ch,
-		Host:    newNode,
-		Store:   memPool,
-		Miner:   minerSvc,
-		Pubsub:  pubsub,
+	n, err := New(&Props{
+		Context:             ctx,
+		SubscriberChannel:   make(chan interface{}),
+		CancelMinersChannel: make(chan struct{}),
+		Host:                newNode,
+		Store:               memPool,
+		Pubsub:              pubsub,
+		P2P:                 p2pSvc,
 	})
 	if err != nil {
 		return fmt.Errorf("err building the node\n%v", err)
@@ -114,19 +104,20 @@ func Start(cfg *nodetypes.Config) error {
 	if err := n.listenForEvents(); err != nil {
 		return fmt.Errorf("err starting listener\n%v", err)
 	}
-	if err := n.startMiner(p2pSvc); err != nil {
+	// TODO: add a cli flag to determine if the node mines
+	if err := n.spawnNextBlockMiner(&mainchain.GenesisBlock); err != nil {
 		return fmt.Errorf("err starting miner\n%v", err)
 	}
 	log.Printf("Node %s started", newNode.ID().Pretty())
 
 	for {
-		switch v := <-ch; v.(type) {
+		switch v := <-n.props.SubscriberChannel; v.(type) {
 		case error:
 			log.Println("[node] received an error on the channel", err)
 
-		case *mainchain.Block:
-			log.Print("[node] received mainchain block")
-			b, _ := v.(*mainchain.Block)
+		case *miner.MinedBlock:
+			log.Print("[node] received mined block")
+			b, _ := v.(*miner.MinedBlock)
 			go n.handleReceiptOfMainchainBlock(b)
 
 		case *statechain.Transaction:

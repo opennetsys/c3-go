@@ -7,6 +7,23 @@ import (
 var (
 	// ErrNilBlock ...
 	ErrNilBlock = errors.New("block is nil")
+	// GenesisBlockHash ...
+	GenesisBlockHash = "0x90770ba62574b68607ebd14a41dd2eb9df3c537df11b68647faea34a88315e49"
+	// GenesisBlock ...
+	GenesisBlock = Block{
+		props: Props{
+			BlockHash:             &GenesisBlockHash,
+			BlockNumber:           "0x0",
+			BlockTime:             "0x0",
+			ImageHash:             ImageHash,
+			StateBlocksMerkleHash: "0x",
+			PrevBlockHash:         "0x",
+			Nonce:                 "0x",
+			Difficulty:            "0x0",
+			MinerAddress:          "0x",
+			MinerSig:              nil,
+		},
+	}
 )
 
 // ImageHash is the main chain identifier
@@ -28,7 +45,6 @@ type Props struct {
 	BlockTime             string    `json:"blockTime"` // unix timestamp
 	ImageHash             string    `json:"imageHash"`
 	StateBlocksMerkleHash string    `json:"stateBlocksMerkleHash"`
-	StateBlockHashes      []*string `json:"stateBlockHashes"`
 	PrevBlockHash         string    `json:"prevBlockHash"`
 	Nonce                 string    `json:"nonce"`
 	Difficulty            string    `json:"difficulty"`
