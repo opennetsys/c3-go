@@ -8,7 +8,7 @@
 
 > Implementation of the C3 protocol
 
-[![License](http://img.shields.io/badge/license-Apache-blue.svg)](https://raw.githubusercontent.com/c3systems/c3/master/LICENSE.md) [![CircleCI](https://circleci.com/gh/c3systems/c3.svg?style=svg)](https://circleci.com/gh/c3systems/c3) [![Go Report Card](https://goreportcard.com/badge/github.com/c3systems/c3?)](https://goreportcard.com/report/github.com/c3systems/c3) [![GoDoc](https://godoc.org/github.com/c3systems/c3?status.svg)](https://godoc.org/github.com/c3systems/c3)
+[![License](http://img.shields.io/badge/license-Apache-blue.svg)](https://raw.githubusercontent.com/c3systems/c3/master/LICENSE.md) [![CircleCI](https://circleci.com/gh/c3systems/c3.svg?style=svg&cb=1)](https://circleci.com/gh/c3systems/c3) [![Go Report Card](https://goreportcard.com/badge/github.com/c3systems/c3?)](https://goreportcard.com/report/github.com/c3systems/c3) [![GoDoc](https://godoc.org/github.com/c3systems/c3?status.svg)](https://godoc.org/github.com/c3systems/c3)
 
 ## Install
 
