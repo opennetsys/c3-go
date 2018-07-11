@@ -108,6 +108,7 @@ func (s Service) spawnMinerListener(minerChan chan interface{}, isValid *bool) e
 						return
 					}
 
+					// TODO: sign the block first!
 					if err := s.BroadcastMinedBlock(minedBlock); err != nil {
 						log.Printf("[node] err broadcasting mined block\n%s", err)
 						return
