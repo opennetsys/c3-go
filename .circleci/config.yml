@@ -40,8 +40,7 @@ jobs:
             wget https://dist.ipfs.io/go-ipfs/v0.4.14/go-ipfs_v0.4.14_linux-amd64.tar.gz -O /tmp/go-ipfs.tar.gz
             cd /tmp
             tar xvfz go-ipfs.tar.gz
-            cd go-ipfs
-            ./install.sh
+            sudo cp go-ipfs/ipfs /usr/local/bin/
 
       - run:
           name: Run IPFS daemon
