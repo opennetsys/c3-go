@@ -1,0 +1,69 @@
+# Golang CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-go/ for more details
+version: 2
+jobs:
+  build:
+    docker:
+      # specify the version
+      - image: circleci/golang:1.9
+
+      # Specify service dependencies here if necessary
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      # - image: circleci/postgres:9.4
+
+    #### TEMPLATE_NOTE: go expects specific checkout path representing url
+    #### expecting it in the form of
+    ####   /go/src/github.com/circleci/go-tool
+    ####   /go/src/bitbucket.org/circleci/go-tool
+    working_directory: /go/src/github.com/c3systems/c3
+    steps:
+      - checkout
+
+      - setup_remote_docker:
+          docker_layer_caching: true
+
+      - run:
+          name: Install Docker client
+          command: |
+            set -x
+            VER="18.03.1-ce"
+            curl -L -o /tmp/docker-$VER.tgz https://download.docker.com/linux/static/stable/x86_64/docker-$VER.tgz
+            tar -xz -C /tmp -f /tmp/docker-$VER.tgz
+            sudo mv /tmp/docker/* /usr/bin
+            sudo mkdir /etc/docker
+            sudo touch /etc/docker/daemon.json
+            cat <<'EOF' | sudo tee /etc/docker/daemon.json
+            {
+              "insecure-registries": [
+                "$IP:5000",
+                "123.123.123.123:5000",
+              ]
+            }
+            EOF
+
+      - run:
+          name: Install IPFS
+          command: |
+            set -x
+            wget https://dist.ipfs.io/go-ipfs/v0.4.14/go-ipfs_v0.4.14_linux-amd64.tar.gz -O /tmp/go-ipfs.tar.gz
+            cd /tmp
+            tar xvfz go-ipfs.tar.gz
+            sudo cp go-ipfs/ipfs /usr/local/bin/
+
+      - run:
+          name: Run IPFS daemon
+          command: |
+            ipfs init
+            ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001
+            ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/9001
+            export IP=$(ifconfig | grep inet | grep broad | awk {'print $2'})
+            ipfs daemon &
+
+      # specify any bash command here prefixed with `run: `
+      - run:
+          name: Tests
+          command: |
+            export DOCKER_LOCAL_REGISTRY_HOST="127.0.0.1"
+            make test

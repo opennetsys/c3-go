@@ -6,6 +6,7 @@ import (
 )
 
 func TestCompactJSON(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		in  []byte
 		out []byte

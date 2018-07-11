@@ -27,15 +27,29 @@ import (
 
 // Registry ...
 type Registry struct {
+	dockerLocalRegistryHost string
 }
 
 // Config ...
 type Config struct {
+	DockerLocalRegistryHost string
 }
 
 // NewRegistry ...
 func NewRegistry(config *Config) *Registry {
-	return &Registry{}
+	dockerLocalRegistryHost := config.DockerLocalRegistryHost
+	if dockerLocalRegistryHost == "" {
+		localIP, err := network.LocalIP()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		dockerLocalRegistryHost = localIP.String()
+	}
+
+	return &Registry{
+		dockerLocalRegistryHost: dockerLocalRegistryHost,
+	}
 }
 
 // PushImageByID uploads Docker image by image ID (hash/name) to IPFS
@@ -101,16 +115,11 @@ func (registry *Registry) PullImage(ipfsHash string) (string, error) {
 	go server.Run()
 	client := docker.NewClient()
 
-	localIP, err := network.LocalIP()
-	if err != nil {
-		return "", err
-	}
-
-	dockerImageID := fmt.Sprintf("%s:%v/%s", localIP.String(), c3config.DockerRegistryPort, util.DockerizeHash(ipfsHash))
+	dockerImageID := fmt.Sprintf("%s:%v/%s", registry.dockerLocalRegistryHost, c3config.DockerRegistryPort, util.DockerizeHash(ipfsHash))
 
 	log.Printf("attempting to pull %s", dockerImageID)
 
-	err = client.PullImage(dockerImageID)
+	err := client.PullImage(dockerImageID)
 	if err != nil {
 		return dockerImageID, err
 	}

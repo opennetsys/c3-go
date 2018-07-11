@@ -41,10 +41,18 @@ clean:
 ipfs/daemon:
 	@ipfs daemon
 
-.PHONY: test/before
-test/before:
+.PHONY: localhostproxy
+localhostproxy:
 	# proxy localhost to 123.123.123.123 required so that docker container can communicate with host machine
 	@sudo ifconfig lo0 alias 123.123.123.123/24
+
+.PHONY: test/check
+test/check:
+	# TODO: kill script if required commands and daemons not found
+	@command -v ipfs &>/dev/null || echo "IPFS is required"
+	@command -v docker &>/dev/null || echo "Docker daemon is required"
+	@pgrep -f ipfs > /dev/null || echo "IPFS daemon is not running"
+	@pgrep -f docker > /dev/null || echo "Docker daemon is not running"
 
 .PHONY: test/cleanup
 test/cleanup:
@@ -52,7 +60,7 @@ test/cleanup:
 	@. scripts/test_cleanup.sh
 
 .PHONY: test
-test: test/c3 test/common/network test/common/stringutil test/core/server test/core/docker test/core/sandbox test/registry test/cleanup
+test: test/check test/c3 test/common/network test/common/stringutil test/registry test/core/server test/core/docker test/core/sandbox test/cleanup
 
 .PHONY: test/c3
 test/c3:
@@ -75,8 +83,20 @@ test/core/docker:
 	@go test -v core/docker/*.go $(ARGS)
 
 .PHONY: test/core/sandbox
-test/core/sandbox:
-	@go test -v core/sandbox/*.go $(ARGS)
+test/core/sandbox: docker/build/example
+	@IMAGEID=$$(docker images -q | grep -m1 "") go test -v core/sandbox/*.go $(ARGS)
+
+.PHONY: test/core/chain
+test/core/chain: test/core/chain/mainchain test/core/chain/statechain
+	@echo "done"
+
+.PHONY: test/core/chain/mainchain
+test/core/chain/mainchain:
+	@go test -v core/chain/mainchain/*.go $(ARGS)
+
+.PHONY: test/core/chain/statechain
+test/core/chain/statechain:
+	@go test -v core/chain/statechain/*.go $(ARGS)
 
 .PHONY: test/registry
 test/registry:

@@ -25,9 +25,30 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/alecthomas/template"
+  packages = [
+    ".",
+    "parse"
+  ]
+  revision = "a0175ee3bccc567396460bf5acd36800cb10c49c"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/alecthomas/units"
+  packages = ["."]
+  revision = "2efee857e7cfd4f3d0138cc3cbb1b4966962b93a"
+
+[[projects]]
+  branch = "master"
   name = "github.com/btcsuite/btcd"
   packages = ["btcec"]
   revision = "86fed781132ac890ee03e906e4ecd5d6fa180c64"
+
+[[projects]]
+  name = "github.com/c3systems/merkletree"
+  packages = ["."]
+  revision = "fc8fe74abaaa7a9c041d0adad328aa84a1b3c591"
+  version = "v0.1.0"
 
 [[projects]]
   name = "github.com/coreos/go-semver"
@@ -325,18 +346,6 @@
   packages = ["."]
   revision = "10d786c5ed859afd22223df76a89bf57b24b2ee1"
   version = "v1.2.8"
-
-[[projects]]
-  name = "github.com/ipfs/go-ipld-cbor"
-  packages = ["."]
-  revision = "e35b32693307aee8178b5c452af99aa2fe6b3e1b"
-  version = "v1.2.13"
-
-[[projects]]
-  name = "github.com/ipfs/go-ipld-format"
-  packages = ["."]
-  revision = "6b4c9ea0f786788f3ee4e458ca39bb3f4da2ee71"
-  version = "v0.5.4"
 
 [[projects]]
   name = "github.com/ipfs/go-log"
@@ -730,6 +739,12 @@
   version = "v0.8.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/prometheus/common"
+  packages = ["log"]
+  revision = "7600349dcfe1abd18d72d3a1770870d9800a7801"
+
+[[projects]]
   name = "github.com/rlmcpherson/s3gof3r"
   packages = ["."]
   revision = "31603a0dc94aefb822bfe2ceea75a6be6013b445"
@@ -739,6 +754,12 @@
   name = "github.com/satori/go.uuid"
   packages = ["."]
   revision = "36e9d2ebbde5e3f13ab2e25625fd453271d6522e"
+
+[[projects]]
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
+  version = "v1.0.5"
 
 [[projects]]
   name = "github.com/spaolacci/murmur3"
@@ -782,12 +803,6 @@
   name = "github.com/whyrusleeping/base32"
   packages = ["."]
   revision = "c30ac30633ccdabefe87eb12465113f06f1bab75"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/whyrusleeping/cbor"
-  packages = ["go"]
-  revision = "63513f603b11583741970c5045ea567130ddb492"
 
 [[projects]]
   branch = "master"
@@ -855,7 +870,8 @@
   packages = [
     "blake2s",
     "blowfish",
-    "sha3"
+    "sha3",
+    "ssh/terminal"
   ]
   revision = "a49355c7e3f8fe157a85be2f77e6e269a0f89602"
 
@@ -881,7 +897,9 @@
   packages = [
     "cpu",
     "unix",
-    "windows"
+    "windows",
+    "windows/registry",
+    "windows/svc/eventlog"
   ]
   revision = "7138fd3d9dc8335c567ca206f4333fb75eb05d56"
 
@@ -909,9 +927,15 @@
   revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
   version = "v0.3.0"
 
+[[projects]]
+  name = "gopkg.in/alecthomas/kingpin.v2"
+  packages = ["."]
+  revision = "947dcec5ba9c011838740e680966fd7087a71d0d"
+  version = "v2.2.6"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "656ed89f34c1b1af833a8bd0a46f3df6ced5677c857559f4ce8ccdfa156cd3b8"
+  inputs-digest = "2979d43d5fbd29f9d8696ac7b2ecd6f7ce2b0dae5fbd5e56c99ae43a496edb50"
   solver-name = "gps-cdcl"
   solver-version = 1

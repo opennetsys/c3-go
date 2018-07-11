@@ -14,6 +14,7 @@ var (
 )
 
 func TestNew(t *testing.T) {
+	t.Parallel()
 	client := NewClient()
 	if client == nil {
 		t.FailNow()
@@ -21,6 +22,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestListImages(t *testing.T) {
+	t.Parallel()
 	client := NewClient()
 	images, err := client.ListImages()
 	if err != nil {
@@ -30,8 +32,22 @@ func TestListImages(t *testing.T) {
 	spew.Dump(images)
 }
 
-func TestReadImage(t *testing.T) {
+func TestPullImage(t *testing.T) {
+	t.Parallel()
 	client := NewClient()
+	err := client.PullImage(TestImage)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestReadImage(t *testing.T) {
+	t.Parallel()
+	client := NewClient()
+	err := client.PullImage(TestImage)
+	if err != nil {
+		t.Fatal(err)
+	}
 	reader, err := client.ReadImage(TestImage)
 	if err != nil {
 		t.Fatal(err)
@@ -41,6 +57,7 @@ func TestReadImage(t *testing.T) {
 }
 
 func TestLoadImage(t *testing.T) {
+	t.Parallel()
 	client := NewClient()
 	input, err := os.Open(TestImageTar)
 	if err != nil {
@@ -53,6 +70,7 @@ func TestLoadImage(t *testing.T) {
 }
 
 func TestLoadImageByFilepath(t *testing.T) {
+	t.Parallel()
 	client := NewClient()
 	err := client.LoadImageByFilepath(TestImageTar)
 	if err != nil {
@@ -61,7 +79,12 @@ func TestLoadImageByFilepath(t *testing.T) {
 }
 
 func TestRunContainer(t *testing.T) {
+	t.Parallel()
 	client := NewClient()
+	err := client.PullImage(TestImage)
+	if err != nil {
+		t.Fatal(err)
+	}
 	containerID, err := client.RunContainer(TestImage, []string{}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -73,7 +96,12 @@ func TestRunContainer(t *testing.T) {
 }
 
 func TestStopContainer(t *testing.T) {
+	t.Parallel()
 	client := NewClient()
+	err := client.PullImage(TestImage)
+	if err != nil {
+		t.Fatal(err)
+	}
 	containerID, err := client.RunContainer(TestImage, []string{}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -86,6 +114,7 @@ func TestStopContainer(t *testing.T) {
 }
 
 func TestDockerVersionFromCLI(t *testing.T) {
+	t.Parallel()
 	version := dockerVersionFromCLI()
 	if version == "" {
 		t.FailNow()
