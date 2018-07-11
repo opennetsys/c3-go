@@ -39,8 +39,21 @@ func NewSandbox(config *Config) *Sandbox {
 	if config == nil {
 		config = &Config{}
 	}
+
+	dockerLocalRegistryHost := os.Getenv("DOCKER_LOCAL_REGISTRY_HOST")
+	if dockerLocalRegistryHost == "" {
+		localIP, err := network.LocalIP()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		dockerLocalRegistryHost = localIP.String()
+	}
+
 	docker := docker.NewClient()
-	dit := registry.NewRegistry(&registry.Config{})
+	dit := registry.NewRegistry(&registry.Config{
+		DockerLocalRegistryHost: dockerLocalRegistryHost,
+	})
 	sb := &Sandbox{
 		docker:            docker,
 		registry:          dit,
