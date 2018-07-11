@@ -39,7 +39,7 @@ jobs:
             set -x
             VER="0.4.16-rc3"
             curl -L -o /tmp/go-ipfs.tar.gz https://dist.ipfs.io/go-ipfs/v$VER/go-ipfs_v$VER_linux-amd64.tar.gz
-            cd /tmp/go-ipfs.tar.gz
+            cd /tmp
             tar xvfz go-ipfs.tar.gz
             cd go-ipfs
             ./install.sh
