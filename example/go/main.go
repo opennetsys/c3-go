@@ -13,12 +13,12 @@ type App struct {
 }
 
 func (s *App) setItem(key, value string) error {
-	client.Store.Set(key, value)
+	client.State().Set(key, value)
 	return nil
 }
 
 func (s *App) getItem(key string) string {
-	return client.Store.Get(key)
+	return client.State().Get(key)
 }
 
 func main() {

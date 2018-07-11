@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -54,7 +55,7 @@ func NewSandbox(config *Config) *Sandbox {
 
 // PlayConfig ...
 type PlayConfig struct {
-	ImageID      string // ipfs hash
+	ImageID      string // can be ipfs hash
 	Payload      []byte
 	InitialState []byte
 }
@@ -65,10 +66,18 @@ func (s *Sandbox) Play(config *PlayConfig) ([]byte, error) {
 		return nil, errors.New("config is required")
 	}
 
-	dockerImageID, err := s.registry.PullImage(config.ImageID)
-	if err != nil {
-		return nil, err
+	var dockerImageID = config.ImageID
+	var err error
+
+	// If it's an IPFS hash then pull it from IPFS
+	if strings.HasPrefix(config.ImageID, "Qm") {
+		dockerImageID, err = s.registry.PullImage(config.ImageID)
+		if err != nil {
+			return nil, err
+		}
 	}
+
+	log.Printf("running docker image %s", dockerImageID)
 
 	hp, err := network.GetFreePort()
 	if err != nil {
@@ -80,13 +89,14 @@ func (s *Sandbox) Play(config *PlayConfig) ([]byte, error) {
 		return nil, err
 	}
 
-	fmt.Println("state loaded in tmp dir", tmpdir)
 	hostStateFilePath := fmt.Sprintf("%s/%s", tmpdir, c3config.TempContainerStateFileName)
 
 	err = ioutil.WriteFile(hostStateFilePath, config.InitialState, 0600)
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Println("state loaded in tmp dir", tmpdir)
 
 	hostPort := strconv.Itoa(hp)
 	containerID, err := s.docker.RunContainer(dockerImageID, []string{}, &docker.RunContainerConfig{
@@ -197,7 +207,7 @@ func parseNewState(reader io.Reader) ([]byte, error) {
 		return nil, err
 	}
 
-	log.Println("new state", src, string(src))
+	log.Println("new state json", string(src))
 
 	b, err := stringutil.CompactJSON(src)
 	if err != nil {

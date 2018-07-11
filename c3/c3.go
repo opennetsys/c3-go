@@ -3,6 +3,7 @@ package c3
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -17,12 +18,16 @@ var (
 	ErrMethodAlreadyRegistred = errors.New("method already registered")
 )
 
+// State ...
+type State struct {
+	state map[string]string
+}
+
 // C3 ...
 type C3 struct {
-	Store             *store
 	registeredMethods map[string]func(args ...interface{}) error
 	receiver          chan []byte
-	state             map[string]string
+	state             *State
 	statefile         string
 }
 
@@ -37,20 +42,18 @@ func NewC3() *C3 {
 	c3 := &C3{
 		registeredMethods: map[string]func(args ...interface{}) error{},
 		receiver:          receiver,
-		state:             map[string]string{},
-		statefile:         c3config.TempContainerStateFilePath,
+		state: &State{
+			state: map[string]string{},
+		},
+		statefile: c3config.TempContainerStateFilePath,
 	}
 
-	c3.Store = &store{
-		c3,
+	err := c3.setInitialState()
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	go func() {
-		err := c3.setInitialState()
-		if err != nil {
-			log.Fatal(err)
-		}
-
 		err = c3.listen()
 		if err != nil {
 			log.Fatal(err)
@@ -80,7 +83,11 @@ func (c3 *C3) RegisterMethod(methodName string, types []string, ifn interface{})
 			}
 
 			log.Printf("executed method %s with args: %s %s", methodName, key, value)
-			v(key, value)
+			err := v(key, value)
+			if err != nil {
+				log.Println("method failed", err)
+				log.Fatal(err)
+			}
 		}
 		return nil
 	}
@@ -96,29 +103,40 @@ func (c3 *C3) Serve() {
 	}).Run()
 }
 
+// State ...
+func (c3 *C3) State() *State {
+	return c3.state
+}
+
 // Set ...
 // TODO: accept interfaces
-func (s *store) Set(key, value string) error {
+func (s *State) Set(key, value string) error {
 	s.state[key] = value
+	fmt.Println("setting state k/v", key, value)
+	fmt.Println("latest state:", s.state)
 
 	b, err := json.Marshal(s.state)
 	if err != nil {
 		return err
 	}
 
-	f, err := os.OpenFile(s.statefile, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0600)
+	log.Println("marshed state", string(b))
+
+	f, err := os.OpenFile(c3config.TempContainerStateFilePath, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
+		log.Println("failed to store file")
 		return err
 	}
 
+	defer f.Close()
 	f.Write(b)
-	f.Close()
+
 	return nil
 }
 
 // Get ...
 // TODO: accept interfaces
-func (s *store) Get(key string) string {
+func (s *State) Get(key string) string {
 	v := s.state[key]
 	return v
 }
@@ -135,12 +153,56 @@ func (c3 *C3) setInitialState() error {
 
 		b, err := stringutil.CompactJSON(src)
 		if err != nil {
+			log.Println("failed to compact", err)
 			return err
 		}
 
-		err = json.Unmarshal(b, &c3.state)
+		err = json.Unmarshal(b, &c3.state.state)
 		if err != nil {
 			log.Println("fail to unmarshal", err)
+			return err
+		}
+	} else {
+		log.Println("state file not found")
+	}
+
+	return nil
+}
+
+// Process ...
+func (c3 *C3) Process(payload []byte) error {
+	var ifcs []interface{}
+	if err := json.Unmarshal(payload, &ifcs); err != nil {
+		log.Println(err)
+		return err
+	}
+
+	// if format is [a, b, c]
+	_, ok := ifcs[0].(string)
+	if ok {
+		v := make([]string, len(ifcs))
+		for i, k := range ifcs {
+			v[i] = k.(string)
+		}
+
+		err := c3.invoke(v[0], v[1:])
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	// if format is [[a, b, c], [a, b, c]]
+	for i := range ifcs {
+		ifc := ifcs[i].([]interface{})
+		v := make([]string, len(ifc))
+		for j, k := range ifc {
+			v[j] = k.(string)
+		}
+
+		err := c3.invoke(v[0], v[1:])
+		if err != nil {
 			return err
 		}
 	}
@@ -148,23 +210,21 @@ func (c3 *C3) setInitialState() error {
 	return nil
 }
 
+// invoke ...
+func (c3 *C3) invoke(method string, params []string) error {
+	var args []interface{}
+	for _, v := range params {
+		args = append(args, v)
+	}
+
+	return c3.registeredMethods[method](args...)
+}
+
 // listen ...
 func (c3 *C3) listen() error {
 	for payload := range c3.receiver {
-
-		var parsed []string
-		if err := json.Unmarshal(payload, &parsed); err != nil {
-			log.Println(err)
-			return err
-		}
-
-		method := parsed[0]
-		var args []interface{}
-		for _, v := range parsed[1:] {
-			args = append(args, v)
-		}
-		if err := c3.registeredMethods[method](args...); err != nil {
-			log.Println(err)
+		err := c3.Process(payload)
+		if err != nil {
 			return err
 		}
 	}
