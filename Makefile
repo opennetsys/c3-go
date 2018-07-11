@@ -61,7 +61,9 @@ test/cleanup:
 
 .PHONY: test
 test: test/check test/c3 test/common/network test/common/stringutil test/core/server test/core/docker
-	#test/core/sandbox test/registry test/cleanup
+
+.PHONY: test/all
+test/all: test/check test/c3 test/common/network test/common/stringutil test/core/server test/core/docker test/core/sandbox test/registry test/cleanup
 
 .PHONY: test/c3
 test/c3:
