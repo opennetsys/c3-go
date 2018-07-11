@@ -1,4 +1,4 @@
-package ditto
+package registry
 
 import (
 	"fmt"
@@ -6,46 +6,46 @@ import (
 	"os"
 	"testing"
 
-	"github.com/c3systems/c3/core/dockerclient"
+	"github.com/c3systems/c3/core/docker"
 )
 
 func TestNew(t *testing.T) {
-	ditto := NewDitto(&Config{})
-	if ditto == nil {
+	registry := NewRegistry(&Config{})
+	if registry == nil {
 		t.FailNow()
 	}
 }
 
 func TestPushImage(t *testing.T) {
-	ditto := NewDitto(&Config{})
+	registry := NewRegistry(&Config{})
 	filepath := "./test_data/hello-world.tar"
 	reader, err := os.Open(filepath)
 	if err != nil {
 		t.Error(err)
 	}
-	err = ditto.PushImage(reader)
+	err = registry.PushImage(reader)
 	if err != nil {
 		t.Error(err)
 	}
 }
 
 func TestPushImageByID(t *testing.T) {
-	client := dockerclient.New()
+	client := docker.NewClient()
 	err := client.LoadImageByFilepath("./test_data/hello-world.tar")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	ditto := NewDitto(&Config{})
-	err = ditto.PushImageByID("hello-world")
+	registry := NewRegistry(&Config{})
+	err = registry.PushImageByID("hello-world")
 	if err != nil {
 		t.Error(err)
 	}
 }
 
 func TestDownloadImage(t *testing.T) {
-	ditto := NewDitto(&Config{})
-	location, err := ditto.DownloadImage("QmQuKQ6nmUoFZGKJLHcnqahq2xgq3xbgVsQBG6YL5eF7kh")
+	registry := NewRegistry(&Config{})
+	location, err := registry.DownloadImage("QmQuKQ6nmUoFZGKJLHcnqahq2xgq3xbgVsQBG6YL5eF7kh")
 	if err != nil {
 		t.Error(err)
 	}
@@ -54,9 +54,9 @@ func TestDownloadImage(t *testing.T) {
 }
 
 func TestPullImage(t *testing.T) {
-	ditto := NewDitto(&Config{})
+	registry := NewRegistry(&Config{})
 	//tag := time.Now().Unix()
-	_, err := ditto.PullImage("QmQuKQ6nmUoFZGKJLHcnqahq2xgq3xbgVsQBG6YL5eF7kh")
+	_, err := registry.PullImage("QmQuKQ6nmUoFZGKJLHcnqahq2xgq3xbgVsQBG6YL5eF7kh")
 	if err != nil {
 		t.Error(err)
 	}

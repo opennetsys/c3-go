@@ -2,7 +2,6 @@ package util
 
 import (
 	"encoding/base32"
-	"log"
 	"strings"
 
 	base58 "github.com/jbenet/go-base58"
@@ -20,7 +19,8 @@ func DockerizeHash(base58Hash string) string {
 func IpfsifyHash(base32Hash string) string {
 	decodedB32, err := base32.StdEncoding.DecodeString(strings.ToUpper(base32Hash) + "=")
 	if err != nil {
-		log.Fatal(err)
+		return ""
 	}
+
 	return base58.Encode(decodedB32)
 }

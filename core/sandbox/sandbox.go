@@ -1,25 +1,31 @@
 package sandbox
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/c3systems/c3/common/network"
-	"github.com/c3systems/c3/core/dockerclient"
-	"github.com/c3systems/c3/ditto"
+	"github.com/c3systems/c3/common/stringutil"
+	c3config "github.com/c3systems/c3/config"
+	"github.com/c3systems/c3/core/docker"
+	"github.com/c3systems/c3/registry"
 )
 
 // Sandbox ...
 type Sandbox struct {
-	docker            *dockerclient.Client
-	ditto             *ditto.Ditto
+	docker            *docker.Client
+	registry          *registry.Registry
 	sock              string
 	runningContainers map[string]bool
 }
@@ -33,11 +39,11 @@ func NewSandbox(config *Config) *Sandbox {
 	if config == nil {
 		config = &Config{}
 	}
-	docker := dockerclient.NewClient()
-	dit := ditto.NewDitto(&ditto.Config{})
+	docker := docker.NewClient()
+	dit := registry.NewRegistry(&registry.Config{})
 	sb := &Sandbox{
 		docker:            docker,
-		ditto:             dit,
+		registry:          dit,
 		sock:              "/var/run/docker.sock",
 		runningContainers: map[string]bool{},
 	}
@@ -49,43 +55,70 @@ func NewSandbox(config *Config) *Sandbox {
 
 // PlayConfig ...
 type PlayConfig struct {
-	ImageID string // ipfs hash
-	Payload []byte
+	ImageID      string // can be ipfs hash
+	Payload      []byte
+	InitialState []byte
 }
 
-// TODO: include transaction inputs
-
 // Play in the sandbox
-func (s *Sandbox) Play(config *PlayConfig) error {
-	dockerImageID, err := s.ditto.PullImage(config.ImageID)
-	if err != nil {
-		return err
+func (s *Sandbox) Play(config *PlayConfig) ([]byte, error) {
+	if config == nil {
+		return nil, errors.New("config is required")
 	}
+
+	var dockerImageID = config.ImageID
+	var err error
+
+	// If it's an IPFS hash then pull it from IPFS
+	if strings.HasPrefix(config.ImageID, "Qm") {
+		dockerImageID, err = s.registry.PullImage(config.ImageID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	log.Printf("running docker image %s", dockerImageID)
 
 	hp, err := network.GetFreePort()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	hostPort := strconv.Itoa(hp)
+	tmpdir, err := ioutil.TempDir("/tmp", "")
+	if err != nil {
+		return nil, err
+	}
 
-	containerID, err := s.docker.RunContainer(dockerImageID, []string{}, &dockerclient.RunContainerConfig{
+	hostStateFilePath := fmt.Sprintf("%s/%s", tmpdir, c3config.TempContainerStateFileName)
+
+	err = ioutil.WriteFile(hostStateFilePath, config.InitialState, 0600)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println("state loaded in tmp dir", tmpdir)
+
+	hostPort := strconv.Itoa(hp)
+	containerID, err := s.docker.RunContainer(dockerImageID, []string{}, &docker.RunContainerConfig{
 		Volumes: map[string]string{
-			"/var/run/docker.sock": "/var/run/docker.sock",
-			"/tmp":                 "/tmp",
+			// sock binding will be required for spawning sibling containers
+			// container:host
+			//"/var/run/docker.sock": "/var/run/docker.sock",
+			"/tmp": tmpdir,
 		},
 		Ports: map[string]string{
 			"3333": hostPort,
 		},
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	s.runningContainers[containerID] = true
 
 	done := make(chan bool)
 	timedout := make(chan bool)
+	errEvent := make(chan error)
 
 	go func() {
 		// Wait for application to start up
@@ -93,7 +126,8 @@ func (s *Sandbox) Play(config *PlayConfig) error {
 		time.Sleep(1 * time.Second)
 		err := s.sendMessage(config.Payload, hostPort)
 		if err != nil {
-			log.Fatal(err)
+			errEvent <- err
+			return
 		}
 
 		done <- true
@@ -105,34 +139,88 @@ func (s *Sandbox) Play(config *PlayConfig) error {
 		select {
 		case <-timer.C:
 			timedout <- true
-			err := s.docker.StopContainer(containerID)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			delete(s.runningContainers, containerID)
 		}
 	}()
 
-	// TODO: return new state
-
 	select {
-	case <-timedout:
-		close(timedout)
-		return errors.New("timedout")
-	case <-done:
-		log.Println("done")
-		close(timedout)
+	case e := <-errEvent:
 		timer.Stop()
-		err := s.docker.StopContainer(containerID)
+		close(timedout)
+		close(errEvent)
+		err := s.killContainer(containerID)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		delete(s.runningContainers, containerID)
+		return nil, e
+	case <-timedout:
+		close(timedout)
+		close(errEvent)
 
-		return nil
+		err := s.killContainer(containerID)
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, errors.New("timedout")
+	case <-done:
+		log.Println("reading new state...")
+		cmd := []string{"bash", "-c", "cat " + c3config.TempContainerStateFilePath}
+		resp, err := s.docker.ContainerExec(containerID, cmd)
+		if err != nil {
+			return nil, err
+		}
+
+		result, err := parseNewState(resp)
+		if err != nil {
+			return nil, err
+		}
+
+		log.Println("done")
+		close(timedout)
+		close(errEvent)
+		timer.Stop()
+
+		err = s.killContainer(containerID)
+		if err != nil {
+			return nil, err
+		}
+
+		return result, nil
 	}
+}
+
+func (s *Sandbox) killContainer(containerID string) error {
+	delete(s.runningContainers, containerID)
+	if err := s.docker.StopContainer(containerID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func parseNewState(reader io.Reader) ([]byte, error) {
+	var state map[string]string
+
+	src, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Println("new state json", string(src))
+
+	b, err := stringutil.CompactJSON(src)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(b, &state)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Println("new state", state)
+	return b, nil
 }
 
 func (s *Sandbox) sendMessage(msg []byte, port string) error {

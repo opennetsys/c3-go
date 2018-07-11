@@ -38,6 +38,25 @@ $ c3 push {imageID}
 $ c3 pull {ipfsHash}
 ```
 
+## Docker config
+
+Configure `daemon.json` to include the private registry as insecured (momentarily).
+
+```json
+{
+  "insecure-registries" : [
+    "{YOUR_LOCAL_IP}:5000"
+  ]
+}
+```
+
+- Linux
+  - `/etc/docker/daemon.json`
+- macOS
+  - `~/.docker/daemon.json`
+
+Restart the docker daemon after configuring `daemon.json`
+
 ## Test
 
 ```bash

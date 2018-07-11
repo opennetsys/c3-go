@@ -5,9 +5,9 @@ import (
 	"os"
 
 	"github.com/c3systems/c3/config"
-	"github.com/c3systems/c3/ditto"
 	"github.com/c3systems/c3/node"
 	nodetypes "github.com/c3systems/c3/node/types"
+	"github.com/c3systems/c3/registry"
 	"github.com/spf13/cobra"
 )
 
@@ -26,7 +26,7 @@ func Build() *cobra.Command {
 		peer    string
 	)
 
-	dit := ditto.NewDitto(&ditto.Config{})
+	dit := registry.NewRegistry(&registry.Config{})
 
 	rootCmd := &cobra.Command{
 		Use:   "c3",

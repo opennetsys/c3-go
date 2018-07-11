@@ -52,32 +52,36 @@ test/cleanup:
 	@. scripts/test_cleanup.sh
 
 .PHONY: test
-test: test/c3 test/core/server test/core/dockerclient test/core/registry test/core/sandbox test/ditto test/cleanup
+test: test/c3 test/common/network test/common/stringutil test/core/server test/core/docker test/core/sandbox test/registry test/cleanup
 
 .PHONY: test/c3
 test/c3:
-	@go test -v c3/*.go
+	@go test -v c3/*.go $(ARGS)
+
+.PHONY: test/common/network
+test/common/network:
+	@go test -v common/network/*.go $(ARGS)
+
+.PHONY: test/common/stringutil
+test/common/stringutil:
+	@go test -v common/stringutil/*.go $(ARGS)
 
 .PHONY: test/core/server
 test/core/server:
-	@go test -v core/server/*.go
+	@go test -v core/server/*.go $(ARGS)
 
-.PHONY: test/core/dockerclient
-test/core/dockerclient:
-	@go test -v core/dockerclient/*.go $(ARGS)
+.PHONY: test/core/docker
+test/core/docker:
+	@go test -v core/docker/*.go $(ARGS)
 
 .PHONY: test/core/sandbox
 test/core/sandbox:
 	@go test -v core/sandbox/*.go $(ARGS)
 
-.PHONY: test/core/registry
-test/core/registry:
-	@go test -v core/registry/*.go
-
-.PHONY: test/ditto
-test/ditto:
-	@docker pull hello-world &&
-	go test -v ditto/*.go $(ARGS)
+.PHONY: test/registry
+test/registry:
+	@docker pull hello-world && \
+	go test -v registry/*.go $(ARGS)
 
 .PHONY: test/docker/build/snapshot
 test/docker/build/snapshot:
@@ -121,7 +125,15 @@ docker/build/example:
 
 .PHONY: docker/run/example
 docker/run/example:
-	@docker run -p 3333 --mount type=bind,src=/tmp,target=/tmp -t goexample
+	@docker run -p 3333 --mount type=bind,src=/tmp/633029102,target=/tmp -t goexample
+
+.PHONY: docker/example/cat
+docker/example/cat:
+	@docker exec -it e795688997e9 bash -c cat /tmp/state.json
+
+.PHONY: docker/example/send
+docker/example/send:
+	@echo '["setItem", "foo", "bar"]' | nc localhost 32776
 
 .PHONY: docker/build/example/bash
 docker/build/example/bash:
@@ -130,3 +142,8 @@ docker/build/example/bash:
 .PHONY: docker/run/example/bash
 docker/run/example/bash:
 	@$(MAKE) -C example/bash run
+
+.PHONY: docker/deploy/example
+docker/deploy/example: docker/build/example
+	# build image -> push to ipfs -> pull from ipfs
+	@go run main.go pull $$(go run main.go push $$(docker images -q | grep -m1 "") | grep "uploaded to" | sed -E 's/.*uploaded to \/ipfs\///g' | tr -d ' ' | tr -d '\n')

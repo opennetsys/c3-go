@@ -1,6 +1,18 @@
 package sandbox
 
-import "testing"
+import (
+	"os"
+	"testing"
+)
+
+//var imageID = "QmWEXdgvsWs5Kr28W9NtRbru5n4AJ9NDsnFyHHiR23QGpT"
+var imageID = "af03e3c71e98"
+
+func init() {
+	if os.Getenv("IMAGEID") != "" {
+		imageID = os.Getenv("IMAGEID")
+	}
+}
 
 func TestNew(t *testing.T) {
 	sb := NewSandbox(&Config{})
@@ -9,14 +21,52 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestRun(t *testing.T) {
+func TestPayload(t *testing.T) {
 	sb := NewSandbox(&Config{})
-	err := sb.Play(&PlayConfig{
-		ImageID: "QmULmGLSnqf3pkLhdgrC9QxFXv1SuwqYkJw15QpoVzFiEh",
-		Payload: []byte(`{"foo": "bar"}`),
+	newState, err := sb.Play(&PlayConfig{
+		ImageID: imageID,
+		Payload: []byte(`["setItem", "foo", "bar"]`),
 	})
 
 	if err != nil {
 		t.Error(err)
+	}
+
+	if string(newState) != `{"foo":"bar"}` {
+		t.Error("expected new state")
+	}
+}
+
+func TestInitialState(t *testing.T) {
+	sb := NewSandbox(&Config{})
+	newState, err := sb.Play(&PlayConfig{
+		ImageID:      imageID,
+		Payload:      []byte(`["setItem", "foo", "bar"]`),
+		InitialState: []byte(`{"hello":"world"}`),
+	})
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	if string(newState) != `{"foo":"bar","hello":"world"}` {
+		t.Errorf("expected new state; got %s", string(newState))
+	}
+}
+
+func TestMultipleInputs(t *testing.T) {
+	sb := NewSandbox(&Config{})
+	newState, err := sb.Play(&PlayConfig{
+		ImageID:      imageID,
+		Payload:      []byte(`[["setItem", "foo", "bar"],["setItem", "hello", "mars"]]`),
+		InitialState: []byte(`{"hello":"world"}`),
+	})
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	if string(newState) != `{"foo":"bar","hello":"mars"}` {
+		t.Errorf("expected new state; got %s", string(newState))
 	}
 }

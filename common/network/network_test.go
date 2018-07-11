@@ -22,3 +22,16 @@ func TestGetFreePort(t *testing.T) {
 	}
 	defer l.Close()
 }
+
+func TestLocalIP(t *testing.T) {
+	ip, err := LocalIP()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if ip.String() == "" {
+		t.Error("expected IP address")
+	}
+
+	t.Log(ip)
+}
