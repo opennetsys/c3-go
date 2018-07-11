@@ -6,12 +6,12 @@ import (
 	"time"
 
 	"github.com/c3systems/c3/core/chain/mainchain"
+	"github.com/c3systems/c3/core/chain/merkle"
 	"github.com/c3systems/c3/core/chain/statechain"
 
 	bfmt "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
-	cbor "github.com/ipfs/go-ipld-cbor"
 	mh "github.com/multiformats/go-multihash"
 )
 
@@ -48,8 +48,12 @@ func GetCID(v interface{}) (*cid.Cid, error) {
 		d, _ := v.(*statechain.Diff)
 		return GetStatechainDiffCID(d)
 
+	case *merkle.Tree:
+		tree, _ := v.(*merkle.Tree)
+		return GetMerkleTreeCID(tree)
+
 	default:
-		return nil, errors.New("type must be one of pointer to mainchain block, statechain block, statechain tx, or statechain diff")
+		return nil, errors.New("type must be one of pointer to mainchain block, statechain block, statechain tx, statechain diff, or merkle tree")
 
 	}
 }
@@ -63,13 +67,7 @@ func GetMainchainBlockCID(block *mainchain.Block) (*cid.Cid, error) {
 		return nil, errors.New("hash cannot be nil")
 	}
 
-	// note: will this work? We may need to pass the same bytes into the basicblock function
-	//bytes, err := block.Serialize()
-	//if err != nil {
-	//return nil, err
-	//}
 	return GetCIDByHash(*block.Props().BlockHash)
-
 }
 
 // GetStatechainBlockCID ...
@@ -81,10 +79,6 @@ func GetStatechainBlockCID(block *statechain.Block) (*cid.Cid, error) {
 		return nil, errors.New("hash cannot be nil")
 	}
 
-	//bytes, err := block.Serialize()
-	//if err != nil {
-	//return nil, err
-	//}
 	return GetCIDByHash(*block.Props().BlockHash)
 }
 
@@ -97,10 +91,6 @@ func GetStatechainTransactionCID(tx *statechain.Transaction) (*cid.Cid, error) {
 		return nil, errors.New("hash cannot be nil")
 	}
 
-	//bytes, err := tx.Serialize()
-	//if err != nil {
-	//return nil, err
-	//}
 	return GetCIDByHash(*tx.Props().TxHash)
 }
 
@@ -113,34 +103,43 @@ func GetStatechainDiffCID(d *statechain.Diff) (*cid.Cid, error) {
 		return nil, errors.New("hash cannot be nil")
 	}
 
-	//bytes, err := d.Serialize()
-	//if err != nil {
-	//return nil, err
-	//}
 	return GetCIDByHash(*d.Props().DiffHash)
 }
 
-// Fetch ...
-func Fetch(bs bserv.BlockService, c *cid.Cid) (interface{}, error) {
-	if bs == nil || c == nil {
-		return nil, errors.New("arguments cannot be nil")
+// GetMerkleTreeCID ...
+func GetMerkleTreeCID(tree *merkle.Tree) (*cid.Cid, error) {
+	if tree == nil {
+		return nil, errors.New("input cannot be nil")
+	}
+	if tree.Props().MerkleTreeRootHash == nil {
+		return nil, errors.New("hash cannot be nil")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
-
-	data, err := bs.GetBlock(ctx, c)
-	if err != nil {
-		return nil, err
-	}
-
-	var out interface{}
-	if err := cbor.DecodeInto(data.RawData(), &out); err != nil {
-		return nil, err
-	}
-
-	return &out, nil
+	return GetCIDByHash(*tree.Props().MerkleTreeRootHash)
 }
+
+// note: generic fetch won't work bc we have to know what data type to deserialize into
+// Fetch ...
+//func Fetch(bs bserv.BlockService, c *cid.Cid) (interface{}, error) {
+//if bs == nil || c == nil {
+//return nil, errors.New("arguments cannot be nil")
+//}
+
+//ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+//defer cancel()
+
+//data, err := bs.GetBlock(ctx, c)
+//if err != nil {
+//return nil, err
+//}
+
+//var out interface{}
+//if err := cbor.DecodeInto(data.RawData(), &out); err != nil {
+//return nil, err
+//}
+
+//return &out, nil
+//}
 
 // FetchMainchainBlock ...
 func FetchMainchainBlock(bs bserv.BlockService, c *cid.Cid) (*mainchain.Block, error) {
@@ -156,12 +155,12 @@ func FetchMainchainBlock(bs bserv.BlockService, c *cid.Cid) (*mainchain.Block, e
 		return nil, err
 	}
 
-	var out mainchain.Block
-	if err := cbor.DecodeInto(data.RawData(), &out); err != nil {
+	block := new(mainchain.Block)
+	if err := block.Deserialize(data.RawData()); err != nil {
 		return nil, err
 	}
 
-	return &out, nil
+	return block, nil
 }
 
 // FetchStateChainBlock ...
@@ -178,12 +177,12 @@ func FetchStateChainBlock(bs bserv.BlockService, c *cid.Cid) (*statechain.Block,
 		return nil, err
 	}
 
-	var out statechain.Block
-	if err := cbor.DecodeInto(data.RawData(), &out); err != nil {
+	block := new(statechain.Block)
+	if err := block.Deserialize(data.RawData()); err != nil {
 		return nil, err
 	}
 
-	return &out, nil
+	return block, nil
 }
 
 // FetchStateChainTransaction ...
@@ -200,12 +199,12 @@ func FetchStateChainTransaction(bs bserv.BlockService, c *cid.Cid) (*statechain.
 		return nil, err
 	}
 
-	var out statechain.Transaction
-	if err := cbor.DecodeInto(data.RawData(), &out); err != nil {
+	tx := new(statechain.Transaction)
+	if err := tx.Deserialize(data.RawData()); err != nil {
 		return nil, err
 	}
 
-	return &out, nil
+	return tx, nil
 }
 
 // FetchStateChainDiff ...
@@ -222,12 +221,34 @@ func FetchStateChainDiff(bs bserv.BlockService, c *cid.Cid) (*statechain.Diff, e
 		return nil, err
 	}
 
-	var out statechain.Diff
-	if err := cbor.DecodeInto(data.RawData(), &out); err != nil {
+	d := new(statechain.Diff)
+	if err := d.Deserialize(data.RawData()); err != nil {
 		return nil, err
 	}
 
-	return &out, nil
+	return d, nil
+}
+
+// FetchMerkleTree ...
+func FetchMerkleTree(bs bserv.BlockService, c *cid.Cid) (*merkle.Tree, error) {
+	if bs == nil || c == nil {
+		return nil, errors.New("arguments cannot be nil")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	data, err := bs.GetBlock(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+
+	tree := new(merkle.Tree)
+	if err := tree.Deserialize(data.RawData()); err != nil {
+		return nil, err
+	}
+
+	return tree, nil
 }
 
 // Put ...
@@ -252,6 +273,10 @@ func Put(bs bserv.BlockService, v interface{}) (*cid.Cid, error) {
 	case *statechain.Diff:
 		d, _ := v.(*statechain.Diff)
 		return PutStatechainDiff(bs, d)
+
+	case *merkle.Tree:
+		tree, _ := v.(*merkle.Tree)
+		return PutMerkleTree(bs, tree)
 
 	default:
 		return nil, errors.New("type must be one of pointer to mainchain block, statechain block, statechain tx, or statechain diff")
@@ -355,6 +380,34 @@ func PutStatechainDiff(bs bserv.BlockService, d *statechain.Diff) (*cid.Cid, err
 	}
 
 	bytes, err := d.Serialize()
+	if err != nil {
+		return nil, err
+	}
+
+	basicIPFSBlock, err := bfmt.NewBlockWithCid(bytes, c)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := bs.AddBlock(basicIPFSBlock); err != nil {
+		return nil, err
+	}
+
+	return c, nil
+}
+
+// PutMerkleTree ...
+func PutMerkleTree(bs bserv.BlockService, tree *merkle.Tree) (*cid.Cid, error) {
+	if bs == nil || tree == nil {
+		return nil, errors.New("arguments cannot be nil")
+	}
+
+	c, err := GetMerkleTreeCID(tree)
+	if err != nil {
+		return nil, err
+	}
+
+	bytes, err := tree.Serialize()
 	if err != nil {
 		return nil, err
 	}

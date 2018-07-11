@@ -3,9 +3,12 @@ package redisstore
 import (
 	"errors"
 
+	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/statechain"
 	redis "github.com/gomodule/redigo/redis"
 )
+
+// TODO: add pending blocks methods...
 
 const (
 	transactionsMembersName = "transactions"
@@ -13,7 +16,8 @@ const (
 
 // Props ...
 type Props struct {
-	Pool *redis.Pool
+	Pool      *redis.Pool
+	headBlock mainchain.Block // note: don't use a pointer bc we don't want it being modified after being passed
 }
 
 // Service ...
@@ -161,8 +165,8 @@ func (s Service) AddTx(tx *statechain.Transaction) error {
 	return err
 }
 
-// GatherTransactions ...
-func (s Service) GatherTransactions() ([]*statechain.Transaction, error) {
+// GatherPendingTransactions ...
+func (s Service) GatherPendingTransactions() ([]*statechain.Transaction, error) {
 	c := s.props.Pool.Get()
 	defer c.Close()
 
@@ -187,4 +191,15 @@ func (s Service) GatherTransactions() ([]*statechain.Transaction, error) {
 	}
 
 	return txs, nil
+}
+
+// GetHeadBlock ...
+func (s Service) GetHeadBlock() (mainchain.Block, error) {
+	return s.headBlock, nil
+}
+
+// SetHeadBlock ...
+func (s Service) SetHeadBlock(block mainchain.Block) error {
+	s.headBlock = block
+	return nil
 }

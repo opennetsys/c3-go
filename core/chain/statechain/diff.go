@@ -5,6 +5,7 @@ import (
 
 	"github.com/c3systems/c3/common/hashing"
 	"github.com/c3systems/c3/common/hexutil"
+	"github.com/c3systems/merkletree"
 )
 
 // NewDiff ...
@@ -67,8 +68,18 @@ func (d *Diff) DeserializeString(hexStr string) error {
 	return d.Deserialize([]byte(str))
 }
 
-// CalcHash ...
-func (d Diff) CalcHash() (string, error) {
+// CalculateHash ...
+func (d Diff) CalculateHash() (string, error) {
+	bytes, err := d.CalculateHashBytes()
+	if err != nil {
+		return "", err
+	}
+
+	return hexutil.EncodeString(string(bytes)), nil
+}
+
+// CalculateHashBytes ...
+func (d Diff) CalculateHashBytes() ([]byte, error) {
 	tmpDiff := Diff{
 		props: DiffProps{
 			Data: d.props.Data,
@@ -77,10 +88,26 @@ func (d Diff) CalcHash() (string, error) {
 
 	bytes, err := tmpDiff.Serialize()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return hashing.HashToHexString(bytes), nil
+	hashedBytes := hashing.Hash(bytes)
+	return hashedBytes[:], nil
+}
+
+// Equals ...
+func (d Diff) Equals(other merkletree.Content) (bool, error) {
+	dHash, err := d.CalculateHashBytes()
+	if err != nil {
+		return false, err
+	}
+
+	oHash, err := other.CalculateHashBytes()
+	if err != nil {
+		return false, err
+	}
+
+	return string(dHash) == string(oHash), nil
 }
 
 // SetHash ...
@@ -89,7 +116,7 @@ func (d *Diff) SetHash() error {
 		return ErrNilDiff
 	}
 
-	hash, err := d.CalcHash()
+	hash, err := d.CalculateHash()
 	if err != nil {
 		return err
 	}

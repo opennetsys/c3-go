@@ -7,29 +7,31 @@ import (
 	"strings"
 	"testing"
 	"unicode"
+
+	"github.com/prometheus/common/log"
 )
 
 var (
 	hash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 	p    = Props{
-		BlockHash:       &hash,
-		BlockNumber:     "0x1",
-		BlockTime:       "0x5",
-		ImageHash:       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-		StateBlocksHash: "stateBlocksHash",
-		PrevBlockHash:   "prevBlockHash",
-		Nonce:           "0x1",
-		Difficulty:      "0x1",
+		BlockHash:             &hash,
+		BlockNumber:           "0x1",
+		BlockTime:             "0x5",
+		ImageHash:             "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+		StateBlocksMerkleHash: "stateBlocksHash",
+		PrevBlockHash:         "prevBlockHash",
+		Nonce:                 "0x1",
+		Difficulty:            "0x1",
 	}
 	p1 = Props{
-		BlockHash:       nil,
-		BlockNumber:     "0x2",
-		BlockTime:       "0x5",
-		ImageHash:       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-		StateBlocksHash: "stateBlocksHash",
-		PrevBlockHash:   "prevBlockHash",
-		Nonce:           "0x1",
-		Difficulty:      "0x1",
+		BlockHash:             nil,
+		BlockNumber:           "0x2",
+		BlockTime:             "0x5",
+		ImageHash:             "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+		StateBlocksMerkleHash: "stateBlocksHash",
+		PrevBlockHash:         "prevBlockHash",
+		Nonce:                 "0x1",
+		Difficulty:            "0x1",
 	}
 	s = `{
 		"blockHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -165,7 +167,7 @@ func TestDeserialize(t *testing.T) {
 			t.Fatalf("test %d failed; err parsing from bytes: %v", idx+1, err)
 		}
 
-		if expected.props.StateBlocksHash != actual.props.StateBlocksHash ||
+		if expected.props.StateBlocksMerkleHash != actual.props.StateBlocksMerkleHash ||
 			expected.props.PrevBlockHash != actual.props.PrevBlockHash ||
 			expected.props.BlockNumber != actual.props.BlockNumber ||
 			expected.props.ImageHash != actual.props.ImageHash ||
@@ -186,32 +188,6 @@ func TestDeserialize(t *testing.T) {
 	}
 }
 
-func TestCID(t *testing.T) {
-	blocks := []*Block{
-		New(&p),
-		New(&p1),
-	}
-
-	expecteds := []string{
-		"zdpuB1zqZpbcm6xYhH1JvtciytHcSYehN11HhGkiMGreGy7RX",
-		"zdpuAmBvY5MV6PhHRYxFvwSfkFY4j9qcwGBn3Uxtwu2c5vj8w",
-	}
-
-	for idx, block := range blocks {
-		cid, err := block.CID("block")
-		if err != nil {
-			t.Fatalf("test %d failed; err getting cid: %v", idx+1, err)
-		}
-		if cid == nil {
-			t.Errorf("test %d failed; expected non-null cid", idx+1)
-		}
-
-		if cid.String() != expecteds[idx] {
-			t.Errorf("test %d failed; expected %s, received %s", idx+1, expecteds[idx], cid.String())
-		}
-	}
-}
-
 func TestHash(t *testing.T) {
 	expecteds := []string{
 		blockHash,
@@ -228,7 +204,7 @@ func TestHash(t *testing.T) {
 			t.Fatalf("test %d failed; expected non-nil block", idx+1)
 		}
 
-		actual, err := block.Hash()
+		actual, err := block.CalculateHash()
 		if err != nil {
 			t.Fatalf("test %d failed; err serializing block: %v", idx+1, err)
 		}
@@ -238,6 +214,17 @@ func TestHash(t *testing.T) {
 		}
 	}
 
+}
+
+func TestGenesisBlockHash(t *testing.T) {
+	hash, err := GenesisBlock.CalculateHash()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if hash != GenesisBlockHash {
+		log.Errorf("received %s\nexpected %s", hash, GenesisBlockHash)
+	}
 }
 
 func removeWhiteSpace(str string) string {

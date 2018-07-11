@@ -43,14 +43,14 @@ type Transaction struct {
 
 // BlockProps ...
 type BlockProps struct {
-	BlockHash         *string  `json:"blockHash,omitempty"`
-	BlockNumber       string   `json:"blockNumber"`
-	BlockTime         string   `json:"blockTime"` // unix timestamp
-	ImageHash         string   `json:"imageHash"`
-	TxsMerkleHash     string   `json:"txsMerkleHash"`
-	TxHashes          []string `json:"txHashes"`
-	StatePrevDiffHash string   `json:"statePrevDiffHash"`
-	StateCurrentHash  string   `json:"stateCurrentHash"`
+	BlockHash         *string `json:"blockHash,omitempty"`
+	BlockNumber       string  `json:"blockNumber"`
+	BlockTime         string  `json:"blockTime"` // unix timestamp
+	ImageHash         string  `json:"imageHash"`
+	TxHash            string  `json:"txHash"`
+	PrevBlockHash     string  `json:"prevBlockHash"`
+	StatePrevDiffHash string  `json:"statePrevDiffHash"`
+	StateCurrentHash  string  `json:"stateCurrentHash"`
 }
 
 // Block ...

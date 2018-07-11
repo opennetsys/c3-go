@@ -8,6 +8,7 @@ import (
 	"github.com/c3systems/c3/common/hashing"
 	"github.com/c3systems/c3/common/hexutil"
 	"github.com/c3systems/c3/core/c3crypto"
+	"github.com/c3systems/merkletree"
 )
 
 // NewTransaction ...
@@ -45,7 +46,9 @@ func (tx *Transaction) Deserialize(data []byte) error {
 
 	var tmpProps TransactionProps
 	b := bytes.NewBuffer(data)
-	gob.NewDecoder(b).Decode(&tmpProps)
+	if err := gob.NewDecoder(b).Decode(&tmpProps); err != nil {
+		return err
+	}
 
 	tx.props = tmpProps
 	return nil
@@ -75,8 +78,18 @@ func (tx *Transaction) DeserializeString(hexStr string) error {
 	return tx.Deserialize([]byte(str))
 }
 
-// CalcHash ...
-func (tx *Transaction) CalcHash() (string, error) {
+// CalculateHash ...
+func (tx *Transaction) CalculateHash() (string, error) {
+	bytes, err := tx.CalculateHashBytes()
+	if err != nil {
+		return "", err
+	}
+
+	return hexutil.EncodeString(string(bytes)), nil
+}
+
+// CalculateHashBytes ...
+func (tx *Transaction) CalculateHashBytes() ([]byte, error) {
 	tmpTx := Transaction{
 		props: TransactionProps{
 			ImageHash: tx.props.ImageHash,
@@ -88,10 +101,26 @@ func (tx *Transaction) CalcHash() (string, error) {
 
 	data, err := tmpTx.Serialize()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return hashing.HashToHexString(data), nil
+	hashedBytes := hashing.Hash(data)
+	return hashedBytes[:], nil
+}
+
+// Equals ...
+func (tx *Transaction) Equals(other merkletree.Content) (bool, error) {
+	tHash, err := tx.CalculateHashBytes()
+	if err != nil {
+		return false, err
+	}
+
+	oHash, err := other.CalculateHashBytes()
+	if err != nil {
+		return false, err
+	}
+
+	return string(tHash) == string(oHash), nil
 }
 
 // SetHash ...
@@ -100,7 +129,7 @@ func (tx *Transaction) SetHash() error {
 		return ErrNilTx
 	}
 
-	hash, err := tx.CalcHash()
+	hash, err := tx.CalculateHash()
 	if err != nil {
 		return err
 	}
@@ -112,7 +141,7 @@ func (tx *Transaction) SetHash() error {
 
 // CalcSig ...
 func (tx *Transaction) CalcSig(priv *ecdsa.PrivateKey) (*TxSig, error) {
-	hash, err := tx.CalcHash()
+	hash, err := tx.CalculateHash()
 	if err != nil {
 		return nil, err
 	}

@@ -4,11 +4,12 @@ import (
 	"errors"
 	"log"
 
+	"github.com/c3systems/c3/common/hexutil"
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/mainchain/miner"
 	"github.com/c3systems/c3/core/chain/statechain"
-	"github.com/c3systems/c3/core/p2p"
 	nodetypes "github.com/c3systems/c3/node/types"
+
 	peer "github.com/libp2p/go-libp2p-peer"
 )
 
@@ -17,9 +18,8 @@ func New(props *Props) (*Service, error) {
 	if props == nil {
 		return nil, errors.New("props cannot be nil")
 	}
-	if props.Store == nil ||
-		props.Miner == nil || props.Pubsub == nil {
-		return nil, errors.New("p2p node, store, miner and pubsub are required")
+	if props.Store == nil || props.Pubsub == nil || props.P2P == nil {
+		return nil, errors.New("p2p node, store, and pubsub are required")
 	}
 
 	return &Service{
@@ -27,29 +27,123 @@ func New(props *Props) (*Service, error) {
 	}, nil
 }
 
-func (s Service) startMiner(p2pSvc p2p.Interface) error {
-	if err := s.props.Miner.Start(); err != nil {
+func (s Service) spawnNextBlockMiner(prevBlock *mainchain.Block) error {
+	pendingTransactions, err := s.props.Store.GatherPendingTransactions()
+	if err != nil {
 		return err
 	}
 
-	return s.spawnMinerListener()
+	isValid := true
+	ch := make(chan interface{})
+	minerSvc, err := miner.New(&miner.Props{
+		IsValid:             &isValid,
+		PreviousBlock:       prevBlock,
+		Difficulty:          3, // TODO: need to get this from the network
+		Channel:             ch,
+		Async:               true, // TODO: need to make this a cli flag
+		P2P:                 s.props.P2P,
+		PendingTransactions: pendingTransactions,
+	})
+	if err != nil {
+		log.Printf("[node] err building miner\n%v", err)
+		return err
+	}
+
+	if err := minerSvc.SpawnMiner(); err != nil {
+		log.Printf("[node] err spawning miner\n%v", err)
+		return err
+	}
+
+	return s.spawnMinerListener(ch, &isValid)
 }
 
-func (s Service) spawnMinerListener() error {
+func (s Service) spawnMinerListener(minerChan chan interface{}, isValid *bool) error {
+	if isValid == nil {
+		return errors.New("nil IsValid")
+	}
+	if *isValid == false {
+		return errors.New("is valid is false")
+	}
+
 	go func() {
-		for {
-			switch v := <-s.props.Channel; v.(type) {
-			case error:
-				err, _ := v.(error)
-				log.Printf("received an error from the miner\n%v", err)
+		select {
+		case v := <-minerChan:
+			{
+				switch v.(type) {
+				case error:
+					err, _ := v.(error)
+					log.Printf("[node] received an error from the miner\n%v", err)
+					return
 
-			case *mainchain.Block:
-				block, _ := v.(*mainchain.Block)
-				// TODO: do something with the block
-				log.Println(block)
+				case *miner.MinedBlock:
+					minedBlock, _ := v.(*miner.MinedBlock)
 
-			default:
-				log.Printf("received message of unknown type from the miner\ntype %T\n%v", v, v)
+					pendingBlocks, err := s.props.Store.GetPendingMainchainBlocks()
+					if err != nil {
+						log.Printf("[node] err checking pending mainchain blocks\n%v", err)
+						return
+					}
+
+					// TODO: wait until there are no more pending blocks, but for now, just assume all blocks received will be added to the chain
+					// TODO: check that all pending blocks have block #'s larger than the one we just mined
+					if pendingBlocks != nil && len(pendingBlocks) > 0 {
+						log.Printf("[node] we mined a block, but there are mined blocks pending, just abort and wait")
+						return
+					}
+
+					currentBlock, err := s.props.Store.GetHeadBlock()
+					if err != nil {
+						log.Printf("[node] err getting head block\n%v", err)
+						return
+					}
+
+					eq, err := currentBlock.Equals(minedBlock.PreviousBlock)
+					if err != nil {
+						log.Printf("[node] err checking if current block head was the one mined\n%v", err)
+						return
+					}
+
+					if !eq {
+						log.Printf("[node] the block we just mined is not built from the current head block\n%v", err)
+						return
+					}
+
+					if err := s.BroadcastMinedBlock(minedBlock); err != nil {
+						log.Printf("[node] err broadcasting mined block\n%s", err)
+						return
+					}
+
+					go func() {
+						if err := s.setMinedBlockData(minedBlock); err != nil {
+							log.Printf("[node] err setting mined block data\n%v", err)
+						}
+					}()
+
+					if err := s.props.Store.SetHeadBlock(*minedBlock.NextBlock); err != nil {
+						log.Printf("[node] err setting the head block\n%v", err)
+						return
+					}
+
+					if err := s.removeMinedTxs(minedBlock); err != nil {
+						log.Printf("[node] err removing mined txs\n%v", err)
+						return
+					}
+
+					if err := s.spawnNextBlockMiner(minedBlock.NextBlock); err != nil {
+						log.Printf("err starting miner\n%v", err)
+						return
+					}
+
+				default:
+					log.Printf("[node] received message of unknown type from the miner\ntype %T\n%v", v, v)
+					return
+				}
+			}
+		case <-s.props.CancelMinersChannel:
+			{
+				// TODO: check if any of the transactions or state image hashes we're mining were included in the new block. If not, we can largely continue
+				*isValid = false
+				return
 			}
 		}
 	}()
@@ -75,7 +169,7 @@ func (s Service) spawnBlocksListener() error {
 		for {
 			msg, err := sub.Next(s.props.Context)
 			if err != nil {
-				s.props.Channel <- err
+				s.props.SubscriberChannel <- err
 				continue
 			}
 
@@ -84,13 +178,13 @@ func (s Service) spawnBlocksListener() error {
 				continue
 			}
 
-			var block mainchain.Block
+			block := new(mainchain.Block)
 			if err := block.Deserialize(msg.GetData()); err != nil {
-				s.props.Channel <- err
+				s.props.SubscriberChannel <- err
 				continue
 			}
 
-			s.props.Channel <- &block
+			s.props.SubscriberChannel <- &block
 		}
 	}()
 
@@ -107,7 +201,7 @@ func (s Service) spawnTransactionsListener() error {
 		for {
 			msg, err := sub.Next(s.props.Context)
 			if err != nil {
-				s.props.Channel <- err
+				s.props.SubscriberChannel <- err
 				continue
 			}
 
@@ -116,43 +210,27 @@ func (s Service) spawnTransactionsListener() error {
 				//continue
 			}
 
-			var tx statechain.Transaction
+			tx := new(statechain.Transaction)
 			if err := tx.Deserialize(msg.GetData()); err != nil {
-				s.props.Channel <- err
+				s.props.SubscriberChannel <- err
 				continue
 			}
 
-			s.props.Channel <- &tx
+			s.props.SubscriberChannel <- &tx
 		}
 	}()
 
 	return nil
 }
 
-// CreateNewBlock ...
-func (s Service) CreateNewBlock() (*mainchain.Block, error) {
-	//var blk *mainchan.Block
-	//blk.PrevHash = s.props.blockchain.MainHead().Props().BlockHash
-	//blk.Transactions, err = s.props.store.SelectTransactions()
-	//if err != nil {
-	//return nil, err
-	//}
-	//blk.Height = s.props.blockchain.Head.Height + 1
-	//blk.Time = uint64(time.Now().Unix())
-
-	//return &blk
-
-	return nil, nil
-}
-
-// BroadcastBlock ...
+// BroadcastMinedBlock ...
 // note: only mainchain blocks get broadcast
-func (s Service) BroadcastBlock(block *mainchain.Block) error {
-	if block == nil {
+func (s Service) BroadcastMinedBlock(minedBlock *miner.MinedBlock) error {
+	if minedBlock == nil {
 		return errors.New("cannot broadcast nil block")
 	}
 
-	data, err := block.Serialize()
+	data, err := minedBlock.Serialize()
 	if err != nil {
 		return err
 	}
@@ -196,124 +274,136 @@ func (s Service) BroadcastTransaction(tx *statechain.Transaction) (*nodetypes.Se
 //return &res, err
 //}
 
-func (s Service) handleReceiptOfMainchainBlock(block *mainchain.Block) {
-	if block == nil {
+func (s Service) handleReceiptOfMainchainBlock(minedBlock *miner.MinedBlock) {
+	if minedBlock == nil {
 		log.Println("[node] received nil block")
+		return
+	}
+	if minedBlock.NextBlock == nil {
+		log.Println("[nored] received nil next block")
+		return
+	}
+	if minedBlock.NextBlock.Props().BlockHash == nil {
+		log.Println("[node] received block with nil hash")
+		return
+	}
+
+	if err := s.props.Store.SetPendingMainchainBlock(minedBlock.NextBlock); err != nil {
+		log.Printf("[node] err setting pending mainchain block\n%v", err)
 		return
 	}
 
 	// TODO: check the block explorer to be sure that we haven't already received this block
-	// TODO: check that this is the next block
-	// TODO: stop the miner
-
-	// TODO: handle this err better?
+	// TODO: handle this (and generally all of these) err(ors) better?
 	//  1) try again?
 	//  2) ping the network to see if other nodes have accepted?
-	ok, err := s.props.Miner.VerifyMainchainBlock(block)
+	// TODO: implement better fix than this isValid var
+	isValid := true
+	// TODO: add method to verify mined block
+	ok, err := miner.VerifyMainchainBlock(s.props.P2P, &isValid, minedBlock.NextBlock)
 	if err != nil {
-		log.Printf("[node] received err while verifying mainchain block\nblock: %v\nerr: %v", *block, err)
+		log.Printf("[node] received err while verifying mainchain block\nblock: %v\nerr: %v", *minedBlock.NextBlock, err)
+
+		if err := s.props.Store.RemovePendingMainchainBlock(*minedBlock.NextBlock.Props().BlockHash); err != nil {
+			log.Printf("[node] err removing pending mainchain block\n%v", err)
+		}
 		return
 	}
 
 	// note: ping the other nodes to tell them we didn't accept the block? See if they did?
 	if !ok {
-		log.Printf("[node] received invalid mainnchain block\nblock: %v\nerr: %v", *block, err)
+		log.Printf("[node] received invalid mainnchain block\nblock: %v\nerr: %v", *minedBlock, err)
+
+		if err := s.props.Store.RemovePendingMainchainBlock(*minedBlock.NextBlock.Props().BlockHash); err != nil {
+			log.Printf("[node] err removing pending mainchain block\n%v", err)
+		}
 		return
 	}
 
-	// note: just want to set locally?
-	_, err = s.props.Miner.Props().P2P.Set(block)
+	// compare it to the block head that we have
+	localHeadBlock, err := s.props.Store.GetHeadBlock()
 	if err != nil {
-		// TODO: need to handle this err better
-		log.Printf("[node] err setting main chain block: %v\nerr: %v", *block, err)
+		log.Printf("[node] err getting our head block\n%v", err)
+
+		if err := s.props.Store.RemovePendingMainchainBlock(*minedBlock.NextBlock.Props().BlockHash); err != nil {
+			log.Printf("[node] err removing pending mainchain block\n%v", err)
+		}
 		return
 	}
 
-	// TODO: add cid to the block explorer
-	// TODO: do the inner loop in a go function; and generally move these all to functions
-	for _, stateblockHash := range block.Props().StateBlockHashes {
-		if stateblockHash == nil {
-			log.Println("got nil stateblock hash")
-			return
+	localBlockHeight, err := hexutil.DecodeUint64(localHeadBlock.Props().BlockNumber)
+	if err != nil {
+		log.Printf("[node] err decoding head block height\n%v", err)
+
+		if err := s.props.Store.RemovePendingMainchainBlock(*minedBlock.NextBlock.Props().BlockHash); err != nil {
+			log.Printf("[node] err removing pending mainchain block\n%v", err)
 		}
+		return
+	}
+	receivedBlockHeight, err := hexutil.DecodeUint64(minedBlock.NextBlock.Props().BlockNumber)
+	if err != nil {
+		log.Printf("[node] err decoding received block height\n%v", err)
 
-		stateblockCid, err := p2p.GetCIDByHash(*stateblockHash)
-		if err != nil {
-			// TODO: handle this err better
-			log.Printf("[node] err getting statechain block cid\n%v", err)
-			continue
+		if err := s.props.Store.RemovePendingMainchainBlock(*minedBlock.NextBlock.Props().BlockHash); err != nil {
+			log.Printf("[node] err removing pending mainchain block\n%v", err)
 		}
+		return
+	}
 
-		stateblock, err := s.props.Miner.Props().P2P.GetStatechainBlock(stateblockCid)
-		if err != nil {
-			// TODO: handle this err better
-			log.Printf("[node] err getting statechain block\n%v", err)
-			continue
+	// TODO: if delta(local, received) > 1 then we need to backfill our missing blocks
+	if localBlockHeight >= receivedBlockHeight {
+		log.Printf("[node] local block height is %v and received is %v, therefore, not adding block to chain", localBlockHeight, receivedBlockHeight)
+
+		if err := s.props.Store.RemovePendingMainchainBlock(*minedBlock.NextBlock.Props().BlockHash); err != nil {
+			log.Printf("[node] err removing pending mainchain block\n%v", err)
 		}
+		return
+	}
 
-		// note: just want to set locally?
-		if _, err := s.props.Miner.Props().P2P.Set(stateblock); err != nil {
-			// TODO: handle this err better
-			log.Printf("[node] err setting statechain block\n%v", err)
-			// note: don't continue, here, because we want to get and set all the tx's and diffs
+	// note: block is valid, keep it
+	s.props.CancelMinersChannel <- struct{}{}
+
+	if err := s.props.Store.SetHeadBlock(*minedBlock.NextBlock); err != nil {
+		log.Printf("[node] err setting head block in node store\n%v", err)
+
+		if err := s.props.Store.RemovePendingMainchainBlock(*minedBlock.NextBlock.Props().BlockHash); err != nil {
+			log.Printf("[node] err removing pending mainchain block\n%v", err)
 		}
+		return
+	}
+	if err := s.props.Store.RemovePendingMainchainBlock(*minedBlock.NextBlock.Props().BlockHash); err != nil {
+		log.Printf("[node] err removing pending mainchain block\n%v", err)
+		return
+	}
 
-		// TODO: do in a goroutine; and in a new func
-		for _, txHash := range stateblock.Props().TxHashes {
-			ok, err := s.props.Store.HasTx(txHash)
-			if err == nil && ok {
-				if err := s.props.Store.RemoveTx(txHash); err != nil {
-					// TODO: need to handle this err better
-					log.Printf("[node] err removing tx from store\n%v", err)
-				}
-			}
-			if err != nil {
-				log.Printf("[node] err checking if store hash tx hash: %s\nerr: %v", txHash, err)
-			}
-
-			txCid, err := p2p.GetCIDByHash(txHash)
-			if err != nil {
-				// TODO: handle this err better
-				log.Printf("[node] err getting statechain transaction cid\n%v", err)
-				continue
-			}
-
-			tx, err := s.props.Miner.Props().P2P.GetStatechainTransaction(txCid)
-			if err != nil {
-				// TODO: handle this err better
-				log.Printf("[node] err getting statechain transaction\n%v", err)
-				continue
-			}
-
-			// note: just want to set locally?
-			if _, err := s.props.Miner.Props().P2P.Set(tx); err != nil {
-				// TODO: handle this err better
-				log.Printf("[node] err setting statechain tx\n%v", err)
-				// note: don't continue, here, because we want to remove the tx from our available pool
-			}
+	go func() {
+		if err := s.setMinedBlockData(minedBlock); err != nil {
+			log.Printf("[node] err setting mined block data\n%v", err)
 		}
+	}()
 
-		// TODO: do in a goroutine and in a new func
-		diffCid, err := p2p.GetCIDByHash(stateblock.Props().StatePrevDiffHash)
-		if err != nil {
-			// TODO: handle this err better
-			log.Printf("[node] err getting statechain diff cid\n%v", err)
-			continue
-		}
+	if err := s.removeMinedTxs(minedBlock); err != nil {
+		log.Printf("[node] err removing mined txs\n%v", err)
+		return
+	}
 
-		d, err := s.props.Miner.Props().P2P.GetStatechainDiff(diffCid)
-		if err != nil {
-			// TODO: handle this err better
-			log.Printf("[node] err getting statechain diff\n%v", err)
-			continue
-		}
+	// note: start mining the next block, but don't start if there are still pending blocks
+	// TODO: if any of the above fails, we may never get here and may be stuck!
+	pendingBlocks, err := s.props.Store.GetPendingMainchainBlocks()
+	if err != nil {
+		log.Printf("[node] err checking pending mainchain blocks\n%v", err)
+		return
+	}
 
-		// note: just want to set locally?
-		if _, err := s.props.Miner.Props().P2P.Set(d); err != nil {
-			// TODO: handle this err better
-			log.Printf("[node] err setting statechain diff\n%v", err)
-			continue
-		}
+	// TODO: check that all pending blocks have block #'s larger than the one we just mined
+	if pendingBlocks != nil && len(pendingBlocks) > 0 {
+		log.Printf("[node] blocks pending, don't start mining new block, yet")
+		return
+	}
+
+	if err := s.spawnNextBlockMiner(minedBlock.NextBlock); err != nil {
+		log.Printf("err starting miner\n%v", err)
+		return
 	}
 }
 
@@ -347,18 +437,76 @@ func (s Service) handleReceiptOfStatechainTransaction(tx *statechain.Transaction
 		log.Printf("[node] err checking if store has tx\n%v", err)
 	}
 
-	// note: just want to set locally?
-	_, err = s.props.Miner.Props().P2P.SetStatechainTransaction(tx)
-	if err != nil {
+	if _, err = s.props.P2P.SetStatechainTransaction(tx); err != nil {
 		// TODO: need to handle this err better
 		log.Printf("[node] err setting tx: %v\nerr: %v", *tx, err)
 		return
 	}
-
-	// TODO: add cid to the block explorer
 }
 
-// TODO: everything
-func (s Service) fetchHeadBlock() (*mainchain.Block, error) {
-	return nil, nil
+func (s Service) setMinedBlockData(minedBlock *miner.MinedBlock) error {
+	if minedBlock == nil {
+		return errors.New("nil mined block")
+	}
+	if minedBlock.NextBlock == nil {
+		return errors.New("nil next block")
+	}
+	if minedBlock.NextBlock.Props().BlockHash == nil {
+		return errors.New("nil next block block hash")
+	}
+
+	for _, statechainBlock := range minedBlock.StatechainBlocksMap {
+		if statechainBlock == nil {
+			continue
+		}
+
+		if _, err := s.props.P2P.SetStatechainBlock(statechainBlock); err != nil {
+			return err
+		}
+	}
+
+	for _, transaction := range minedBlock.TransactionsMap {
+		if transaction == nil {
+			continue
+		}
+
+		if _, err := s.props.P2P.SetStatechainTransaction(transaction); err != nil {
+			return err
+		}
+	}
+
+	for _, diff := range minedBlock.DiffsMap {
+		if diff == nil {
+			continue
+		}
+
+		if _, err := s.props.P2P.SetStatechainDiff(diff); err != nil {
+			return err
+		}
+	}
+
+	for _, tree := range minedBlock.MerkleTreesMap {
+		if tree == nil {
+			continue
+		}
+
+		if _, err := s.props.P2P.SetMerkleTree(tree); err != nil {
+			return err
+		}
+	}
+
+	if _, err := s.props.P2P.SetMainchainBlock(minedBlock.NextBlock); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s Service) removeMinedTxs(minedBlock *miner.MinedBlock) error {
+	var txs []string
+	for txHash := range minedBlock.TransactionsMap {
+		txs = append(txs, txHash)
+	}
+
+	return s.props.Store.RemoveTxs(txs)
 }
