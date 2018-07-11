@@ -37,7 +37,7 @@ jobs:
           name: Install IPFS
           command: |
             set -x
-            wget wget https://dist.ipfs.io/go-ipfs/v0.4.14/go-ipfs_v0.4.14_linux-amd64.tar.gz -O /tmp/go-ipfs.tar.gz
+            wget https://dist.ipfs.io/go-ipfs/v0.4.14/go-ipfs_v0.4.14_linux-amd64.tar.gz -O /tmp/go-ipfs.tar.gz
             cd /tmp
             tar xvfz go-ipfs.tar.gz
             cd go-ipfs
@@ -47,6 +47,8 @@ jobs:
           name: Run IPFS daemon
           command: |
             ipfs init
+            ipfs sconfig Addresses.API /ip4/0.0.0.0/tcp/5001
+            ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/9001
             ipfs daemon &
 
       # specify any bash command here prefixed with `run: `
