@@ -48,6 +48,7 @@ type MinedBlock struct {
 	PreviousBlock *mainchain.Block
 
 	// map keys are hashes
+	// TODO: add previous statechain blocks map
 	mut                 sync.Mutex
 	StatechainBlocksMap map[string]*statechain.Block
 	TransactionsMap     map[string]*statechain.Transaction
