@@ -50,10 +50,11 @@ jobs:
             ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/9001
             ipfs daemon &
 
-      # specify any bash command here prefixed with `run: `
-    test:
-      machine: true
+    # specify any bash command here prefixed with `run: `
+  test:
+    machine: true
 
+    steps:
       - run:
           name: Tests
           command: |
