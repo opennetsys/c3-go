@@ -81,6 +81,10 @@ func TestLoadImageByFilepath(t *testing.T) {
 func TestRunContainer(t *testing.T) {
 	t.Parallel()
 	client := NewClient()
+	err := client.PullImage(TestImage)
+	if err != nil {
+		t.Fatal(err)
+	}
 	containerID, err := client.RunContainer(TestImage, []string{}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -94,6 +98,10 @@ func TestRunContainer(t *testing.T) {
 func TestStopContainer(t *testing.T) {
 	t.Parallel()
 	client := NewClient()
+	err := client.PullImage(TestImage)
+	if err != nil {
+		t.Fatal(err)
+	}
 	containerID, err := client.RunContainer(TestImage, []string{}, nil)
 	if err != nil {
 		t.Fatal(err)

@@ -33,5 +33,22 @@ jobs:
             tar -xz -C /tmp -f /tmp/docker-$VER.tgz
             sudo mv /tmp/docker/* /usr/bin
 
+      - run:
+          name: Install IPFS
+          command: |
+            set -x
+            VER="0.4.16-rc3"
+            curl -L -o /tmp/go-ipfs.tar.gz https://dist.ipfs.io/go-ipfs/v$VER/go-ipfs_v$VER_linux-amd64.tar.gz
+            cd /tmp/go-ipfs.tar.gz
+            tar xvfz go-ipfs.tar.gz
+            cd go-ipfs
+            ./install.sh
+
+      - run:
+          name: Run IPFS daemon
+          command: |
+            ipfs init
+            ipfs daemon &
+
       # specify any bash command here prefixed with `run: `
       - run: make test
