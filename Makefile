@@ -78,6 +78,18 @@ test/core/docker:
 test/core/sandbox:
 	@go test -v core/sandbox/*.go $(ARGS)
 
+.PHONY: test/core/chain
+test/core/chain: test/core/chain/mainchain test/core/chain/statechain
+	@echo "done"
+
+.PHONY: test/core/chain/mainchain
+test/core/chain/mainchain:
+	@go test -v core/chain/mainchain/*.go $(ARGS)
+
+.PHONY: test/core/chain/statechain
+test/core/chain/statechain:
+	@go test -v core/chain/statechain/*.go $(ARGS)
+
 .PHONY: test/registry
 test/registry:
 	@docker pull hello-world && \

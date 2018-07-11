@@ -2,6 +2,7 @@ package miner
 
 import (
 	"crypto/rand"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -16,6 +17,7 @@ import (
 	"github.com/c3systems/c3/core/chain/statechain"
 	"github.com/c3systems/c3/core/diffing"
 	"github.com/c3systems/c3/core/p2p"
+	"github.com/c3systems/c3/core/sandbox"
 )
 
 // New returns a new service
@@ -260,11 +262,16 @@ func (s Service) bootstrapNextBlock() (*mainchain.Block, error) {
 	return mainchain.New(nextProps), nil
 }
 
+func handleTransaction(tx *statechain.Transaction) error {
+
+	return nil
+}
+
 func (s Service) buildNextStates(imageHash string, transactions []*statechain.Transaction) error {
 	// TODO: add miguel's code, here
-	var (
-		diffs []*statechain.Diff
 
+	var (
+		diffs               []*statechain.Diff
 		newDiffs            []*statechain.Diff
 		newTxs              []*statechain.Transaction
 		newStatechainBlocks []*statechain.Block
@@ -381,7 +388,8 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 		return err
 	}
 	runningBlockHash := *prevStateBlock.Props().BlockHash // note: already checked nil pointer, above
-	// TODO: apply state to container and start running transactions
+
+	// apply state to container and start running transactions
 	for i, tx := range transactions {
 		if tx == nil {
 			return errors.New("nil tx")
@@ -390,14 +398,52 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 			return errors.New("nil tx hash")
 		}
 
-		nextState := ""
+		var nextState []byte
+
+		if tx.Props().Method == "c3_invokeMethod" {
+			payload, ok := tx.Props().Payload.([]byte)
+			if !ok {
+				return errors.New("could not parse payload")
+			}
+
+			var parsed []string
+			if err := json.Unmarshal(payload, &parsed); err != nil {
+				return err
+			}
+
+			inputsJSON, err := json.Marshal(struct {
+				Method string   `json:"method"`
+				Params []string `json:"params"`
+			}{
+				Method: parsed[0],
+				Params: parsed[1:],
+			})
+			if err != nil {
+				return err
+			}
+
+			// run container, passing the tx inputs
+			sb := sandbox.NewSandbox(&sandbox.Config{})
+			nextState, err = sb.Play(&sandbox.PlayConfig{
+				ImageID:      tx.Props().ImageHash,
+				Payload:      inputsJSON,
+				InitialState: state,
+			})
+
+			if err != nil {
+				return err
+			}
+
+			log.Printf("container new state: %s", string(nextState))
+		}
+
 		nextStateFile, err := ioutil.TempFile("", fmt.Sprintf("%s/%v/state.%d.txt", imageHash, ts, i))
 		if err != nil {
 			return err
 		}
 		defer os.Remove(nextStateFile.Name()) // clean up
 
-		if _, err := nextStateFile.Write([]byte(nextState)); err != nil {
+		if _, err := nextStateFile.Write(nextState); err != nil {
 			return err
 		}
 		if err := nextStateFile.Close(); err != nil {
@@ -422,7 +468,7 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 			return err
 		}
 
-		nextStateHash := hexutil.EncodeString(nextState)
+		nextStateHash := hexutil.EncodeBytes(nextState)
 		runningBlockNumber++
 		nextStateStruct := statechain.New(&statechain.BlockProps{
 			BlockNumber:       hexutil.EncodeUint64(runningBlockNumber),
@@ -431,7 +477,7 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 			TxHash:            *tx.Props().TxHash, // note: checked for nil pointer, above
 			PrevBlockHash:     runningBlockHash,
 			StatePrevDiffHash: *diffStruct.Props().DiffHash, // note: used setHash, above so it would've erred
-			StateCurrentHash:  nextStateHash,
+			StateCurrentHash:  string(nextStateHash),
 		})
 		if err := nextStateStruct.SetHash(); err != nil {
 			return err
