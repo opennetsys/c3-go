@@ -7,6 +7,7 @@ import (
 )
 
 func TestGetFreePort(t *testing.T) {
+	t.Parallel()
 	port, err := GetFreePort()
 	if err != nil {
 		t.Error(err)
@@ -24,6 +25,7 @@ func TestGetFreePort(t *testing.T) {
 }
 
 func TestLocalIP(t *testing.T) {
+	t.Parallel()
 	ip, err := LocalIP()
 	if err != nil {
 		t.Error(err)

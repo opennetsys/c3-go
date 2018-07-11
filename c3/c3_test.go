@@ -6,6 +6,7 @@ import (
 )
 
 func TestRegisterMethod(t *testing.T) {
+	t.Parallel()
 	c3 := NewC3()
 
 	err := c3.RegisterMethod("setItem", []string{"string", "string"}, func(key, value string) error {
@@ -18,6 +19,7 @@ func TestRegisterMethod(t *testing.T) {
 }
 
 func TestStore(t *testing.T) {
+	t.Parallel()
 	c3 := NewC3()
 
 	c3.State().Set("foo", "bar")
@@ -28,6 +30,7 @@ func TestStore(t *testing.T) {
 }
 
 func TestState(t *testing.T) {
+	t.Parallel()
 	c3 := NewC3()
 
 	err := c3.RegisterMethod("setItem", []string{"string", "string"}, func(key, value string) error {

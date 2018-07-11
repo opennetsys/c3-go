@@ -10,6 +10,7 @@ import (
 var imageID = "af03e3c71e98"
 
 func init() {
+	// Makefile will set this env var
 	if os.Getenv("IMAGEID") != "" {
 		imageID = os.Getenv("IMAGEID")
 	}

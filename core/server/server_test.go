@@ -11,6 +11,7 @@ var (
 )
 
 func TestNew(t *testing.T) {
+	t.Parallel()
 	server := NewServer(&Config{
 		Host: Host,
 		Port: Port,
@@ -21,6 +22,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestRun(t *testing.T) {
+	t.Parallel()
 	server := NewServer(&Config{
 		Host: Host,
 		Port: Port,
