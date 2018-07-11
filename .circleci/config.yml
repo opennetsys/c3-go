@@ -37,8 +37,7 @@ jobs:
           name: Install IPFS
           command: |
             set -x
-            VER="0.4.16-rc3"
-            wget https://dist.ipfs.io/go-ipfs/v$VER/go-ipfs_v$VER_linux-amd64.tar.gz -o /tmp/go-ipfs.tar.gz
+            wget wget https://dist.ipfs.io/go-ipfs/v0.4.14/go-ipfs_v0.4.14_linux-amd64.tar.gz -O /tmp/go-ipfs.tar.gz
             cd /tmp
             tar xvfz go-ipfs.tar.gz
             cd go-ipfs
