@@ -1,13 +1,12 @@
 references:
-  c3-buld-image: &c3-buld-image
+  c3-build-image: &c3-build-image
     circleci/classic:latest
 
 version: 2
 jobs:
   build:
     machine:
-      # specify the version
-      image: *c3-buld-image
+      image: *c3-build-image
 
     working_directory: /home/circleci/.go_workspace/src/github.com/c3systems/c3
     steps:
@@ -19,11 +18,10 @@ jobs:
             sudo apt-get install golang-1.10-go -y
             export GOPATH=/home/circleci/.go_workspace
             export PATH=$PATH:$GOPATH/bin
-
-      - run: go version
+            go version
 
       - run:
-          name: Install Docker client
+          name: Install Docker
           command: |
             set -x
             VER="18.03.1-ce"
@@ -39,6 +37,7 @@ jobs:
             cd /tmp
             tar xvfz go-ipfs.tar.gz
             sudo cp go-ipfs/ipfs /home/circleci/bin/
+            ipfs version
 
       - run:
           name: Run IPFS daemon
@@ -48,15 +47,18 @@ jobs:
             ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/9001
             ipfs daemon &
 
-      - checkout
-
-      # specify any bash command here prefixed with `run: `
       - run:
-          name: Tests
+          name: Configure Docker Daemon
           command: |
             export IP=$(ifconfig | grep eth0 -A 5 | grep addr:1 | awk {'print $2'} | sed -e "s/addr://")
             echo "{ \"insecure-registries\": [ \"$IP:5000\" ] }" | sudo tee /etc/docker/daemon.json
             sudo service docker restart
+
+      - checkout
+
+      - run:
+          name: Tests
+          command: |
             make test
 
 workflows:

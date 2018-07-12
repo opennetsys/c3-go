@@ -60,11 +60,14 @@ test/cleanup:
 	@. scripts/test_cleanup.sh
 
 .PHONY: test
-test: test/check test/c3 test/common/network test/common/stringutil test/registry test/core/server test/core/docker test/cleanup
+test: test/check test/c3 test/common test/common test/registry test/core test/cleanup
 
 .PHONY: test/c3
 test/c3:
 	@go test -v c3/*.go $(ARGS)
+
+.PHONY: test/common
+test/common: test/common/network test/common/stringutil
 
 .PHONY: test/common/network
 test/common/network:
@@ -73,6 +76,9 @@ test/common/network:
 .PHONY: test/common/stringutil
 test/common/stringutil:
 	@go test -v common/stringutil/*.go $(ARGS)
+
+.PHONY: test/core
+test/core: test/core/server test/core/docker test/core/sandbox
 
 .PHONY: test/core/server
 test/core/server:

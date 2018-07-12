@@ -104,9 +104,11 @@ func (s *Sandbox) Play(config *PlayConfig) ([]byte, error) {
 
 	hostStateFilePath := fmt.Sprintf("%s/%s", tmpdir, c3config.TempContainerStateFileName)
 
-	err = ioutil.WriteFile(hostStateFilePath, config.InitialState, 0600)
-	if err != nil {
-		return nil, err
+	if config.InitialState != nil {
+		err := ioutil.WriteFile(hostStateFilePath, config.InitialState, 0600)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	fmt.Println("state loaded in tmp dir", tmpdir)
@@ -136,7 +138,7 @@ func (s *Sandbox) Play(config *PlayConfig) ([]byte, error) {
 	go func() {
 		// Wait for application to start up
 		// TODO: optimize
-		time.Sleep(1 * time.Second)
+		time.Sleep(3 * time.Second)
 		err := s.sendMessage(config.Payload, hostPort)
 		if err != nil {
 			errEvent <- err

@@ -2,6 +2,7 @@ package docker
 
 import (
 	"io"
+	"log"
 	"os"
 	"testing"
 
@@ -105,6 +106,32 @@ func TestStopContainer(t *testing.T) {
 	containerID, err := client.RunContainer(TestImage, []string{}, nil)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	err = client.StopContainer(containerID)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestInspectContainer(t *testing.T) {
+	t.Parallel()
+	client := NewClient()
+	err := client.PullImage(TestImage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	containerID, err := client.RunContainer(TestImage, []string{}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	info, err := client.InspectContainer(containerID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if info.ID != containerID {
+		log.Fatal("expected id to match")
 	}
 
 	err = client.StopContainer(containerID)
