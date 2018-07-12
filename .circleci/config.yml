@@ -9,7 +9,7 @@ jobs:
       # specify the version
       image: *c3-buld-image
 
-    working_directory: /home/circleci/.go_workspace/go/src/github.com/c3systems/c3
+    working_directory: /home/circleci/.go_workspace/src/github.com/c3systems/c3
     steps:
       - run:
           name: Install Golang
@@ -19,7 +19,6 @@ jobs:
             sudo apt-get install golang-1.10-go -y
             export GOPATH=/home/circleci/.go_workspace
             export PATH=$PATH:$GOPATH/bin
-            mkdir -p /home/circleci/.go_workspace/src/github.com/c3systems/c3
 
       - run: go version
 
