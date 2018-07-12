@@ -39,7 +39,7 @@ func (s Service) spawnNextBlockMiner(prevBlock *mainchain.Block) error {
 	minerSvc, err := miner.New(&miner.Props{
 		IsValid:             &isValid,
 		PreviousBlock:       prevBlock,
-		Difficulty:          3, // TODO: need to get this from the network
+		Difficulty:          6, // TODO: need to get this from the network
 		Channel:             ch,
 		Async:               true, // TODO: need to make this a cli flag
 		P2P:                 s.props.P2P,
@@ -77,6 +77,7 @@ func (s Service) spawnMinerListener(minerChan chan interface{}, isValid *bool) e
 					return
 
 				case *miner.MinedBlock:
+					log.Println("[node] block mined")
 					minedBlock, _ := v.(*miner.MinedBlock)
 
 					pendingBlocks, err := s.props.Store.GetPendingMainchainBlocks()
@@ -245,6 +246,7 @@ func (s Service) BroadcastMinedBlock(minedBlock *miner.MinedBlock) error {
 		return errors.New("cannot broadcast nil block")
 	}
 
+	log.Println("[node] broadcasting the block")
 	data, err := minedBlock.Serialize()
 	if err != nil {
 		return err

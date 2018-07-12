@@ -1,8 +1,7 @@
 package mainchain
 
 import (
-	"bytes"
-	"encoding/gob"
+	"encoding/json"
 
 	"github.com/c3systems/c3/common/hashing"
 	"github.com/c3systems/c3/common/hexutil"
@@ -26,40 +25,22 @@ func New(props *Props) *Block {
 }
 
 // Props ...
-func (b Block) Props() Props {
+func (b *Block) Props() Props {
 	return b.props
 }
 
 // Serialize ...
-func (b Block) Serialize() ([]byte, error) {
-	data := new(bytes.Buffer)
-	err := gob.NewEncoder(data).Encode(b.props)
-	if err != nil {
-		return nil, err
-	}
-
-	return data.Bytes(), nil
+func (b *Block) Serialize() ([]byte, error) {
+	return b.MarshalJSON()
 }
 
 // Deserialize ...
 func (b *Block) Deserialize(data []byte) error {
-	if b == nil {
-		return ErrNilBlock
-	}
-
-	// note: may not be able to recreate in other languages?
-	var tmpProps Props
-	byts := bytes.NewBuffer(data)
-	if err := gob.NewDecoder(byts).Decode(&tmpProps); err != nil {
-		return err
-	}
-
-	b.props = tmpProps
-	return nil
+	return b.UnmarshalJSON(data)
 }
 
 // SerializeString ...
-func (b Block) SerializeString() (string, error) {
+func (b *Block) SerializeString() (string, error) {
 	bytes, err := b.Serialize()
 	if err != nil {
 		return "", err
@@ -83,7 +64,7 @@ func (b *Block) DeserializeString(hexStr string) error {
 }
 
 // CalculateHash ...
-func (b Block) CalculateHash() (string, error) {
+func (b *Block) CalculateHash() (string, error) {
 	bytes, err := b.CalculateHashBytes()
 	if err != nil {
 		return "", err
@@ -93,7 +74,7 @@ func (b Block) CalculateHash() (string, error) {
 }
 
 // CalculateHashBytes ...
-func (b Block) CalculateHashBytes() ([]byte, error) {
+func (b *Block) CalculateHashBytes() ([]byte, error) {
 	tmpBlock := Block{
 		props: Props{
 			BlockNumber:           b.props.BlockNumber,
@@ -117,7 +98,7 @@ func (b Block) CalculateHashBytes() ([]byte, error) {
 }
 
 // Equals ...
-func (b Block) Equals(other merkletree.Content) (bool, error) {
+func (b *Block) Equals(other merkletree.Content) (bool, error) {
 	bHash, err := b.CalculateHashBytes()
 	if err != nil {
 		return false, err
@@ -143,6 +124,23 @@ func (b *Block) SetHash() error {
 	}
 
 	b.props.BlockHash = &hash
+
+	return nil
+}
+
+// MarshalJSON ...
+func (b *Block) MarshalJSON() ([]byte, error) {
+	return json.Marshal(b.props)
+}
+
+// UnmarshalJSON ...
+func (b *Block) UnmarshalJSON(data []byte) error {
+	var props Props
+	if err := json.Unmarshal(data, &props); err != nil {
+		return err
+	}
+
+	b.props = props
 
 	return nil
 }

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"log"
 	"os"
 
 	"github.com/c3systems/c3/config"
@@ -57,7 +58,13 @@ For more info visit: https://github.com/c3systems/c3,
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return dit.PushImageByID(args[0])
+			hash, err := dit.PushImageByID(args[0])
+			if err != nil {
+				return err
+			}
+
+			log.Println(hash)
+			return nil
 		},
 	}
 
