@@ -80,11 +80,11 @@ test/core/server:
 
 .PHONY: test/core/docker
 test/core/docker:
-	@go test -v core/docker/*.go $(ARGS)
+	@go test -v -parallel 1 core/docker/*.go $(ARGS)
 
 .PHONY: test/core/sandbox
 test/core/sandbox: docker/build/example
-	@IMAGEID=$$(docker images -q | grep -m1 "") go test -v core/sandbox/*.go $(ARGS)
+	@IMAGEID=$$(docker images -q | grep -m1 "") go test -v -parallel 1 core/sandbox/*.go $(ARGS)
 
 .PHONY: test/core/chain
 test/core/chain: test/core/chain/mainchain test/core/chain/statechain
@@ -101,7 +101,7 @@ test/core/chain/statechain:
 .PHONY: test/registry
 test/registry:
 	@docker pull hello-world && \
-	go test -v registry/*.go $(ARGS)
+	go test -v -parallel 1 registry/*.go $(ARGS)
 
 .PHONY: test/docker/build/snapshot
 test/docker/build/snapshot:

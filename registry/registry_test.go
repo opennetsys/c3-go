@@ -17,19 +17,24 @@ func TestNew(t *testing.T) {
 }
 
 func TestPushImage(t *testing.T) {
+	t.Parallel()
 	registry := NewRegistry(&Config{})
 	filepath := "./test_data/hello-world.tar"
 	reader, err := os.Open(filepath)
 	if err != nil {
 		t.Error(err)
 	}
-	err = registry.PushImage(reader)
+	ipfsHash, err := registry.PushImage(reader)
 	if err != nil {
 		t.Error(err)
+	}
+	if ipfsHash == "" {
+		t.Error("expected hash")
 	}
 }
 
 func TestPushImageByID(t *testing.T) {
+	t.Parallel()
 	client := docker.NewClient()
 	err := client.LoadImageByFilepath("./test_data/hello-world.tar")
 	if err != nil {
@@ -37,13 +42,17 @@ func TestPushImageByID(t *testing.T) {
 	}
 
 	registry := NewRegistry(&Config{})
-	err = registry.PushImageByID("hello-world")
+	ipfsHash, err := registry.PushImageByID("hello-world")
 	if err != nil {
 		t.Error(err)
+	}
+	if ipfsHash == "" {
+		t.Error("expected hash")
 	}
 }
 
 func TestDownloadImage(t *testing.T) {
+	t.Parallel()
 	registry := NewRegistry(&Config{})
 	location, err := registry.DownloadImage("QmQuKQ6nmUoFZGKJLHcnqahq2xgq3xbgVsQBG6YL5eF7kh")
 	if err != nil {
@@ -54,9 +63,22 @@ func TestDownloadImage(t *testing.T) {
 }
 
 func TestPullImage(t *testing.T) {
+	t.Skip()
+	t.Parallel()
+
+	client := docker.NewClient()
+	err := client.LoadImageByFilepath("./test_data/hello-world.tar")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	registry := NewRegistry(&Config{})
-	//tag := time.Now().Unix()
-	_, err := registry.PullImage("QmQuKQ6nmUoFZGKJLHcnqahq2xgq3xbgVsQBG6YL5eF7kh")
+	ipfsHash, err := registry.PushImageByID("hello-world")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = registry.PullImage(ipfsHash)
 	if err != nil {
 		t.Error(err)
 	}

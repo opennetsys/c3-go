@@ -17,6 +17,7 @@ func init() {
 }
 
 func TestNew(t *testing.T) {
+	t.Parallel()
 	sb := NewSandbox(&Config{})
 	if sb == nil {
 		t.FailNow()
@@ -24,6 +25,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestPayload(t *testing.T) {
+	t.Parallel()
 	sb := NewSandbox(&Config{})
 	newState, err := sb.Play(&PlayConfig{
 		ImageID: imageID,
@@ -40,6 +42,7 @@ func TestPayload(t *testing.T) {
 }
 
 func TestInitialState(t *testing.T) {
+	t.Parallel()
 	sb := NewSandbox(&Config{})
 	newState, err := sb.Play(&PlayConfig{
 		ImageID:      imageID,
@@ -57,6 +60,7 @@ func TestInitialState(t *testing.T) {
 }
 
 func TestMultipleInputs(t *testing.T) {
+	t.Parallel()
 	sb := NewSandbox(&Config{})
 	newState, err := sb.Play(&PlayConfig{
 		ImageID:      imageID,

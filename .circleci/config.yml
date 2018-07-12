@@ -54,7 +54,7 @@ jobs:
       - run:
           name: Tests
           command: |
-            export IP=$(ifconfig | grep inet | grep broad | awk {'print $2'})
+            export IP=$(ifconfig | grep eth0 -A 5 | grep addr:1 | awk {'print $2'} | sed -e "s/addr://")
             echo "{ \"insecure-registries\": [ \"$IP:5000\" ] }" | sudo tee /etc/docker/daemon.json
             sudo service docker restart
             make test

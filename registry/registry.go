@@ -39,12 +39,15 @@ type Config struct {
 func NewRegistry(config *Config) *Registry {
 	dockerLocalRegistryHost := config.DockerLocalRegistryHost
 	if dockerLocalRegistryHost == "" {
-		localIP, err := network.LocalIP()
-		if err != nil {
-			log.Fatal(err)
-		}
+		dockerLocalRegistryHost = os.Getenv("DOCKER_LOCAL_REGISTRY_HOST")
+		if dockerLocalRegistryHost == "" {
+			localIP, err := network.LocalIP()
+			if err != nil {
+				log.Fatal(err)
+			}
 
-		dockerLocalRegistryHost = localIP.String()
+			dockerLocalRegistryHost = localIP.String()
+		}
 	}
 
 	return &Registry{
@@ -53,43 +56,43 @@ func NewRegistry(config *Config) *Registry {
 }
 
 // PushImageByID uploads Docker image by image ID (hash/name) to IPFS
-func (registry *Registry) PushImageByID(imageID string) error {
+func (registry *Registry) PushImageByID(imageID string) (string, error) {
 	client := docker.NewClient()
 	reader, err := client.ReadImage(imageID)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	return registry.PushImage(reader)
 }
 
 // PushImage uploads Docker image to IPFS
-func (registry *Registry) PushImage(reader io.Reader) error {
+func (registry *Registry) PushImage(reader io.Reader) (string, error) {
 	tmp, err := mktmp()
 	if err != nil {
-		return err
+		return "", err
 	}
 	fmt.Println("temp:", tmp)
 
 	if err := untar(reader, tmp); err != nil {
-		return err
+		return "", err
 	}
 
 	root, err := ipfsPrep(tmp)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	imageIpfsHash, err := uploadDir(root)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	fmt.Printf("\nuploaded to /ipfs/%s\n", imageIpfsHash)
 
 	fmt.Printf("docker image %s\n", util.DockerizeHash(imageIpfsHash))
 
-	return nil
+	return imageIpfsHash, nil
 }
 
 // DownloadImage download Docker image from IPFS
