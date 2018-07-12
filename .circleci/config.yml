@@ -9,24 +9,20 @@ jobs:
       # specify the version
       image: *c3-buld-image
 
-    environment:
-      IMPORT_PATH: "github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME"
-
-    dependencies:
-      pre:
-        - go get github.com/tools/godep
-
-      override:
-        - mkdir -p "$GOPATH/src/$IMPORT_PATH"
-        - rsync -azC --delete ./ "$GOPATH/src/$IMPORT_PATH/"
-
-    #### TEMPLATE_NOTE: go expects specific checkout path representing url
-    #### expecting it in the form of
-    ####   /go/src/github.com/circleci/go-tool
-    ####   /go/src/bitbucket.org/circleci/go-tool
     working_directory: ~/go/src/github.com/c3systems/c3
     steps:
-      - go version
+      - run:
+          name: Install Golang
+          command: |
+            sudo add-apt-repository ppa:longsleep/golang-backports
+            sudo apt-get update -y
+            sudo apt-get install golang-go -y
+            export GOPATH=$HOME/go
+            export PATH=$PATH:$GOPATH/bin
+            mkdir -p ~/go/src/github.com/c3systems/c3
+
+      - run: go version
+
       - checkout
 
       - run:
