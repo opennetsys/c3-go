@@ -1,9 +1,8 @@
 package statechain
 
 import (
-	"bytes"
 	"crypto/ecdsa"
-	"encoding/gob"
+	"encoding/json"
 
 	"github.com/c3systems/c3/common/hashing"
 	"github.com/c3systems/c3/common/hexutil"
@@ -29,28 +28,18 @@ func (tx *Transaction) Props() TransactionProps {
 
 // Serialize ...
 func (tx *Transaction) Serialize() ([]byte, error) {
-	b := new(bytes.Buffer)
-	err := gob.NewEncoder(b).Encode(tx.props)
-	if err != nil {
-		return nil, err
-	}
-
-	return b.Bytes(), nil
+	return tx.MarshalJSON()
 }
 
 // Deserialize ...
 func (tx *Transaction) Deserialize(data []byte) error {
-	if tx == nil {
-		return ErrNilTx
-	}
-
-	var tmpProps TransactionProps
-	b := bytes.NewBuffer(data)
-	if err := gob.NewDecoder(b).Decode(&tmpProps); err != nil {
+	var props TransactionProps
+	if err := json.Unmarshal(data, &props); err != nil {
 		return err
 	}
 
-	tx.props = tmpProps
+	tx.props = props
+
 	return nil
 }
 
@@ -169,6 +158,23 @@ func (tx *Transaction) SetSig(priv *ecdsa.PrivateKey) error {
 	}
 
 	tx.props.Sig = sig
+
+	return nil
+}
+
+// MarshalJSON ...
+func (tx *Transaction) MarshalJSON() ([]byte, error) {
+	return json.Marshal(tx.props)
+}
+
+// UnmarshalJSON ...
+func (tx *Transaction) UnmarshalJSON(data []byte) error {
+	var props TransactionProps
+	if err := json.Unmarshal(data, &props); err != nil {
+		return err
+	}
+
+	tx.props = props
 
 	return nil
 }

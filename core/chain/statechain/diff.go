@@ -25,23 +25,13 @@ func (d Diff) Props() DiffProps {
 }
 
 // Serialize ...
-func (d Diff) Serialize() ([]byte, error) {
-	return json.Marshal(d.props)
+func (d *Diff) Serialize() ([]byte, error) {
+	return d.MarshalJSON()
 }
 
 // Deserialize ...
-func (d *Diff) Deserialize(bytes []byte) error {
-	if d == nil {
-		return ErrNilDiff
-	}
-
-	var tmpProps DiffProps
-	if err := json.Unmarshal(bytes, &tmpProps); err != nil {
-		return err
-	}
-
-	d.props = tmpProps
-	return nil
+func (d *Diff) Deserialize(data []byte) error {
+	return d.UnmarshalJSON(data)
 }
 
 // SerializeString ...
@@ -122,6 +112,23 @@ func (d *Diff) SetHash() error {
 	}
 
 	d.props.DiffHash = &hash
+
+	return nil
+}
+
+// MarshalJSON ...
+func (d *Diff) MarshalJSON() ([]byte, error) {
+	return json.Marshal(d.props)
+}
+
+// UnmarshalJSON ...
+func (d *Diff) UnmarshalJSON(data []byte) error {
+	var props DiffProps
+	if err := json.Unmarshal(data, &props); err != nil {
+		return err
+	}
+
+	d.props = props
 
 	return nil
 }
