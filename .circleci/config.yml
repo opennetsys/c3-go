@@ -9,7 +9,7 @@ jobs:
       # specify the version
       image: *c3-buld-image
 
-    working_directory: ~/go/src/github.com/c3systems
+    working_directory: /usr/local/go/src/github.com/c3systems
     steps:
       - run:
           name: Install Golang
@@ -19,7 +19,7 @@ jobs:
             sudo apt-get install golang-1.10-go -y
             export GOPATH=$HOME/go
             export PATH=$PATH:$GOPATH/bin
-            mkdir -p ~/go/src/github.com/c3systems
+            mkdir -p /usr/local/go/src/github.com/c3systems
 
       - run: go version
 
@@ -49,8 +49,6 @@ jobs:
             sudo ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/9001
             sudo ipfs daemon &
 
-      - run: cd ~/go/src/github.com/c3systems
-
       - checkout
 
       # specify any bash command here prefixed with `run: `
@@ -60,6 +58,9 @@ jobs:
             #export IP=$(ifconfig | grep inet | grep broad | awk {'print $2'})
             #sudo echo "{ \"insecure-registries\": [ \"$IP:5000\", ] }" > /etc/docker/daemon.json
             #sudo service docker restart
+            ls /usr/local
+            ls /usr/local/go/src/github.com/c3systems
+            ls /usr/local/go/src/github.com/c3systems/c3
             make test
 
 workflows:
