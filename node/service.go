@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/c3systems/c3/common/hexutil"
+	"github.com/c3systems/c3/core/c3crypto"
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/mainchain/miner"
 	"github.com/c3systems/c3/core/chain/statechain"
@@ -104,11 +105,24 @@ func (s Service) spawnMinerListener(minerChan chan interface{}, isValid *bool) e
 					}
 
 					if !eq {
-						log.Printf("[node] the block we just mined is not built from the current head block\n%v", err)
+						log.Println(currentBlock, *minedBlock.PreviousBlock, *minedBlock.NextBlock, *minedBlock.NextBlock.Props().BlockHash)
+						log.Printf("[node] the block mined is not built from the current head block\n%v", err)
 						return
 					}
 
-					// TODO: sign the block first!
+					sigR, sigS, err := c3crypto.Sign(s.props.Keys.Priv, []byte(*minedBlock.NextBlock.Props().BlockHash))
+					if err != nil {
+						log.Printf("[node] err signing mined block\n%v", err)
+						return
+					}
+					nextProps := minedBlock.NextBlock.Props()
+					nextProps.MinerSig = &mainchain.BlockSig{
+						R: hexutil.EncodeBigInt(sigR),
+						S: hexutil.EncodeBigInt(sigS),
+					}
+					nextBlock := mainchain.New(&nextProps)
+					minedBlock.NextBlock = nextBlock
+
 					if err := s.BroadcastMinedBlock(minedBlock); err != nil {
 						log.Printf("[node] err broadcasting mined block\n%s", err)
 						return
@@ -120,7 +134,7 @@ func (s Service) spawnMinerListener(minerChan chan interface{}, isValid *bool) e
 						}
 					}()
 
-					if err := s.props.Store.SetHeadBlock(*minedBlock.NextBlock); err != nil {
+					if err := s.props.Store.SetHeadBlock(minedBlock.NextBlock); err != nil {
 						log.Printf("[node] err setting the head block\n%v", err)
 						return
 					}
@@ -364,7 +378,7 @@ func (s Service) handleReceiptOfMainchainBlock(minedBlock *miner.MinedBlock) {
 	// note: block is valid, keep it
 	s.props.CancelMinersChannel <- struct{}{}
 
-	if err := s.props.Store.SetHeadBlock(*minedBlock.NextBlock); err != nil {
+	if err := s.props.Store.SetHeadBlock(minedBlock.NextBlock); err != nil {
 		log.Printf("[node] err setting head block in node store\n%v", err)
 
 		if err := s.props.Store.RemovePendingMainchainBlock(*minedBlock.NextBlock.Props().BlockHash); err != nil {

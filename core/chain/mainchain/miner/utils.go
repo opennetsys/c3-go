@@ -1,7 +1,6 @@
 package miner
 
 import (
-	"crypto/ecdsa"
 	"errors"
 	"log"
 	"sort"
@@ -42,26 +41,26 @@ import (
 //}), nil
 //}
 
-// PubFromBlock ...
-func PubFromBlock(block *mainchain.Block) (*ecdsa.PublicKey, error) {
-	if block == nil {
-		return nil, errors.New("block is nil")
-	}
+//// PubFromBlock ...
+//func PubFromBlock(block *mainchain.Block) (*ecdsa.PublicKey, error) {
+//if block == nil {
+//return nil, errors.New("block is nil")
+//}
 
-	pubStr, err := hexutil.DecodeString(block.Props().MinerAddress)
-	if err != nil {
-		return nil, err
-	}
-	pub, err := c3crypto.DeserializePublicKey([]byte(pubStr))
-	if err != nil {
-		return nil, err
-	}
-	if pub == nil {
-		return nil, errors.New("invalid miner address")
-	}
+//pubStr, err := hexutil.DecodeString(block.Props().MinerAddress)
+//if err != nil {
+//return nil, err
+//}
+//pub, err := c3crypto.DeserializePublicKey([]byte(pubStr))
+//if err != nil {
+//return nil, err
+//}
+//if pub == nil {
+//return nil, errors.New("invalid miner address")
+//}
 
-	return pub, nil
-}
+//return pub, nil
+//}
 
 // CheckBlockHashAgainstDifficulty ...
 func CheckBlockHashAgainstDifficulty(block *mainchain.Block) (bool, error) {
@@ -102,26 +101,26 @@ func CheckHashAgainstDifficulty(hashHex string, difficulty uint64) (bool, error)
 	return true, nil
 }
 
-// PubFromTx ...
-func PubFromTx(tx *statechain.Transaction) (*ecdsa.PublicKey, error) {
-	if tx == nil {
-		return nil, ErrNilTx
-	}
+//// PubFromTx ...
+//func PubFromTx(tx *statechain.Transaction) (*ecdsa.PublicKey, error) {
+//if tx == nil {
+//return nil, ErrNilTx
+//}
 
-	pubStr, err := hexutil.DecodeString(tx.Props().From)
-	if err != nil {
-		return nil, err
-	}
-	pub, err := c3crypto.DeserializePublicKey([]byte(pubStr))
-	if err != nil {
-		return nil, err
-	}
-	if pub == nil {
-		return nil, ErrInvalidFromAddress
-	}
+//pubStr, err := hexutil.DecodeString(tx.Props().From)
+//if err != nil {
+//return nil, err
+//}
+//pub, err := c3crypto.DeserializePublicKey([]byte(pubStr))
+//if err != nil {
+//return nil, err
+//}
+//if pub == nil {
+//return nil, ErrInvalidFromAddress
+//}
 
-	return pub, nil
-}
+//return pub, nil
+//}
 
 // BuildTxsMap ...
 func BuildTxsMap(txs []*statechain.Transaction) statechain.TransactionsMap {
@@ -163,7 +162,7 @@ func VerifyTransaction(tx *statechain.Transaction) (bool, error) {
 	}
 
 	// 4. the sig must verify
-	pub, err := PubFromTx(tx)
+	pub, err := c3crypto.DecodeAddress(tx.Props().From)
 	if err != nil {
 		return false, err
 	}
@@ -294,7 +293,7 @@ func VerifyMainchainBlock(p2pSvc p2p.Interface, isValid *bool, block *mainchain.
 	if isValid == nil || *isValid == false {
 		return false, errors.New("received nil or false isValid")
 	}
-	pub, err := PubFromBlock(block)
+	pub, err := c3crypto.DecodeAddress(block.Props().MinerAddress)
 	if err != nil {
 		return false, err
 	}
@@ -413,7 +412,7 @@ func VerifyMinedBlock(p2pSvc p2p.Interface, isValid *bool, minedBlock *MinedBloc
 	if isValid == nil || *isValid == false {
 		return false, errors.New("received nil or false isValid")
 	}
-	pub, err := PubFromBlock(minedBlock.NextBlock)
+	pub, err := c3crypto.DecodeAddress(minedBlock.NextBlock.Props().MinerAddress)
 	if err != nil {
 		return false, err
 	}

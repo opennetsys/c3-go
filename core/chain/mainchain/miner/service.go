@@ -18,6 +18,7 @@ import (
 	"github.com/c3systems/c3/core/diffing"
 	"github.com/c3systems/c3/core/p2p"
 	"github.com/c3systems/c3/core/sandbox"
+	"github.com/c3systems/merkletree"
 )
 
 // New returns a new service
@@ -162,7 +163,7 @@ func (s Service) mineBlock() error {
 			return errors.New("miner is invalid")
 		}
 
-		hash, _, err := s.generateHashAndNonce()
+		hash, nonce, err := s.generateHashAndNonce()
 		if err != nil {
 			return err
 		}
@@ -172,6 +173,11 @@ func (s Service) mineBlock() error {
 			return err
 		}
 
+		nextProps := s.minedBlock.NextBlock.Props()
+		nextProps.Nonce = nonce
+		nextBlock := mainchain.New(&nextProps)
+		s.minedBlock.NextBlock = nextBlock
+
 		if check {
 			return s.minedBlock.NextBlock.SetHash()
 		}
@@ -179,7 +185,10 @@ func (s Service) mineBlock() error {
 }
 
 func (s Service) generateMerkle() error {
-	var hashes []string
+	var (
+		hashes []string
+		list   []merkletree.Content
+	)
 
 	s.minedBlock.mut.Lock()
 	defer s.minedBlock.mut.Unlock()
@@ -192,12 +201,14 @@ func (s Service) generateMerkle() error {
 		}
 
 		hashes = append(hashes, *statechainBlock.Props().BlockHash)
+		list = append(list, statechainBlock)
 	}
 
-	tree, err := merkle.New(&merkle.TreeProps{
-		Hashes: hashes,
-		Kind:   merkle.StatechainBlocksKindStr,
-	})
+	tree, err := merkle.BuildFromObjects(list, merkle.StatechainBlocksKindStr)
+	//tree, err := merkle.New(&merkle.TreeProps{
+	//Hashes: hashes,
+	//Kind:   merkle.StatechainBlocksKindStr,
+	//})
 	if err != nil {
 		return err
 	}
@@ -260,11 +271,6 @@ func (s Service) bootstrapNextBlock() (*mainchain.Block, error) {
 	nextProps.Difficulty = hexutil.EncodeUint64(s.props.Difficulty)
 
 	return mainchain.New(nextProps), nil
-}
-
-func handleTransaction(tx *statechain.Transaction) error {
-
-	return nil
 }
 
 func (s Service) buildNextStates(imageHash string, transactions []*statechain.Transaction) error {

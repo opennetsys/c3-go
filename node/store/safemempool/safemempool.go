@@ -22,7 +22,7 @@ type Service struct {
 	props            Props
 	txPoolMut        *poolMut
 	pendingBlocksMut *poolMut
-	headBlock        mainchain.Block
+	headBlock        *mainchain.Block
 }
 
 // New ...
@@ -53,12 +53,12 @@ func New(props *Props) (*Service, error) {
 }
 
 // Props ...
-func (s Service) Props() Props {
+func (s *Service) Props() Props {
 	return s.props
 }
 
 // HasTx ...
-func (s Service) HasTx(hash string) (bool, error) {
+func (s *Service) HasTx(hash string) (bool, error) {
 	s.txPoolMut.mut.Lock()
 	defer s.txPoolMut.mut.Unlock()
 	_, ok := s.txPoolMut.pool[buildKey(hash)]
@@ -67,7 +67,7 @@ func (s Service) HasTx(hash string) (bool, error) {
 }
 
 // GetTx ...
-func (s Service) GetTx(hash string) (*statechain.Transaction, error) {
+func (s *Service) GetTx(hash string) (*statechain.Transaction, error) {
 	s.txPoolMut.mut.Lock()
 	defer s.txPoolMut.mut.Unlock()
 	byteStr := s.txPoolMut.pool[buildKey(hash)]
@@ -83,7 +83,7 @@ func (s Service) GetTx(hash string) (*statechain.Transaction, error) {
 }
 
 // GetTxs ...
-func (s Service) GetTxs(hashes []string) ([]*statechain.Transaction, error) {
+func (s *Service) GetTxs(hashes []string) ([]*statechain.Transaction, error) {
 	var txs []*statechain.Transaction
 
 	s.txPoolMut.mut.Lock()
@@ -107,7 +107,7 @@ func (s Service) GetTxs(hashes []string) ([]*statechain.Transaction, error) {
 }
 
 // RemoveTx ...
-func (s Service) RemoveTx(hash string) error {
+func (s *Service) RemoveTx(hash string) error {
 	s.txPoolMut.mut.Lock()
 	defer s.txPoolMut.mut.Unlock()
 	delete(s.txPoolMut.pool, buildKey(hash))
@@ -116,7 +116,7 @@ func (s Service) RemoveTx(hash string) error {
 }
 
 // RemoveTxs ...
-func (s Service) RemoveTxs(hashes []string) error {
+func (s *Service) RemoveTxs(hashes []string) error {
 	s.txPoolMut.mut.Lock()
 	defer s.txPoolMut.mut.Unlock()
 
@@ -130,7 +130,7 @@ func (s Service) RemoveTxs(hashes []string) error {
 }
 
 // AddTx ...
-func (s Service) AddTx(tx *statechain.Transaction) error {
+func (s *Service) AddTx(tx *statechain.Transaction) error {
 	if tx == nil {
 		return errors.New("cannot add a nil transaction")
 	}
@@ -152,7 +152,7 @@ func (s Service) AddTx(tx *statechain.Transaction) error {
 }
 
 // GatherPendingTransactions ...
-func (s Service) GatherPendingTransactions() ([]*statechain.Transaction, error) {
+func (s *Service) GatherPendingTransactions() ([]*statechain.Transaction, error) {
 	s.txPoolMut.mut.Lock()
 	defer s.txPoolMut.mut.Unlock()
 
@@ -172,18 +172,18 @@ func (s Service) GatherPendingTransactions() ([]*statechain.Transaction, error) 
 }
 
 // GetHeadBlock ...
-func (s Service) GetHeadBlock() (mainchain.Block, error) {
-	return s.headBlock, nil
+func (s *Service) GetHeadBlock() (mainchain.Block, error) {
+	return *s.headBlock, nil
 }
 
 // SetHeadBlock ...
-func (s Service) SetHeadBlock(block mainchain.Block) error {
+func (s *Service) SetHeadBlock(block *mainchain.Block) error {
 	s.headBlock = block
 	return nil
 }
 
 // SetPendingMainchainBlock ...
-func (s Service) SetPendingMainchainBlock(block *mainchain.Block) error {
+func (s *Service) SetPendingMainchainBlock(block *mainchain.Block) error {
 	if block == nil {
 		return errors.New("block is nil")
 	}
@@ -206,7 +206,7 @@ func (s Service) SetPendingMainchainBlock(block *mainchain.Block) error {
 }
 
 // GetPendingMainchainBlocks ...
-func (s Service) GetPendingMainchainBlocks() ([]*mainchain.Block, error) {
+func (s *Service) GetPendingMainchainBlocks() ([]*mainchain.Block, error) {
 	var pendingBlocks []*mainchain.Block
 	s.pendingBlocksMut.mut.Lock()
 	defer s.pendingBlocksMut.mut.Unlock()
@@ -223,7 +223,7 @@ func (s Service) GetPendingMainchainBlocks() ([]*mainchain.Block, error) {
 }
 
 // RemovePendingMainchainBlock ...
-func (s Service) RemovePendingMainchainBlock(blockHash string) error {
+func (s *Service) RemovePendingMainchainBlock(blockHash string) error {
 	s.pendingBlocksMut.mut.Lock()
 	defer s.pendingBlocksMut.mut.Unlock()
 
@@ -233,7 +233,7 @@ func (s Service) RemovePendingMainchainBlock(blockHash string) error {
 }
 
 // RemovePendingBlocks ...
-func (s Service) RemovePendingMainchainBlocks(blockHashes []string) error {
+func (s *Service) RemovePendingMainchainBlocks(blockHashes []string) error {
 	s.pendingBlocksMut.mut.Lock()
 	defer s.pendingBlocksMut.mut.Unlock()
 

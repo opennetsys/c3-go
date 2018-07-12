@@ -21,9 +21,11 @@ var (
 // Build ...
 func Build() *cobra.Command {
 	var (
-		nodeURI string
-		dataDir string
-		peer    string
+		nodeURI  string
+		dataDir  string
+		peer     string
+		pem      string
+		password string
 	)
 
 	dit := registry.NewRegistry(&registry.Config{})
@@ -95,14 +97,20 @@ For more info visit: https://github.com/c3systems/c3,
 				URI:     nodeURI,
 				Peer:    peer,
 				DataDir: dataDir,
+				Keys: nodetypes.Keys{
+					PEMFile:  pem,
+					Password: password,
+				},
 			})
 		},
 	}
 	startSubCmd.Flags().StringVarP(&nodeURI, "uri", "u", "/ip4/0.0.0.0/tcp/9000", "The host on which to run the node")
 	startSubCmd.Flags().StringVarP(&peer, "peer", "p", "", "A peer to which to connect")
-	//startSubCmd.MarkFlagRequired("uri")
 	startSubCmd.Flags().StringVarP(&dataDir, "data-dir", "d", config.DefaultStoreDirectory, "The directory in which to save data")
-	//startSubCmd.MarkFlagRequired("data-dir")
+	startSubCmd.Flags().StringVar(&pem, "pem", "", "A pem file containing an ecdsa private key")
+	startSubCmd.Flags().StringVar(&password, "password", "", "A password for the pem file [OPTIONAL]")
+
+	startSubCmd.MarkFlagRequired("pem")
 	// TODO: add more flags for blockstore and nodestore, etc.
 
 	nodeCmd.AddCommand(startSubCmd)

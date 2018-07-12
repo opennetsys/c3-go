@@ -1,14 +1,29 @@
 package c3crypto
 
 import (
+	"bufio"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
+	"encoding/pem"
 	"errors"
+	"io/ioutil"
+	"log"
 	"math/big"
+	"os"
 
+	"github.com/c3systems/c3/common/hexutil"
 	"github.com/obscuren/ecies"
+)
+
+const (
+	// EncryptionCipher ...
+	EncryptionCipher = x509.PEMCipherAES256
+	// PrivateKeyPEMType ...
+	PrivateKeyPEMType = "ECDSA PRIVATE KEY"
+	// PublicKeyPEMType ...
+	PublicKeyPEMType = "ECDSA PUBLIC KEY"
 )
 
 var (
@@ -154,6 +169,242 @@ func DeserializePublicKey(pubBytes []byte) (*ecdsa.PublicKey, error) {
 	pub, ok := pubIfc.(*ecdsa.PublicKey)
 	if !ok {
 		return nil, ErrNotECDSAPubKey
+	}
+
+	return pub, nil
+}
+
+// EncodePrivateKeyToPem ...
+// note password is optional
+func EncodePrivateKeyToPem(priv *ecdsa.PrivateKey, password *string) (*pem.Block, error) {
+	bytes, err := SerializePrivateKey(priv)
+	if err != nil {
+		return nil, err
+	}
+
+	block := &pem.Block{
+		Type:  PrivateKeyPEMType,
+		Bytes: bytes,
+	}
+
+	if password != nil {
+		return x509.EncryptPEMBlock(rand.Reader, block.Type, block.Bytes, []byte(*password), EncryptionCipher)
+	}
+
+	return block, nil
+}
+
+// EncodePublicKeyToPem ...
+// note: password is optional
+func EncodePublicKeyToPem(pub *ecdsa.PublicKey, password *string) (*pem.Block, error) {
+	bytes, err := SerializePublicKey(pub)
+	if err != nil {
+		return nil, err
+	}
+
+	block := &pem.Block{
+		Type:  PublicKeyPEMType,
+		Bytes: bytes,
+	}
+
+	if password != nil {
+		return x509.EncryptPEMBlock(rand.Reader, block.Type, block.Bytes, []byte(*password), EncryptionCipher)
+	}
+
+	return block, nil
+}
+
+// DecodePemToPrivateKey ...
+func DecodePemToPrivateKey(block *pem.Block, password *string) (*ecdsa.PrivateKey, error) {
+	if password == nil && x509.IsEncryptedPEMBlock(block) {
+		return nil, errors.New("pem block is encrypted but no password provided")
+	}
+	if password != nil && !x509.IsEncryptedPEMBlock(block) {
+		return nil, errors.New("a password was provided but pem block is not encrypted")
+	}
+
+	if password != nil {
+		bytes, err := x509.DecryptPEMBlock(block, []byte(*password))
+		if err != nil {
+			return nil, err
+		}
+
+		return DeserializePrivateKey(bytes)
+	}
+
+	return DeserializePrivateKey(block.Bytes)
+}
+
+// DecodePemToPublicKey ...
+func DecodePemToPublicKey(block *pem.Block, password *string) (*ecdsa.PublicKey, error) {
+	if password == nil && x509.IsEncryptedPEMBlock(block) {
+		return nil, errors.New("pem block is encrypted but no password provided")
+	}
+	if password != nil && !x509.IsEncryptedPEMBlock(block) {
+		return nil, errors.New("a password was provided but pem block is not encrypted")
+	}
+
+	if password != nil {
+		bytes, err := x509.DecryptPEMBlock(block, []byte(*password))
+		if err != nil {
+			return nil, err
+		}
+
+		return DeserializePublicKey(bytes)
+	}
+
+	return DeserializePublicKey(block.Bytes)
+}
+
+// WritePrivateKeyToPemFile ...
+func WritePrivateKeyToPemFile(priv *ecdsa.PrivateKey, password *string, fileName string) error {
+	block, err := EncodePrivateKeyToPem(priv, password)
+	if err != nil {
+		return err
+	}
+
+	f, err := os.Create(fileName)
+	if err != nil {
+		log.Println("err creating file")
+		return err
+	}
+	defer f.Close()
+
+	w := bufio.NewWriter(f)
+	if err := pem.Encode(w, block); err != nil {
+		return err
+	}
+
+	if err := w.Flush(); err != nil {
+		return err
+	}
+
+	return f.Sync()
+}
+
+// WritePublicKeyToPemFile ...
+func WritePublicKeyToPemFile(pub *ecdsa.PublicKey, password *string, fileName string) error {
+	block, err := EncodePublicKeyToPem(pub, password)
+	if err != nil {
+		return err
+	}
+
+	f, err := os.Create(fileName)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	w := bufio.NewWriter(f)
+	if err := pem.Encode(w, block); err != nil {
+		return err
+	}
+
+	if err := w.Flush(); err != nil {
+		return err
+	}
+
+	return f.Sync()
+}
+
+// ReadPrivateKeyFromPem ...
+func ReadPrivateKeyFromPem(fileName string, password *string) (*ecdsa.PrivateKey, error) {
+	bytes, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		return nil, err
+	}
+
+	block, _ := pem.Decode(bytes)
+
+	return DecodePemToPrivateKey(block, password)
+}
+
+// ReadPublicKeyFromPem ...
+func ReadPublicKeyFromPem(fileName string, password *string) (*ecdsa.PublicKey, error) {
+	bytes, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		return nil, err
+	}
+
+	block, _ := pem.Decode(bytes)
+
+	return DecodePemToPublicKey(block, password)
+}
+
+// WriteKeyPairToPem ...
+func WriteKeyPairToPem(priv *ecdsa.PrivateKey, pub *ecdsa.PublicKey, password *string, fileName string) error {
+	privBlock, err := EncodePrivateKeyToPem(priv, password)
+	if err != nil {
+		return err
+	}
+
+	pubBlock, err := EncodePublicKeyToPem(pub, password)
+	if err != nil {
+		return err
+	}
+
+	f, err := os.Create(fileName)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	w := bufio.NewWriter(f)
+	if err := pem.Encode(w, privBlock); err != nil {
+		return err
+	}
+	if err := pem.Encode(w, pubBlock); err != nil {
+		return err
+	}
+
+	if err := w.Flush(); err != nil {
+		return err
+	}
+
+	return f.Sync()
+}
+
+// ReadKeyPairFromPem ...
+func ReadKeyPairFromPem(fileName string, password *string) (*ecdsa.PrivateKey, *ecdsa.PublicKey, error) {
+	bytes, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	privBlock, rest := pem.Decode(bytes)
+	pubBlock, _ := pem.Decode(rest)
+
+	priv, err := DecodePemToPrivateKey(privBlock, password)
+	if err != nil {
+		return nil, nil, err
+	}
+	pub, err := DecodePemToPublicKey(pubBlock, password)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return priv, pub, nil
+}
+
+// EncodeAddress ...
+func EncodeAddress(pub *ecdsa.PublicKey) (string, error) {
+	bytes, err := SerializePublicKey(pub)
+	if err != nil {
+		return "", err
+	}
+
+	return hexutil.EncodeString(string(bytes)), nil
+}
+
+// DecodeAddress ...
+func DecodeAddress(address string) (*ecdsa.PublicKey, error) {
+	pubStr, err := hexutil.DecodeString(address)
+	if err != nil {
+		return nil, err
+	}
+	pub, err := DeserializePublicKey([]byte(pubStr))
+	if err != nil {
+		return nil, err
 	}
 
 	return pub, nil

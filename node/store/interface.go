@@ -15,7 +15,7 @@ type Interface interface {
 	AddTx(tx *statechain.Transaction) error
 	GatherPendingTransactions() ([]*statechain.Transaction, error)
 	GetHeadBlock() (mainchain.Block, error)
-	SetHeadBlock(block mainchain.Block) error
+	SetHeadBlock(block *mainchain.Block) error
 	SetPendingMainchainBlock(block *mainchain.Block) error
 	GetPendingMainchainBlocks() ([]*mainchain.Block, error)
 	RemovePendingMainchainBlock(blockHash string) error

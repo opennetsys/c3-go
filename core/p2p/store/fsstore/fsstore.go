@@ -1,7 +1,6 @@
 package fsstore
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -33,7 +32,6 @@ func New(path string) (*flatfs.Datastore, error) {
 			return nil, err
 		}
 	}
-	log.Printf("shard func: %v\nshard string: %s\n", shardFn.Func(), shardFn.String())
 
 	return flatfs.CreateOrOpen(path, shardFn, true)
 }

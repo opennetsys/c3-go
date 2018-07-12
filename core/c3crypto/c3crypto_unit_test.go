@@ -4,6 +4,7 @@ package c3crypto
 
 import (
 	"crypto/ecdsa"
+	"os"
 	"reflect"
 	"testing"
 )
@@ -187,4 +188,81 @@ func TestSerializeAndDeserializePublicKey(t *testing.T) {
 	if !reflect.DeepEqual(*pub, *pub2) {
 		t.Errorf("expected %v\nreceived %v", *pub, *pub2)
 	}
+}
+
+func TestReadWritePrivateKeyToPEM(t *testing.T) {
+	priv, err := NewPrivateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	password := "password"
+	fileName := "priv.test.pem"
+	if err := WritePrivateKeyToPemFile(priv, &password, fileName); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(fileName)
+
+	priv2, err := ReadPrivateKeyFromPem(fileName, &password)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(priv, priv2) {
+		t.Errorf("expected: %v\nreceived: %v", priv, priv2)
+	}
+}
+
+func TestReadWritePublicKeyToPEM(t *testing.T) {
+	_, pub, err := NewKeyPair()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	password := "password"
+	fileName := "pub.test.pem"
+	if err := WritePublicKeyToPemFile(pub, &password, fileName); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(fileName)
+
+	pub2, err := ReadPublicKeyFromPem(fileName, &password)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(pub, pub2) {
+		t.Errorf("expected: %v\nreceived: %v", pub, pub2)
+	}
+}
+
+func TestReadWritePairsToPEM(t *testing.T) {
+	priv, pub, err := NewKeyPair()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	password := "password"
+	fileName := "keys.pem"
+	if err := WriteKeyPairToPem(priv, pub, &password, fileName); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(fileName)
+
+	priv2, pub2, err := ReadKeyPairFromPem(fileName, &password)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(pub, pub2) || !reflect.DeepEqual(priv, priv2) {
+		t.Errorf("expected priv: %v\nexpected pub: %v\nreceived priv: %v\nreceived pub: %v", priv, pub, priv2, pub2)
+	}
+}
+
+func createDirIfNotExist(dir string) error {
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		return os.MkdirAll(dir, 0777)
+	}
+
+	return nil
 }

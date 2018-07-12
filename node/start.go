@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/c3systems/c3/core/c3crypto"
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/mainchain/miner"
 	"github.com/c3systems/c3/core/chain/statechain"
@@ -68,7 +69,7 @@ func Start(cfg *nodetypes.Config) error {
 		return fmt.Errorf("err initializing mempool\n%v", err)
 	}
 	// TODO: ping the network for the newest block. For now we always start at 0
-	if err := memPool.SetHeadBlock(mainchain.GenesisBlock); err != nil {
+	if err := memPool.SetHeadBlock(&mainchain.GenesisBlock); err != nil {
 		return fmt.Errorf("err setting head block\n%v", err)
 	}
 
@@ -88,6 +89,16 @@ func Start(cfg *nodetypes.Config) error {
 		return fmt.Errorf("err starting ipfs p2p network\n%v", err)
 	}
 
+	var pwd *string
+	if cfg.Keys.Password != "" {
+		pwd = &cfg.Keys.Password
+	}
+
+	priv, err := c3crypto.ReadPrivateKeyFromPem(cfg.Keys.PEMFile, pwd)
+	if err != nil {
+		return fmt.Errorf("err reading pem file\n%v", err)
+	}
+
 	n, err := New(&Props{
 		Context:             ctx,
 		SubscriberChannel:   make(chan interface{}),
@@ -96,6 +107,10 @@ func Start(cfg *nodetypes.Config) error {
 		Store:               memPool,
 		Pubsub:              pubsub,
 		P2P:                 p2pSvc,
+		Keys: Keys{
+			Priv: priv,
+			Pub:  &priv.PublicKey,
+		},
 	})
 	if err != nil {
 		return fmt.Errorf("err building the node\n%v", err)

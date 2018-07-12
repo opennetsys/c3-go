@@ -1,18 +1,8 @@
 package merkle
 
-import "errors"
-
-// Tree ...
-type Tree struct {
-	props TreeProps
-}
-
-// TreeProps ...
-type TreeProps struct {
-	MerkleTreeRootHash *string
-	Kind               string
-	Hashes             []string
-}
+import (
+	"errors"
+)
 
 var (
 	// ErrUnknownKind ...
@@ -50,3 +40,15 @@ const (
 	// MerkleTreesKindStr ...
 	MerkleTreesKindStr = "merkleTrees"
 )
+
+// Tree ...
+type Tree struct {
+	props TreeProps
+}
+
+// TreeProps ...
+type TreeProps struct {
+	MerkleTreeRootHash *string
+	Kind               string
+	Hashes             []string
+}

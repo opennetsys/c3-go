@@ -5,7 +5,6 @@ import (
 	"encoding/gob"
 
 	"github.com/c3systems/c3/common/hexutil"
-	chaintypes "github.com/c3systems/c3/core/chain/types"
 
 	"github.com/c3systems/merkletree"
 )
@@ -25,9 +24,17 @@ func New(props *TreeProps) (*Tree, error) {
 // note: using this method to keep with our New function accepting props
 // TODO: ensure that all of the kinds are the same?
 // TODO ensure that the kind is the true kind?
-func BuildFromObjects(chainObjects []chaintypes.ChainObject, kind string) (*Tree, error) {
+func BuildFromObjects(chainObjects []merkletree.Content, kind string) (*Tree, error) {
 	if chainObjects == nil || len(chainObjects) == 0 {
-		return nil, ErrNilChainObjects
+		hashes := []string{}
+		mrRootHash := hexutil.EncodeString("")
+		return &Tree{
+			props: TreeProps{
+				MerkleTreeRootHash: &mrRootHash,
+				Kind:               kind,
+				Hashes:             hashes,
+			},
+		}, nil
 	}
 
 	var (
