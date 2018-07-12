@@ -38,15 +38,15 @@ jobs:
             wget https://dist.ipfs.io/go-ipfs/v0.4.14/go-ipfs_v0.4.14_linux-amd64.tar.gz -O /tmp/go-ipfs.tar.gz
             cd /tmp
             tar xvfz go-ipfs.tar.gz
-            sudo cp go-ipfs/ipfs /usr/local/bin/
+            sudo cp go-ipfs/ipfs /home/circleci/
 
       - run:
           name: Run IPFS daemon
           command: |
-            sudo ipfs init
-            sudo ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001
-            sudo ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/9001
-            sudo ipfs daemon &
+            /home/circleci/ipfs init
+            /home/circleci/ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001
+            /home/circleci/ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/9001
+            /home/circleci/ipfs daemon &
 
       - checkout
 

@@ -151,6 +151,10 @@ func (c3 *C3) setInitialState() error {
 
 		log.Println("json data", string(src))
 
+		if len(src) == 0 {
+			return nil
+		}
+
 		b, err := stringutil.CompactJSON(src)
 		if err != nil {
 			log.Println("failed to compact", err)
