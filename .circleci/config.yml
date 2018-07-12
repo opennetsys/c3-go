@@ -23,8 +23,6 @@ jobs:
 
       - run: go version
 
-      - checkout
-
       - run:
           name: Install Docker client
           command: |
@@ -51,6 +49,10 @@ jobs:
             sudo ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/9001
             sudo ipfs daemon &
 
+      - run: cd ~/go/src/github.com/c3systems/c3
+
+      - checkout
+
       # specify any bash command here prefixed with `run: `
       - run:
           name: Tests
@@ -64,6 +66,8 @@ jobs:
               ]
             }
             EOF
+            #sudo sh -c 'echo '\'DOCKER_OPTS="--experimental=true"'\'' >> /etc/default/docker'
+            sudo service docker restart
             make test
 
 workflows:
