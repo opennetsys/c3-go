@@ -4,7 +4,7 @@
 version: 2
 jobs:
   build:
-    docker:
+    machine:
       # specify the version
       - image: circleci/golang:1.9
 
@@ -50,11 +50,7 @@ jobs:
             ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/9001
             ipfs daemon &
 
-    # specify any bash command here prefixed with `run: `
-  test:
-    machine: true
-
-    steps:
+      # specify any bash command here prefixed with `run: `
       - run:
           name: Tests
           command: |
