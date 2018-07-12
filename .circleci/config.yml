@@ -9,7 +9,7 @@ jobs:
       # specify the version
       image: *c3-buld-image
 
-    working_directory: /usr/local/go/src/github.com/c3systems
+    working_directory: /home/circleci/.go_workspace/go/src/github.com/c3systems/c3
     steps:
       - run:
           name: Install Golang
@@ -17,9 +17,9 @@ jobs:
             sudo add-apt-repository ppa:gophers/archive
             sudo apt-get update -y
             sudo apt-get install golang-1.10-go -y
-            export GOPATH=$HOME/go
+            export GOPATH=/home/circleci/.go_workspace/go
             export PATH=$PATH:$GOPATH/bin
-            mkdir -p /usr/local/go/src/github.com/c3systems
+            mkdir -p /home/circleci/.go_workspace/go/src/github.com/c3systems/c3
 
       - run: go version
 
@@ -58,9 +58,6 @@ jobs:
             #export IP=$(ifconfig | grep inet | grep broad | awk {'print $2'})
             #sudo echo "{ \"insecure-registries\": [ \"$IP:5000\", ] }" > /etc/docker/daemon.json
             #sudo service docker restart
-            ls /usr/local
-            ls /usr/local/go/src/github.com/c3systems
-            ls /usr/local/go/src/github.com/c3systems/c3
             make test
 
 workflows:
