@@ -70,4 +70,3 @@ workflows:
   all:
     jobs:
       - build
-      - test
