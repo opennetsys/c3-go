@@ -1,6 +1,6 @@
 references:
   c3-buld-image: &c3-buld-image
-    golang:1.10
+    circleci/classic:latest
 
 version: 2
 jobs:
