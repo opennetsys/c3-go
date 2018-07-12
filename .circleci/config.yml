@@ -14,9 +14,9 @@ jobs:
       - run:
           name: Install Golang
           command: |
-            sudo add-apt-repository ppa:longsleep/golang-backports
+            sudo add-apt-repository ppa:gophers/archive
             sudo apt-get update -y
-            sudo apt-get install golang-go -y
+            sudo apt-get install golang-1.10-go -y
             export GOPATH=$HOME/go
             export PATH=$PATH:$GOPATH/bin
             mkdir -p ~/go/src/github.com/c3systems/c3
