@@ -1,14 +1,13 @@
 references:
-  circleci/golang:1.10: &circleci/golang:1.10
+  c3-buld-image: &c3-buld-image
     golang:1.10
-#
-# Check https://circleci.com/docs/2.0/language-go/ for more details
+
 version: 2
 jobs:
   build:
     machine:
       # specify the version
-      image: *circleci/golang:1.10
+      image: *c3-buld-image
 
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
