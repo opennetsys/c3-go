@@ -1,8 +1,7 @@
 package merkle
 
 import (
-	"bytes"
-	"encoding/gob"
+	"encoding/json"
 
 	"github.com/c3systems/c3/common/hexutil"
 
@@ -84,29 +83,12 @@ func (t *Tree) Props() TreeProps {
 
 // Serialize ...
 func (t *Tree) Serialize() ([]byte, error) {
-	b := new(bytes.Buffer)
-	err := gob.NewEncoder(b).Encode(t.props)
-	if err != nil {
-		return nil, err
-	}
-
-	return b.Bytes(), nil
+	return t.MarshalJSON()
 }
 
 // Deserialize ...
 func (t *Tree) Deserialize(data []byte) error {
-	if t == nil {
-		return ErrNilMerkleTree
-	}
-
-	var tmpProps TreeProps
-	b := bytes.NewBuffer(data)
-	if err := gob.NewDecoder(b).Decode(&tmpProps); err != nil {
-		return err
-	}
-
-	t.props = tmpProps
-	return nil
+	return t.UnmarshalJSON(data)
 }
 
 // SerializeString ...
@@ -192,4 +174,21 @@ func checkKind(kind string) bool {
 	}
 
 	return true
+}
+
+// MarshalJSON ...
+func (t *Tree) MarshalJSON() ([]byte, error) {
+	return json.Marshal(t.props)
+}
+
+// UnmarshalJSON ...
+func (t *Tree) UnmarshalJSON(data []byte) error {
+	var props TreeProps
+	if err := json.Unmarshal(data, &props); err != nil {
+		return err
+	}
+
+	t.props = props
+
+	return nil
 }

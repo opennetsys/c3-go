@@ -1,31 +1,19 @@
 package miner
 
 import (
-	"bytes"
-	"encoding/gob"
+	"encoding/json"
 
 	"github.com/c3systems/c3/common/hexutil"
 )
 
 // Serialize ...
 func (m *MinedBlock) Serialize() ([]byte, error) {
-	data := new(bytes.Buffer)
-	err := gob.NewEncoder(data).Encode(m)
-	if err != nil {
-		return nil, err
-	}
-
-	return data.Bytes(), nil
+	return json.Marshal(m)
 }
 
 // Deserialize ...
 func (m *MinedBlock) Deserialize(data []byte) error {
-	if m == nil {
-		return ErrNilBlock
-	}
-
-	byts := bytes.NewBuffer(data)
-	return gob.NewDecoder(byts).Decode(m)
+	return json.Unmarshal(data, m)
 }
 
 // SerializeString ...
