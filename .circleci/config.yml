@@ -17,9 +17,9 @@ jobs:
             sudo add-apt-repository ppa:gophers/archive
             sudo apt-get update -y
             sudo apt-get install golang-1.10-go -y
-            export GOPATH=/home/circleci/.go_workspace/go
+            export GOPATH=/home/circleci/.go_workspace
             export PATH=$PATH:$GOPATH/bin
-            mkdir -p /home/circleci/.go_workspace/go/src/github.com/c3systems/c3
+            mkdir -p /home/circleci/.go_workspace/src/github.com/c3systems/c3
 
       - run: go version
 
@@ -49,17 +49,15 @@ jobs:
             sudo ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/9001
             sudo ipfs daemon &
 
-      - run: cd "$CIRCLE_WORKING_DIRECTORY"
-      - run: pwd
       - checkout
 
       # specify any bash command here prefixed with `run: `
       - run:
           name: Tests
           command: |
-            #export IP=$(ifconfig | grep inet | grep broad | awk {'print $2'})
-            #sudo echo "{ \"insecure-registries\": [ \"$IP:5000\", ] }" > /etc/docker/daemon.json
-            #sudo service docker restart
+            export IP=$(ifconfig | grep inet | grep broad | awk {'print $2'})
+            sudo echo "{ \"insecure-registries\": [ \"$IP:5000\", ] }" > /etc/docker/daemon.json
+            sudo service docker restart
             make test
 
 workflows:

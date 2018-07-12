@@ -60,7 +60,7 @@ test/cleanup:
 	@. scripts/test_cleanup.sh
 
 .PHONY: test
-test: test/check test/c3 test/common/network test/common/stringutil test/registry test/core/server test/core/docker test/core/sandbox test/cleanup
+test: test/check test/c3 test/common/network test/common/stringutil test/registry test/core/server test/core/docker test/cleanup
 
 .PHONY: test/c3
 test/c3:
