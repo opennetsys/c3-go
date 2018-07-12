@@ -9,7 +9,7 @@ jobs:
       # specify the version
       image: *c3-buld-image
 
-    working_directory: ~/go/src/github.com/c3systems/c3
+    working_directory: ~/go/src/github.com/c3systems
     steps:
       - run:
           name: Install Golang
@@ -19,7 +19,7 @@ jobs:
             sudo apt-get install golang-1.10-go -y
             export GOPATH=$HOME/go
             export PATH=$PATH:$GOPATH/bin
-            mkdir -p ~/go/src/github.com/c3systems/c3
+            mkdir -p ~/go/src/github.com/c3systems
 
       - run: go version
 
@@ -49,7 +49,7 @@ jobs:
             sudo ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/9001
             sudo ipfs daemon &
 
-      - run: cd ~/go/src/github.com/c3systems/c3
+      - run: cd ~/go/src/github.com/c3systems
 
       - checkout
 
