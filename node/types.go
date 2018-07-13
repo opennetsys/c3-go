@@ -5,7 +5,9 @@ import (
 	"crypto/ecdsa"
 
 	"github.com/c3systems/c3/core/p2p"
+	"github.com/c3systems/c3/core/p2p/protobuff"
 	nodestore "github.com/c3systems/c3/node/store"
+
 	floodsub "github.com/libp2p/go-floodsub"
 	host "github.com/libp2p/go-libp2p-host"
 )
@@ -28,6 +30,7 @@ type Props struct {
 	Pubsub              *floodsub.PubSub    // note: how to make this into an interface?
 	P2P                 p2p.Interface
 	Keys                Keys
+	Protobyff           protobuff.Interface
 }
 
 // Service ...

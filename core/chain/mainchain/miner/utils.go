@@ -14,54 +14,6 @@ import (
 	"github.com/c3systems/c3/core/p2p"
 )
 
-//// NewFromStateBlocks ...
-//func NewFromStateBlocks(stateBlocks []*statechain.Block) (*mainchain.Block, error) {
-//var (
-//list                  []merkletree.Content
-//statechainBlockHashes []*string
-//)
-
-//for _, statechainBlock := range stateBlocks {
-//list = append(list, statechainBlock)
-//statechainBlockHashes = append(statechainBlockHashes, statechainBlock.Props().BlockHash)
-//}
-
-//t, err := merkletree.NewTree(list)
-//if err != nil {
-//return nil, err
-//}
-
-//// Get the Merkle Root of the tree
-//mr := t.MerkleRoot()
-
-//// note: the other missing fields are added by the miner
-//return mainchain.New(&mainchain.Props{
-//StateBlocksMerkleHash: string(mr),
-//StateBlockHashes:      statechainBlockHashes,
-//}), nil
-//}
-
-//// PubFromBlock ...
-//func PubFromBlock(block *mainchain.Block) (*ecdsa.PublicKey, error) {
-//if block == nil {
-//return nil, errors.New("block is nil")
-//}
-
-//pubStr, err := hexutil.DecodeString(block.Props().MinerAddress)
-//if err != nil {
-//return nil, err
-//}
-//pub, err := c3crypto.DeserializePublicKey([]byte(pubStr))
-//if err != nil {
-//return nil, err
-//}
-//if pub == nil {
-//return nil, errors.New("invalid miner address")
-//}
-
-//return pub, nil
-//}
-
 // CheckBlockHashAgainstDifficulty ...
 func CheckBlockHashAgainstDifficulty(block *mainchain.Block) (bool, error) {
 	if block == nil {
@@ -100,27 +52,6 @@ func CheckHashAgainstDifficulty(hashHex string, difficulty uint64) (bool, error)
 
 	return true, nil
 }
-
-//// PubFromTx ...
-//func PubFromTx(tx *statechain.Transaction) (*ecdsa.PublicKey, error) {
-//if tx == nil {
-//return nil, ErrNilTx
-//}
-
-//pubStr, err := hexutil.DecodeString(tx.Props().From)
-//if err != nil {
-//return nil, err
-//}
-//pub, err := c3crypto.DeserializePublicKey([]byte(pubStr))
-//if err != nil {
-//return nil, err
-//}
-//if pub == nil {
-//return nil, ErrInvalidFromAddress
-//}
-
-//return pub, nil
-//}
 
 // BuildTxsMap ...
 func BuildTxsMap(txs []*statechain.Transaction) statechain.TransactionsMap {

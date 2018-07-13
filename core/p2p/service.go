@@ -147,7 +147,7 @@ func (s Service) GetMerkleTree(c *cid.Cid) (*merkle.Tree, error) {
 	return FetchMerkleTree(s.peersOrLocal, c)
 }
 
-// FetchMostRecentSTateBlock ...
+// FetchMostRecentStateBlock ...
 func (s Service) FetchMostRecentStateBlock(imageHash string, block *mainchain.Block) (*statechain.Block, error) {
 	if block == nil {
 		return nil, errors.New("block is nil")
