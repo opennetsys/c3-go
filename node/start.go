@@ -145,7 +145,6 @@ func Start(cfg *nodetypes.Config) error {
 
 	nextBlock := &mainchain.GenesisBlock
 	peers := newNode.Peerstore().Peers()
-	log.Println(peers)
 	if len(peers) > 1 {
 		if err := fetchHeadBlock(nextBlock, peers, pBuff); err != nil {
 			return fmt.Errorf("err fetching headblock\n%v", err)

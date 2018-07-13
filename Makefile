@@ -8,7 +8,12 @@ install:
 deps:
 	@rm -rf ./vendor && \
 	dep ensure && \
-	gxundo ./vendor
+	gxundo ./vendor && \
+	(cd vendor/github.com/libp2p/go-libp2p-pubsub/pb \
+	&& rm rpc.pb.go && rm rpc.proto \
+	&& wget https://github.com/c3systems/go-libp2p-pubsub/raw/master/pb/rpc.pb.go \
+	&& wget https://github.com/c3systems/go-libp2p-pubsub/raw/master/pb/rpc.proto)
+
 
 .PHONY: build
 build:
