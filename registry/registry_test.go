@@ -63,7 +63,6 @@ func TestDownloadImage(t *testing.T) {
 }
 
 func TestPullImage(t *testing.T) {
-	t.Skip()
 	t.Parallel()
 
 	client := docker.NewClient()

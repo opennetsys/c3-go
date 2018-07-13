@@ -77,6 +77,10 @@ test/common/network:
 test/common/stringutil:
 	@go test -v common/stringutil/*.go $(ARGS)
 
+.PHONY: test/common/command
+test/common/command:
+	@go test -v common/command/*.go $(ARGS)
+
 .PHONY: test/core
 test/core: test/core/server test/core/docker test/core/sandbox
 

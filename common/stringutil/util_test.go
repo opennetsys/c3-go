@@ -29,7 +29,7 @@ func TestCompactJSON(t *testing.T) {
 			}
 
 			if string(b) != string(tt.out) {
-				t.Error("expected match")
+				t.Errorf("want %s; got %s", string(tt.out), string(b))
 			}
 		})
 	}
