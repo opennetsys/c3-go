@@ -4,6 +4,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/json"
 
+	"github.com/c3systems/c3/common/coder"
 	"github.com/c3systems/c3/common/hashing"
 	"github.com/c3systems/c3/common/hexutil"
 	"github.com/c3systems/c3/core/c3crypto"
@@ -28,18 +29,17 @@ func (tx *Transaction) Props() TransactionProps {
 
 // Serialize ...
 func (tx *Transaction) Serialize() ([]byte, error) {
-	return tx.MarshalJSON()
+	return coder.Serialize(tx.props)
 }
 
 // Deserialize ...
 func (tx *Transaction) Deserialize(data []byte) error {
-	var props TransactionProps
-	if err := json.Unmarshal(data, &props); err != nil {
+	var tmpProps TransactionProps
+	if err := coder.Deserialize(data, &tmpProps); err != nil {
 		return err
 	}
 
-	tx.props = props
-
+	tx.props = tmpProps
 	return nil
 }
 

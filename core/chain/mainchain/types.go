@@ -40,7 +40,7 @@ type BlockSig struct {
 
 // Props ...
 type Props struct {
-	BlockHash             *string   `json:"blockHash,omitempty"`
+	BlockHash             *string   `json:"blockHash,omitempty" rlp:"nil"`
 	BlockNumber           string    `json:"blockNumber"`
 	BlockTime             string    `json:"blockTime"` // unix timestamp
 	ImageHash             string    `json:"imageHash"`
@@ -49,7 +49,7 @@ type Props struct {
 	Nonce                 string    `json:"nonce"`
 	Difficulty            string    `json:"difficulty"`
 	MinerAddress          string    `json:"minerAddress"`
-	MinerSig              *BlockSig `json:"blockSig,omitempty"`
+	MinerSig              *BlockSig `json:"blockSig,omitempty" rlp:"nil"`
 }
 
 // Block ...
