@@ -78,6 +78,24 @@ func (s Service) spawnMinerListener(minerChan chan interface{}, isValid *bool) e
 
 				case *miner.MinedBlock:
 					log.Println("[node] block mined")
+
+					// note: no matter what happens, mine the next block...
+					defer func() {
+						go func() {
+							// TODO: make this recursive and keep trying on err
+							nextBlock, err := s.props.Store.GetHeadBlock()
+							if err != nil {
+								log.Printf("[node] err getting head block for miner\n%v", err)
+								return
+							}
+
+							if err := s.spawnNextBlockMiner(&nextBlock); err != nil {
+								log.Printf("[node] err starting miner\n%v", err)
+								return
+							}
+						}()
+					}()
+
 					minedBlock, _ := v.(*miner.MinedBlock)
 
 					pendingBlocks, err := s.props.Store.GetPendingMainchainBlocks()
@@ -142,11 +160,6 @@ func (s Service) spawnMinerListener(minerChan chan interface{}, isValid *bool) e
 
 					if err := s.removeMinedTxs(minedBlock); err != nil {
 						log.Printf("[node] err removing mined txs\n%v", err)
-						return
-					}
-
-					if err := s.spawnNextBlockMiner(minedBlock.NextBlock); err != nil {
-						log.Printf("err starting miner\n%v", err)
 						return
 					}
 
