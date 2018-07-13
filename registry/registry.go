@@ -23,11 +23,13 @@ import (
 	"github.com/c3systems/c3/registry/server"
 	"github.com/c3systems/c3/registry/util"
 	"github.com/davecgh/go-spew/spew"
+	ipfs "github.com/ipfs/go-ipfs-api"
 )
 
 // Registry ...
 type Registry struct {
 	dockerLocalRegistryHost string
+	ipfsClient              *ipfs.Shell
 }
 
 // Config ...
@@ -50,8 +52,11 @@ func NewRegistry(config *Config) *Registry {
 		}
 	}
 
+	ipfsClient := ipfs.NewLocalShell()
+
 	return &Registry{
 		dockerLocalRegistryHost: dockerLocalRegistryHost,
+		ipfsClient:              ipfsClient,
 	}
 }
 
@@ -72,7 +77,8 @@ func (registry *Registry) PushImage(reader io.Reader) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	fmt.Println("temp:", tmp)
+
+	log.Println("temp:", tmp)
 
 	if err := untar(reader, tmp); err != nil {
 		return "", err
@@ -83,14 +89,13 @@ func (registry *Registry) PushImage(reader io.Reader) (string, error) {
 		return "", err
 	}
 
-	imageIpfsHash, err := uploadDir(root)
+	imageIpfsHash, err := registry.uploadDir(root)
 	if err != nil {
 		return "", err
 	}
 
-	fmt.Printf("\nuploaded to /ipfs/%s\n", imageIpfsHash)
-
-	fmt.Printf("docker image %s\n", util.DockerizeHash(imageIpfsHash))
+	log.Printf("\nuploaded to /ipfs/%s\n", imageIpfsHash)
+	log.Printf("docker image %s\n", util.DockerizeHash(imageIpfsHash))
 
 	return imageIpfsHash, nil
 }
@@ -102,13 +107,11 @@ func (registry *Registry) DownloadImage(ipfsHash string) (string, error) {
 		return "", err
 	}
 
-	path := tmp + "/" + ipfsHash + ".tar"
-	outstr, errstr, err := ipfsCmd(fmt.Sprintf("get %s -a -o %s", ipfsHash, path))
+	path := fmt.Sprintf("%s/%s.tar", tmp, ipfsHash)
+	err = registry.ipfsClient.Get(ipfsHash, path)
 	if err != nil {
 		return "", err
 	}
-	_ = outstr
-	_ = errstr
 
 	return path, nil
 }
@@ -146,7 +149,7 @@ func ipfsPrep(tmp string) (string, error) {
 	}
 
 	workdir := root
-	fmt.Println("preparing image in:", workdir)
+	log.Println("preparing image in:", workdir)
 	name := "default"
 
 	// read human readable name of image
@@ -189,8 +192,8 @@ func ipfsPrep(tmp string) (string, error) {
 		return "", errors.New("image archive must be produced by docker > 1.10")
 	}
 
-	configDest := workdir + "/blobs/sha256:" + string(configFile[:len(configFile)-5])
-	fmt.Println("\nDIST", configDest)
+	configDest := fmt.Sprintf("%s/blobs/sha256:%s", workdir, string(configFile[:len(configFile)-5]))
+	log.Println("\ndist:", configDest)
 	mkdir(configDest)
 	if err := copyFile(tmp+"/"+configFile, configDest+"/"+configFile); err != nil {
 		return "", err
@@ -211,25 +214,24 @@ func ipfsPrep(tmp string) (string, error) {
 	return root, nil
 }
 
-func uploadDir(root string) (string, error) {
-	outstr, errstr, err := ipfsCmd(fmt.Sprintf("add -r -q %s", root))
+func (registry *Registry) uploadDir(root string) (string, error) {
+	hash, err := registry.ipfsClient.AddDir(root)
 	if err != nil {
 		return "", err
 	}
 
-	if errstr != "" {
-		return "", errors.New(errstr)
-	}
-	if outstr != "" {
-		hashes := strings.Split(outstr, "\n")
-		imageIpfsHash := hashes[len(hashes)-2 : len(hashes)-1][0]
-		return imageIpfsHash, nil
+	// get the first ref, which contains the image data
+	refs, err := registry.ipfsClient.Refs(hash, false)
+	if err != nil {
+		return "", err
 	}
 
-	return "", errors.New("no result")
+	firstRef := <-refs
+
+	return firstRef, nil
 }
 
-func ipfsCmd(cmdStr string) (string, string, error) {
+func ipfsShellCmd(cmdStr string) (string, string, error) {
 	path, err := exec.LookPath("ipfs")
 	if err != nil {
 		return "", "", errors.New("ipfs command was not found. Please install ipfs")
@@ -360,7 +362,7 @@ func compressLayer(path, blobDir string) (int64, string, error) {
 		return int64(0), "", err
 	}
 
-	err = renameFile(tmp, blobDir+"/sha256:"+digest)
+	err = renameFile(tmp, fmt.Sprintf("%s/sha256:%s", blobDir, digest))
 	if err != nil {
 		return int64(0), "", err
 	}
