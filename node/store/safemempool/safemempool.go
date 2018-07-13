@@ -173,6 +173,10 @@ func (s *Service) GatherPendingTransactions() ([]*statechain.Transaction, error)
 
 // GetHeadBlock ...
 func (s *Service) GetHeadBlock() (mainchain.Block, error) {
+	if s.headBlock == nil {
+		return mainchain.Block{}, errors.New("no headblock")
+	}
+
 	return *s.headBlock, nil
 }
 

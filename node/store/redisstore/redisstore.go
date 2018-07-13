@@ -16,13 +16,13 @@ const (
 
 // Props ...
 type Props struct {
-	Pool      *redis.Pool
-	headBlock mainchain.Block // note: don't use a pointer bc we don't want it being modified after being passed
+	Pool *redis.Pool
 }
 
 // Service ...
 type Service struct {
-	props Props
+	props     Props
+	headBlock *mainchain.Block // note: don't use a pointer bc we don't want it being modified after being passed
 }
 
 // New ...
@@ -143,7 +143,7 @@ func (s Service) AddTx(tx *statechain.Transaction) error {
 		return errors.New("cannot add a nil transaction")
 	}
 
-	hash, err := tx.Hash()
+	hash, err := tx.CalculateHash()
 	if err != nil {
 		return err
 	}
@@ -194,12 +194,16 @@ func (s Service) GatherPendingTransactions() ([]*statechain.Transaction, error) 
 }
 
 // GetHeadBlock ...
-func (s Service) GetHeadBlock() (mainchain.Block, error) {
-	return s.headBlock, nil
+func (s *Service) GetHeadBlock() (mainchain.Block, error) {
+	if s.headBlock == nil {
+		return mainchain.Block{}, errors.New("no headblock")
+	}
+
+	return *s.headBlock, nil
 }
 
 // SetHeadBlock ...
-func (s Service) SetHeadBlock(block mainchain.Block) error {
+func (s *Service) SetHeadBlock(block *mainchain.Block) error {
 	s.headBlock = block
 	return nil
 }
