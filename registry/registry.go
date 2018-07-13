@@ -16,6 +16,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/c3systems/c3/common/network"
 	c3config "github.com/c3systems/c3/config"
@@ -52,7 +53,23 @@ func NewRegistry(config *Config) *Registry {
 		}
 	}
 
-	ipfsClient := ipfs.NewLocalShell()
+	ready := make(chan bool)
+	go func() {
+		if err := spawnIpfsDaemon(ready); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	if !<-ready {
+		log.Fatal("failed to start IPFS daemon")
+	}
+
+	url, err := getIpfsAPIURL()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	ipfsClient := ipfs.NewShell(url)
 
 	return &Registry{
 		dockerLocalRegistryHost: dockerLocalRegistryHost,
@@ -493,4 +510,39 @@ func readJSONArray(filepath string) ([]map[string]interface{}, error) {
 func normalizeImageName(name string) string {
 	// TODO
 	return name
+}
+
+// hacky way to spawn daemon
+// TODO: improve
+func spawnIpfsDaemon(ready chan bool) error {
+	out, err := exec.Command("pgrep", "ipfs").Output()
+	if err != nil || strings.TrimSpace(string(out)) == "" {
+		log.Println("IPFS is not running. Starting...")
+
+		go func() {
+			// TODO: detect when running by watching log output
+			time.Sleep(10 * time.Second)
+			ready <- true
+		}()
+
+		err := exec.Command("ipfs", "daemon").Run()
+		if err != nil {
+			ready <- false
+			log.Println(err)
+			return errors.New("failed to start IPFS")
+		}
+	}
+
+	ready <- true
+	log.Println("IPFS is running...")
+	return nil
+}
+
+func getIpfsAPIURL() (string, error) {
+	out, err := exec.Command("ipfs", "config", "Addresses.API").Output()
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(string(out)), nil
 }
