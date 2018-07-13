@@ -82,7 +82,7 @@ test/common/command:
 	@go test -v common/command/*.go $(ARGS)
 
 .PHONY: test/core
-test/core: test/core/server test/core/docker test/core/sandbox
+test/core: test/core/server test/core/docker test/core/ipfs test/core/sandbox
 
 .PHONY: test/core/server
 test/core/server:
@@ -91,6 +91,10 @@ test/core/server:
 .PHONY: test/core/docker
 test/core/docker:
 	@go test -v -parallel 1 core/docker/*.go $(ARGS)
+
+.PHONY: test/core/ipfs
+test/core/ipfs:
+	@go test -v -parallel 1 core/ipfs/*.go $(ARGS)
 
 .PHONY: test/core/sandbox
 test/core/sandbox: docker/build/example
