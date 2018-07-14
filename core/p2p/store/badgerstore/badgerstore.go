@@ -1,21 +1,25 @@
 package badgerstore
 
 import (
+	"path/filepath"
+	"strings"
+
+	"github.com/c3systems/c3/core/p2p/store"
+
 	badger "github.com/dgraph-io/badger"
+	ds "github.com/ipfs/go-datastore"
 	badgerds "github.com/ipfs/go-ds-badger"
-	bstore "github.com/ipfs/go-ipfs-blockstore"
-	//bstore "gx/ipfs/QmTVDM4LCSUMFNQzbDLL9zQwp8usE6QHymFdh3h8vL9v6b/go-ipfs-blockstore"
 )
 
-// Options are params for creating DB object.
-//
-// note: DO NOT set the Dir and/or ValuePath fields of opt, they will be set for you.
-type Options struct {
-	badger.Options
-}
+func New(path string, options *badger.Options) (ds.Batching, error) {
+	// expand tilde
+	if strings.HasPrefix(path, "~/") {
+		path = filepath.Join(store.UserHomeDir(), path[2:])
+	}
 
-func New(path string, options *Options) (bstore.Blockstore, error) {
-	return badgerds.NewDatastore(path, &badgerds.Options{
-		options,
-	}), nil
+	if err := store.CreateDirIfNotExist(path); err != nil {
+		return nil, err
+	}
+
+	return badgerds.NewDatastore(path, options), nil
 }
