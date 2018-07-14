@@ -1,4 +1,4 @@
-package c3
+package sdk
 
 import (
 	"fmt"

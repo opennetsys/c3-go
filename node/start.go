@@ -36,15 +36,13 @@ import (
 
 // Start ...
 // note: start is called from cobra
-func Start(cfg *nodetypes.Config) (*Service, error) {
-	n := new(Service)
-
+func Start(n *Service, cfg *nodetypes.Config) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	if cfg == nil {
 		// note: is this the correct way to fail an app with cobra?
-		return nil, errors.New("config is required to start the node")
+		return errors.New("config is required to start the node")
 	}
 
 	var pwd *string
@@ -54,7 +52,7 @@ func Start(cfg *nodetypes.Config) (*Service, error) {
 
 	priv, err := c3crypto.ReadPrivateKeyFromPem(cfg.Keys.PEMFile, pwd)
 	if err != nil {
-		return nil, fmt.Errorf("err reading pem file\n%v", err)
+		return fmt.Errorf("err reading pem file\n%v", err)
 	}
 	pub := &priv.PublicKey
 
@@ -62,12 +60,12 @@ func Start(cfg *nodetypes.Config) (*Service, error) {
 
 	pid, err := peer.IDFromPublicKey(wPub)
 	if err != nil {
-		return nil, fmt.Errorf("err generating pid from public key\n%v", err)
+		return fmt.Errorf("err generating pid from public key\n%v", err)
 	}
 
 	listen, err := ma.NewMultiaddr(cfg.URI)
 	if err != nil {
-		return nil, fmt.Errorf("err parsing ipfs uri\n%v", err)
+		return fmt.Errorf("err parsing ipfs uri\n%v", err)
 	}
 
 	ps := peerstore.NewPeerstore()
@@ -77,16 +75,16 @@ func Start(cfg *nodetypes.Config) (*Service, error) {
 	swarmNet := swarm.NewSwarm(ctx, pid, ps, nil)
 	tcpTransport := tcp.NewTCPTransport(genUpgrader(swarmNet))
 	if err := swarmNet.AddTransport(tcpTransport); err != nil {
-		return nil, fmt.Errorf("err adding tcp transport\n%v", err)
+		return fmt.Errorf("err adding tcp transport\n%v", err)
 	}
 	if err := swarmNet.AddListenAddr(listen); err != nil {
-		return nil, fmt.Errorf("err adding swam listen addr\n%v", err)
+		return fmt.Errorf("err adding swam listen addr\n%v", err)
 	}
 	newNode := bhost.New(swarmNet)
 
 	pubsub, err := floodsub.NewFloodSub(ctx, newNode)
 	if err != nil {
-		return nil, fmt.Errorf("err building new pubsub service\n%v", err)
+		return fmt.Errorf("err building new pubsub service\n%v", err)
 	}
 
 	for i, addr := range newNode.Addrs() {
@@ -96,12 +94,12 @@ func Start(cfg *nodetypes.Config) (*Service, error) {
 	if cfg.Peer != "" {
 		addr, err := ipfsaddr.ParseString(cfg.Peer)
 		if err != nil {
-			return nil, fmt.Errorf("err parsing node uri flag: %s\n%v", cfg.URI, err)
+			return fmt.Errorf("err parsing node uri flag: %s\n%v", cfg.URI, err)
 		}
 
 		pinfo, err := peerstore.InfoFromP2pAddr(addr.Multiaddr())
 		if err != nil {
-			return nil, fmt.Errorf("err getting info from peerstore\n%v", err)
+			return fmt.Errorf("err getting info from peerstore\n%v", err)
 		}
 
 		if err := newNode.Connect(ctx, *pinfo); err != nil {
@@ -115,12 +113,12 @@ func Start(cfg *nodetypes.Config) (*Service, error) {
 	// TODO: add cli flags for different types
 	memPool, err := safemempool.New(&safemempool.Props{})
 	if err != nil {
-		return nil, fmt.Errorf("err initializing mempool\n%v", err)
+		return fmt.Errorf("err initializing mempool\n%v", err)
 	}
 
 	diskStore, err := fsstore.New(cfg.DataDir)
 	if err != nil {
-		return nil, fmt.Errorf("err building disk store\n%v", err)
+		return fmt.Errorf("err building disk store\n%v", err)
 	}
 	// wrap the datastore in a 'content addressed blocks' layer
 	// TODO: implement metrics? https://github.com/ipfs/go-ds-measure
@@ -131,7 +129,7 @@ func Start(cfg *nodetypes.Config) (*Service, error) {
 		Host:       newNode,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("err starting ipfs p2p network\n%v", err)
+		return fmt.Errorf("err starting ipfs p2p network\n%v", err)
 	}
 
 	pBuff, err := protobuff.NewNode(&protobuff.Props{
@@ -140,23 +138,22 @@ func Start(cfg *nodetypes.Config) (*Service, error) {
 		BroadcastTransactionFN: n.BroadcastTransaction,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("err starting protobuff node\n%v", err)
+		return fmt.Errorf("err starting protobuff node\n%v", err)
 	}
 
 	nextBlock := &mainchain.GenesisBlock
 	peers := newNode.Peerstore().Peers()
-	log.Println(peers)
 	if len(peers) > 1 {
 		if err := fetchHeadBlock(nextBlock, peers, pBuff); err != nil {
-			return nil, fmt.Errorf("err fetching headblock\n%v", err)
+			return fmt.Errorf("err fetching headblock\n%v", err)
 		}
 	}
 
 	if err := memPool.SetHeadBlock(nextBlock); err != nil {
-		return nil, fmt.Errorf("err setting head block\n%v", err)
+		return fmt.Errorf("err setting head block\n%v", err)
 	}
 
-	n, err = New(&Props{
+	err = n.setProps(Props{
 		Context:             ctx,
 		SubscriberChannel:   make(chan interface{}),
 		CancelMinersChannel: make(chan struct{}),
@@ -171,15 +168,15 @@ func Start(cfg *nodetypes.Config) (*Service, error) {
 		},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("err building the node\n%v", err)
+		return fmt.Errorf("err building the node\n%v", err)
 	}
 
 	if err := n.listenForEvents(); err != nil {
-		return nil, fmt.Errorf("err starting listener\n%v", err)
+		return fmt.Errorf("err starting listener\n%v", err)
 	}
 	// TODO: add a cli flag to determine if the node mines
 	if err := n.spawnNextBlockMiner(nextBlock); err != nil {
-		return nil, fmt.Errorf("err starting miner\n%v", err)
+		return fmt.Errorf("err starting miner\n%v", err)
 	}
 	log.Printf("Node %s started", newNode.ID().Pretty())
 
@@ -222,7 +219,6 @@ func genUpgrader(n *swarm.Swarm) *tptu.Upgrader {
 		Muxer:   stMuxer,
 		Filters: n.Filters,
 	}
-
 }
 
 func fetchHeadBlock(headBlock *mainchain.Block, peers []peer.ID, pBuff protobuff.Interface) error {

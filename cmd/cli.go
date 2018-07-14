@@ -120,7 +120,8 @@ For more info visit: https://github.com/c3systems/c3,
 		Short: "Start a c3 node",
 		Long:  "By starting a c3 node, you will participate in the c3 network: mining and storing blocks and responding to RPC requests. Thank you, you are making the c3 network stronger by participating.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			_, err := node.Start(&nodetypes.Config{
+			n := new(node.Service)
+			return node.Start(n, &nodetypes.Config{
 				URI:     nodeURI,
 				Peer:    peer,
 				DataDir: dataDir,
@@ -129,8 +130,6 @@ For more info visit: https://github.com/c3systems/c3,
 					Password: password,
 				},
 			})
-
-			return err
 		},
 	}
 	startSubCmd.Flags().StringVarP(&nodeURI, "uri", "u", "/ip4/0.0.0.0/tcp/9000", "The host on which to run the node")

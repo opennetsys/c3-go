@@ -2,6 +2,7 @@ package node
 
 import (
 	"testing"
+	"time"
 
 	"github.com/c3systems/c3/core/c3crypto"
 	"github.com/c3systems/c3/core/chain/statechain"
@@ -11,24 +12,28 @@ import (
 
 func TestBroadcast(t *testing.T) {
 	pem := "./test_data/key.pem"
-	password := ""
-	p := "/ip4/192.168.0.9/tcp/9000/ipfs/QmcAfcm2kJZaiunoRwh8H7ihWbHez3w1hu8EAXKeMZD7pj"
 	nodeURI := "/ip4/0.0.0.0/tcp/9000"
 	dataDir := "~/.c3"
-	n, err := Start(&nodetypes.Config{
-		URI:     nodeURI,
-		Peer:    p,
-		DataDir: dataDir,
-		Keys: nodetypes.Keys{
-			PEMFile:  pem,
-			Password: password,
-		},
-	})
-	if err != nil {
-		t.Error(err)
-	}
+	n := new(Service)
+	ready := make(chan bool)
+	go func() {
+		go Start(n, &nodetypes.Config{
+			URI:     nodeURI,
+			Peer:    "/ip4/192.168.84.20/tcp/9005/ipfs/QmTwGKMGvVL9Txti4AhB14bRZ6rhQNeAX4ZAhn6r1xfUxK",
+			DataDir: dataDir,
+			Keys: nodetypes.Keys{
+				PEMFile:  pem,
+				Password: "",
+			},
+		})
 
-	priv, err := c3crypto.ReadPrivateKeyFromPem(pem, &password)
+		time.Sleep(60 * time.Second)
+		ready <- true
+	}()
+
+	<-ready
+
+	priv, err := c3crypto.ReadPrivateKeyFromPem(pem, nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -41,13 +46,23 @@ func TestBroadcast(t *testing.T) {
 		From:      "abc",
 	})
 
-	//hash := "foobar"
+	err = tx.SetHash()
+	if err != nil {
+		t.Error(err)
+	}
 
-	tx.SetSig(priv)
+	err = tx.SetSig(priv)
+	if err != nil {
+		t.Error(err)
+	}
 
 	resp, err := n.BroadcastTransaction(tx)
 	if err != nil {
 		t.Error(err)
+	}
+
+	if resp.TxHash == nil {
+		t.Error("expected txhash")
 	}
 
 	spew.Dump(resp)

@@ -8,7 +8,12 @@ install:
 deps:
 	@rm -rf ./vendor && \
 	dep ensure && \
-	gxundo ./vendor
+	gxundo ./vendor && \
+	(cd vendor/github.com/libp2p/go-libp2p-pubsub/pb \
+	&& rm rpc.pb.go && rm rpc.proto \
+	&& wget https://github.com/c3systems/go-libp2p-pubsub/raw/master/pb/rpc.pb.go \
+	&& wget https://github.com/c3systems/go-libp2p-pubsub/raw/master/pb/rpc.proto)
+
 
 .PHONY: build
 build:
@@ -60,7 +65,7 @@ test/cleanup:
 	@. scripts/test_cleanup.sh
 
 .PHONY: test
-test: test/check test/c3 test/common test/common test/registry test/core test/cleanup
+test: test/check test/c3 test/common test/common test/registry test/core test/node test/cleanup
 
 .PHONY: test/c3
 test/c3:
@@ -116,6 +121,14 @@ test/core/chain/statechain:
 test/registry:
 	@docker pull hello-world && \
 	go test -v -parallel 1 registry/*.go $(ARGS)
+
+.PHONY: test/node
+test/node:
+	@go test -v node/*.go $(ARGS)
+
+.PHONY: run/node
+run/node:
+	go run main.go node start --pem=node/test_data/key.pem
 
 .PHONY: test/docker/build/snapshot
 test/docker/build/snapshot:

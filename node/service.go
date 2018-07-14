@@ -28,6 +28,16 @@ func New(props *Props) (*Service, error) {
 	}, nil
 }
 
+func (s *Service) setProps(props Props) error {
+	if props.Store == nil || props.Pubsub == nil || props.P2P == nil {
+		return errors.New("p2p node, store, and pubsub are required")
+	}
+
+	s.props = props
+
+	return nil
+}
+
 func (s Service) spawnNextBlockMiner(prevBlock *mainchain.Block) error {
 	pendingTransactions, err := s.props.Store.GatherPendingTransactions()
 	if err != nil {
@@ -269,7 +279,7 @@ func (s Service) BroadcastMinedBlock(minedBlock *miner.MinedBlock) error {
 }
 
 // BroadcastTransaction ...
-func (s Service) BroadcastTransaction(tx *statechain.Transaction) (*nodetypes.SendTxResponse, error) {
+func (s *Service) BroadcastTransaction(tx *statechain.Transaction) (*nodetypes.SendTxResponse, error) {
 	if tx == nil {
 		return nil, errors.New("cannot broadcast nil transaction")
 	}
@@ -280,6 +290,8 @@ func (s Service) BroadcastTransaction(tx *statechain.Transaction) (*nodetypes.Se
 	if err != nil {
 		return nil, err
 	}
+
+	log.Println("HIIII", s.props, s.props.Pubsub)
 
 	if err := s.props.Pubsub.Publish("transactions", data); err != nil {
 		return nil, err
