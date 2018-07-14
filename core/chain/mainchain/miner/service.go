@@ -274,8 +274,6 @@ func (s Service) bootstrapNextBlock() (*mainchain.Block, error) {
 }
 
 func (s Service) buildNextStates(imageHash string, transactions []*statechain.Transaction) error {
-	// TODO: add miguel's code, here
-
 	var (
 		diffs               []*statechain.Diff
 		newDiffs            []*statechain.Diff

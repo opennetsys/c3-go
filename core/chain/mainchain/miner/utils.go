@@ -1,9 +1,14 @@
 package miner
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
 	"sort"
+	"time"
 
 	"github.com/c3systems/c3/common/hashing"
 	"github.com/c3systems/c3/common/hexutil"
@@ -11,7 +16,9 @@ import (
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/merkle"
 	"github.com/c3systems/c3/core/chain/statechain"
+	"github.com/c3systems/c3/core/diffing"
 	"github.com/c3systems/c3/core/p2p"
+	"github.com/c3systems/c3/core/sandbox"
 )
 
 // CheckBlockHashAgainstDifficulty ...
@@ -367,6 +374,20 @@ func VerifyMinedBlock(p2pSvc p2p.Interface, isValid *bool, minedBlock *MinedBloc
 		return false, nil
 	}
 
+	// BlockNumber must be +1 prev block number
+	blockNumber, err := hexutil.DecodeUint64(minedBlock.NextBlock.Props().BlockNumber)
+	if err != nil {
+		return false, err
+	}
+	prevNumber, err := hexutil.DecodeUint64(minedBlock.PreviousBlock.Props().BlockNumber)
+	if err != nil {
+		return false, err
+	}
+
+	if prevNumber+1 != blockNumber {
+		return false, nil
+	}
+
 	return VerifyStateBlocksFromMinedBlock(p2pSvc, isValid, minedBlock)
 }
 
@@ -385,19 +406,7 @@ func VerifyStateBlocksFromMinedBlock(p2pSvc p2p.Interface, isValid *bool, minedB
 	if isValid == nil || *isValid == false {
 		return false, errors.New("received nil or false isValid")
 	}
-
-	// 1. Verify state blocks merkle hash
-	if ok, err := VerifyMerkleTreeFromMinedBlock(isValid, minedBlock); !ok || err != nil {
-		return false, nil
-	}
-
-	// 2. Verify each state block
-	// first, order them by block number
-	orderedBlocks, err := orderStatechainBlocks(minedBlock.StatechainBlocksMap)
-	if err != nil {
-		return false, err
-	}
-	if len(orderedBlocks) == 0 {
+	if len(minedBlock.StatechainBlocksMap) == 0 {
 		if len(minedBlock.TransactionsMap) == 0 {
 			return true, nil
 		}
@@ -405,107 +414,588 @@ func VerifyStateBlocksFromMinedBlock(p2pSvc p2p.Interface, isValid *bool, minedB
 		return false, nil
 	}
 
-	prevBlockHash := orderedBlocks[0].Props().PrevBlockHash
-	prevBlockCID, err := p2p.GetCIDByHash(prevBlockHash)
-	if err != nil {
-		return false, err
-	}
-	// TODO: check that this is the actual prev block on the blockchain
-	prevBlock, err := p2pSvc.GetStatechainBlock(prevBlockCID)
-	if err != nil {
-		return false, err
-	}
-	if prevBlock == nil {
-		return false, errors.New("got nil prev block")
-	}
-	if prevBlock.Props().BlockHash == nil {
-		return false, errors.New("got nil prev block hash")
-	}
-	// note: checked for nil pointer, above
-	if *prevBlock.Props().BlockHash != prevBlockHash {
+	// 1. Verify state blocks merkle hash
+	if ok, err := VerifyMerkleTreeFromMinedBlock(isValid, minedBlock); !ok || err != nil {
 		return false, nil
 	}
 
-	// TODO: walk the blockchain to generate current state
-	prevState := ""
-	prevStateHash := hashing.HashToHexString([]byte(prevState))
-	if prevStateHash != prevBlock.Props().StateCurrentHash {
-		return false, nil
+	// 2. Verify each state block
+	// first, group them by image hash
+	groupedBlocks, err := groupStateBlocksByImageHash(minedBlock.StatechainBlocksMap)
+	if err != nil {
+		return false, err
 	}
 
-	for _, block := range orderedBlocks {
+	for imageHash, blocks := range groupedBlocks {
 		if isValid == nil || *isValid == false {
 			return false, errors.New("received nil or false isValid")
 		}
 
-		// 2a. block must have a hash
-		if block == nil || block.Props().BlockHash == nil {
-			return false, nil
-		}
-
-		// 2b. Block #'s must be sequential
-		prevBlockNumber, err := hexutil.DecodeUint64(prevBlock.Props().BlockNumber)
+		// then, order them by block number
+		orderedBlocks, err := orderStatechainBlocks(blocks)
 		if err != nil {
 			return false, err
 		}
-		blockNumber, err := hexutil.DecodeUint64(block.Props().BlockNumber)
+
+		if len(orderedBlocks) == 0 {
+			continue
+		}
+		prevBlockHash := orderedBlocks[0].Props().PrevBlockHash
+		prevBlockCID, err := p2p.GetCIDByHash(prevBlockHash)
 		if err != nil {
 			return false, err
 		}
-		if prevBlockNumber+1 != blockNumber {
-			return false, nil
-		}
-
-		// 2c. verify the block hash
-		tmpHash, err := block.CalculateHash()
+		// TODO: check that this is the actual prev block on the blockchain
+		prevBlock, err := p2pSvc.GetStatechainBlock(prevBlockCID)
 		if err != nil {
 			return false, err
 		}
-		// note: checked nil BlockHash, above
-		if tmpHash != *block.Props().BlockHash {
+		if prevBlock == nil {
+			return false, errors.New("got nil prev block")
+		}
+		if prevBlock.Props().BlockHash == nil {
+			return false, errors.New("got nil prev block hash")
+		}
+		// note: checked for nil pointer, above
+		if *prevBlock.Props().BlockHash != prevBlockHash {
 			return false, nil
 		}
 
-		// 2d. verify the block tx
-		// note: can't have a state block without transactions?
-		tx, ok := minedBlock.TransactionsMap[block.Props().TxHash]
-		if !ok || tx == nil {
-			return false, err
-		}
-
-		ok, err = VerifyTransaction(tx)
+		prevState, err := fetchCurrentState(p2pSvc, prevBlock)
 		if err != nil {
 			return false, err
 		}
-		if !ok {
+		prevStateHash := hashing.HashToHexString([]byte(prevState))
+		if prevStateHash != prevBlock.Props().StateCurrentHash {
 			return false, nil
 		}
 
-		// note: just printing to keep the txs var alive
-		log.Println(tx)
+		for _, block := range orderedBlocks {
+			// 2a. block must have a hash
+			if block == nil || block.Props().BlockHash == nil {
+				return false, nil
+			}
 
-		// TODO: run the tx through the container
-		// 2e. verify current state hash
-		currentState := ""
-		currentStateHash := hashing.HashToHexString([]byte(currentState))
-		if currentStateHash != block.Props().StateCurrentHash {
-			return false, nil
+			// 2b. Block #'s must be sequential
+			prevBlockNumber, err := hexutil.DecodeUint64(prevBlock.Props().BlockNumber)
+			if err != nil {
+				return false, err
+			}
+			blockNumber, err := hexutil.DecodeUint64(block.Props().BlockNumber)
+			if err != nil {
+				return false, err
+			}
+			if prevBlockNumber+1 != blockNumber {
+				return false, nil
+			}
+
+			// 2c. verify the block hash
+			tmpHash, err := block.CalculateHash()
+			if err != nil {
+				return false, err
+			}
+			// note: checked nil BlockHash, above
+			if tmpHash != *block.Props().BlockHash {
+				return false, nil
+			}
+
+			// 2d. verify the block tx
+			// note: can't have a state block without transactions?
+			tx, ok := minedBlock.TransactionsMap[block.Props().TxHash]
+			if !ok || tx == nil {
+				return false, err
+			}
+
+			ok, err = VerifyTransaction(tx)
+			if err != nil {
+				return false, err
+			}
+			if !ok {
+				return false, nil
+			}
+
+			// note: just printing to keep the txs var alive
+			log.Println(tx)
+
+			// TODO: run the tx through the container
+			nextStateBlock, nextDiff, nextState, err := buildNextStateFromPrevState(p2pSvc, previousState, block, tx)
+			if err != nil {
+				return false, err
+			}
+			if nextStateBlock == nil {
+				return false, errors.New("nil state block")
+			}
+			if nextDiff == nil {
+				return false, errors.New("nil diff")
+			}
+			if nextState == nil {
+				return false, errors.New("nil next state")
+			}
+			if nextStateBlock.Props().BlockHash == nil {
+				return false, errors.New("nil block hash")
+			}
+			if nextDiff.Props().DiffHash == nil {
+				return false, errors.New("nil diff hash")
+			}
+
+			// 2e. verify current state hash
+			if nextStateBlock.Props().StateCurrentHash != block.Props().StateCurrentHash {
+				return false, nil
+			}
+
+			// 2f. verify prevDiff
+			if nextStateBlock.Props().StatePrevDiffHash != block.Props().StatePrevDiffHash {
+				return false, nil
+			}
+
+			// set prev to current for next loop
+			prevState = nextState
+			prevBlock = block
 		}
-
-		// 2f. verify prevDiff
-		prevDiff := ""
-		prevDiffHash := hashing.HashToHexString([]byte(prevDiff))
-		if prevDiffHash != block.Props().StatePrevDiffHash {
-			return false, nil
-		}
-
-		// set prev to current for next loop
-		prevState = currentState
-		prevBlock = block
 	}
 
 	return true, nil
+}
 
+func buildNextStateFromPrevState(p2pSvc p2p.Interface, prevState []byte, prevBlock *statechain.Block, tx *statechain.Transaction) (*statechain.Block, *statechain.Diff, *[]byte, error) {
+	if prevState == nil {
+		return nil, nil, nil, errors.New("nil state")
+	}
+	if prevBlock == nil {
+		return nil, nil, nil, errors.New("nil prev block")
+	}
+	if tx == nil {
+		return nil, nil, nil, errors.New("nil tx")
+	}
+
+	tx := time.Now().Unix()
+	outPatchFile, err := ioutil.TempFile("", fmt.Sprintf("%s/%v/combined.txt", prevState.Props().ImageHash, ts))
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	defer os.Remove(outPatchFile.Name()) // clean up
+	if err := outPatchFile.Close(); err != nil {
+		return nil, nil, nil, err
+	}
+	prevStateFile, err := ioutil.TempFile("", fmt.Sprintf("%s/%v/prevState.txt", prevStateBlock.Props().ImageHash, ts))
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	defer os.Remove(prevStateFile.Name()) // clean up
+	if err := prevStateFile.Write(prevState); err != nil {
+		return nil, nil, nil, err
+	}
+	if err := prevStateFile.Close(); err != nil {
+		return nil, nil, nil, err
+	}
+	prevStateFileName = prevStateFile.Name()
+
+	var nextState []byte
+	if tx.Props().Method == "c3_invokeMethod" {
+		payload, ok := tx.Props().Payload.([]byte)
+		if !ok {
+			return nil, nil, nil, errors.New("could not parse payload")
+		}
+
+		var parsed []string
+		if err := json.Unmarshal(payload, &parsed); err != nil {
+			return nil, nil, nil, err
+		}
+
+		inputsJSON, err := json.Marshal(struct {
+			Method string   `json:"method"`
+			Params []string `json:"params"`
+		}{
+			Method: parsed[0],
+			Params: parsed[1:],
+		})
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		// run container, passing the tx inputs
+		sb := sandbox.NewSandbox(&sandbox.Config{})
+		nextState, err = sb.Play(&sandbox.PlayConfig{
+			ImageID:      tx.Props().ImageHash,
+			Payload:      inputsJSON,
+			InitialState: prevState,
+		})
+
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		log.Printf("container new state: %s", string(nextState))
+		nextStateFile, err := ioutil.TempFile("", fmt.Sprintf("%s/%v/state.txt", prevBlock.Props().ImageHash, ts))
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		defer os.Remove(nextStateFile.Name()) // clean up
+
+		if _, err := nextStateFile.Write(nextState); err != nil {
+			return nil, nil, nil, err
+		}
+		if err := nextStateFile.Close(); err != nil {
+			return nil, nil, nil, err
+		}
+
+		if err := diffing.Diff(prevStateFileName, nextStateFile.Name(), outPatchFile.Name(), false); err != nil {
+			return nil, nil, nil, err
+		}
+
+		// build the diff struct
+		diffData, err := ioutil.ReadFile(outPatchFile.Name())
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		diffStruct := statechain.NewDiff(&statechain.DiffProps{
+			Data: string(diffData),
+		})
+		if err := diffStruct.SetHash(); err != nil {
+			return nil, nil, nil, err
+		}
+
+		nextStateHash := hexutil.EncodeBytes(nextState)
+		runningBlockNumber++
+		nextStateStruct := statechain.New(&statechain.BlockProps{
+			BlockNumber:       hexutil.EncodeUint64(runningBlockNumber),
+			BlockTime:         hexutil.EncodeUint64(uint64(ts)),
+			ImageHash:         block.Props().ImageHash,
+			TxHash:            *tx.Props().TxHash, // note: checked for nil pointer, above
+			PrevBlockHash:     runningBlockHash,
+			StatePrevDiffHash: *diffStruct.Props().DiffHash, // note: used setHash, above so it would've erred
+			StateCurrentHash:  string(nextStateHash),
+		})
+		if err := nextStateStruct.SetHash(); err != nil {
+			return nil, nil, nil, err
+		}
+
+		return nextStateStruct, diffStruct, nextState, nil
+	}
+
+	// TODO: is this what we want?
+	return nil, nil, nil, errors.New("tx doesn't affect state")
+}
+
+func fetchCurrentState(p2pSvc p2p.Interface, block *statechain.Block) ([]byte, error) {
+	if block == nil {
+		return nil, errors.New("nil block")
+	}
+	if block.Props().BlockHash == nil {
+		return nil, errors.New("nil block hash")
+	}
+
+	var (
+		diffs    []*statechain.Diff
+		newDiffs []*statechain.Diff
+	)
+
+	// gather the diffs
+	diffCID, err := p2p.GetCIDByHash(block.Props().StatePrevDiffHash)
+	if err != nil {
+		return nil, err
+	}
+	diff, err := p2pSvc.GetStatechainDiff(diffCID)
+	if err != nil {
+		return err
+	}
+	// note: prepend
+	diffs = append([]*statechain.Diff{diff}, diffs...)
+
+	head := block
+	for head.Props().BlockNumber != mainchain.GenesisBlock.Props().BlockNumber {
+		prevStateCID, err := p2p.GetCIDByHash(head.Props().PrevBlockHash)
+		if err != nil {
+			return nil, err
+		}
+
+		prevStateBlock, err := p2pSvc.GetStatechainBlock(prevStateCID)
+		if err != nil {
+			return nil, err
+		}
+		head = prevStateBlock
+
+		diffCID, err := p2p.GetCIDByHash(prevStateBlock.Props().StatePrevDiffHash)
+		if err != nil {
+			return nil, err
+		}
+		diff, err := p2pSvc.GetStatechainDiff(diffCID)
+		if err != nil {
+			return nil, err
+		}
+		// note: prepend
+		diffs = append([]*statechain.Diff{diff}, diffs...)
+	}
+
+	// apply the diffs to get the current state
+	// TODO: get the genesis state of the block
+	genesisState := ""
+	ts := time.Now().Unix()
+	tmpStateFile, err := ioutil.TempFile("", fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
+	if err != nil {
+		return nil, err
+	}
+	defer os.Remove(tmpStateFile.Name()) // clean up
+
+	if _, err := tmpStateFile.Write([]byte(genesisState)); err != nil {
+		return nil, err
+	}
+	if err := tmpStateFile.Close(); err != nil {
+		return nil, err
+	}
+
+	outPatchFile, err := ioutil.TempFile("", fmt.Sprintf("%s/%v/combined.txt", imageHash, ts))
+	if err != nil {
+		return nil, err
+	}
+	defer os.Remove(outPatchFile.Name()) // clean up
+	if err := outPatchFile.Close(); err != nil {
+		return nil, err
+	}
+
+	for i, diff := range diffs {
+		tmpPatchFile, err := ioutil.TempFile("", fmt.Sprintf("%s/%v/patch.%d.txt", imageHash, ts, i))
+		if err != nil {
+			return nil, err
+		}
+		defer os.Remove(tmpPatchFile.Name()) // clean up
+
+		if _, err := tmpPatchFile.Write([]byte(diff.Props().Data)); err != nil {
+			return nil, err
+		}
+		if err := tmpPatchFile.Close(); err != nil {
+			return nil, err
+		}
+
+		if err := diffing.CombineDiff(outPatchFile.Name(), tmpPatchFile.Name(), outPatchFile.Name()); err != nil {
+			return nil, err
+		}
+	}
+
+	// now apply the combined patch file to the state
+	if err := diffing.Patch(outPatchFile.Name(), false, true); err != nil {
+		return nil, err
+	}
+	state, err := ioutil.ReadFile(tmpStateFile.Name())
+	if err != nil {
+		return nil, err
+	}
+
+	return []byte(state), nil
+}
+
+// BuildNextState ...
+func BuildNextState(p2pSvc p2p.Interface, block *statechain.Block, tx *statechain.Transaction) (*statechain.Block, *statechain.Diff, error) {
+	if block == nil {
+		return nil, nil, errors.New("nil block")
+	}
+	if block.Props().BlockHash == nil {
+		return nil, nil, errors.New("nil block hash")
+	}
+	if tx == nil {
+		return errors.New("nil tx")
+	}
+	if tx.Props().TxHash == nil {
+		return errors.New("nil tx hash")
+	}
+
+	var (
+		diffs               []*statechain.Diff
+		newDiffs            []*statechain.Diff
+		newTxs              []*statechain.Transaction
+		newStatechainBlocks []*statechain.Block
+	)
+
+	// gather the diffs
+	diffCID, err := p2p.GetCIDByHash(block.Props().StatePrevDiffHash)
+	if err != nil {
+		return err
+	}
+	diff, err := p2pSvc.GetStatechainDiff(diffCID)
+	if err != nil {
+		return err
+	}
+	// note: prepend
+	diffs = append([]*statechain.Diff{diff}, diffs...)
+
+	head := block
+	for head.Props().BlockNumber != mainchain.GenesisBlock.Props().BlockNumber {
+		prevStateCID, err := p2p.GetCIDByHash(head.Props().PrevBlockHash)
+		if err != nil {
+			return err
+		}
+
+		prevStateBlock, err := p2pSvc.GetStatechainBlock(prevStateCID)
+		if err != nil {
+			return err
+		}
+		head = prevStateBlock
+
+		diffCID, err := p2p.GetCIDByHash(prevStateBlock.Props().StatePrevDiffHash)
+		if err != nil {
+			return err
+		}
+		diff, err := p2pSvc.GetStatechainDiff(diffCID)
+		if err != nil {
+			return err
+		}
+		// note: prepend
+		diffs = append([]*statechain.Diff{diff}, diffs...)
+	}
+
+	// apply the diffs to get the current state
+	// TODO: get the genesis state of the block
+	genesisState := ""
+	ts := time.Now().Unix()
+	tmpStateFile, err := ioutil.TempFile("", fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmpStateFile.Name()) // clean up
+
+	if _, err := tmpStateFile.Write([]byte(genesisState)); err != nil {
+		return err
+	}
+	if err := tmpStateFile.Close(); err != nil {
+		return err
+	}
+
+	outPatchFile, err := ioutil.TempFile("", fmt.Sprintf("%s/%v/combined.txt", imageHash, ts))
+	if err != nil {
+		return err
+	}
+	defer os.Remove(outPatchFile.Name()) // clean up
+	if err := outPatchFile.Close(); err != nil {
+		return err
+	}
+
+	for i, diff := range diffs {
+		tmpPatchFile, err := ioutil.TempFile("", fmt.Sprintf("%s/%v/patch.%d.txt", imageHash, ts, i))
+		if err != nil {
+			return err
+		}
+		defer os.Remove(tmpPatchFile.Name()) // clean up
+
+		if _, err := tmpPatchFile.Write([]byte(diff.Props().Data)); err != nil {
+			return err
+		}
+		if err := tmpPatchFile.Close(); err != nil {
+			return err
+		}
+
+		if err := diffing.CombineDiff(outPatchFile.Name(), tmpPatchFile.Name(), outPatchFile.Name()); err != nil {
+			return err
+		}
+	}
+
+	// now apply the combined patch file to the state
+	if err := diffing.Patch(outPatchFile.Name(), false, true); err != nil {
+		return err
+	}
+	state, err := ioutil.ReadFile(tmpStateFile.Name())
+	if err != nil {
+		return err
+	}
+
+	log.Printf("state\n%s", string(state))
+	headStateFileName := tmpStateFile.Name()
+	runningBlockNumber, err := hexutil.DecodeUint64(prevStateBlock.Props().BlockNumber)
+	if err != nil {
+		return err
+	}
+	runningBlockHash := *prevStateBlock.Props().BlockHash // note: already checked nil pointer, above
+
+	// apply state to container and run tx
+	var nextState []byte
+
+	if tx.Props().Method == "c3_invokeMethod" {
+		payload, ok := tx.Props().Payload.([]byte)
+		if !ok {
+			return errors.New("could not parse payload")
+		}
+
+		var parsed []string
+		if err := json.Unmarshal(payload, &parsed); err != nil {
+			return err
+		}
+
+		inputsJSON, err := json.Marshal(struct {
+			Method string   `json:"method"`
+			Params []string `json:"params"`
+		}{
+			Method: parsed[0],
+			Params: parsed[1:],
+		})
+		if err != nil {
+			return err
+		}
+
+		// run container, passing the tx inputs
+		sb := sandbox.NewSandbox(&sandbox.Config{})
+		nextState, err = sb.Play(&sandbox.PlayConfig{
+			ImageID:      tx.Props().ImageHash,
+			Payload:      inputsJSON,
+			InitialState: state,
+		})
+
+		if err != nil {
+			return err
+		}
+
+		log.Printf("container new state: %s", string(nextState))
+
+		nextStateFile, err := ioutil.TempFile("", fmt.Sprintf("%s/%v/state.%d.txt", imageHash, ts, i))
+		if err != nil {
+			return err
+		}
+		defer os.Remove(nextStateFile.Name()) // clean up
+
+		if _, err := nextStateFile.Write(nextState); err != nil {
+			return err
+		}
+		if err := nextStateFile.Close(); err != nil {
+			return err
+		}
+
+		if err := diffing.Diff(headStateFileName, nextStateFile.Name(), outPatchFile.Name(), false); err != nil {
+			return err
+		}
+		headStateFileName = nextStateFile.Name()
+
+		// build the diff struct
+		diffData, err := ioutil.ReadFile(outPatchFile.Name())
+		if err != nil {
+			return err
+		}
+
+		diffStruct := statechain.NewDiff(&statechain.DiffProps{
+			Data: string(diffData),
+		})
+		if err := diffStruct.SetHash(); err != nil {
+			return err
+		}
+
+		nextStateHash := hexutil.EncodeBytes(nextState)
+		runningBlockNumber++
+		nextStateStruct := statechain.New(&statechain.BlockProps{
+			BlockNumber:       hexutil.EncodeUint64(runningBlockNumber),
+			BlockTime:         hexutil.EncodeUint64(uint64(ts)),
+			ImageHash:         block.Props().ImageHash,
+			TxHash:            *tx.Props().TxHash, // note: checked for nil pointer, above
+			PrevBlockHash:     runningBlockHash,
+			StatePrevDiffHash: *diffStruct.Props().DiffHash, // note: used setHash, above so it would've erred
+			StateCurrentHash:  string(nextStateHash),
+		})
+		if err := nextStateStruct.SetHash(); err != nil {
+			return err
+		}
+
+		return nextStateStruct, diffStruct, nil
+	}
+
+	// TODO: what to do when invoke method not called?
+	return nil, nil, errors.New("no statechange")
 }
 
 // VerifyMerkleTreeFromMinedBlock ...
@@ -584,13 +1074,17 @@ type byBlockNumber []blockWrapper
 func (b byBlockNumber) Len() int           { return len(b) }
 func (b byBlockNumber) Less(i, j int) bool { return b[i].BlockNumber < b[j].BlockNumber }
 func (b byBlockNumber) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
-func orderStatechainBlocks(stateBlocksMap map[string]*statechain.Block) ([]*statechain.Block, error) {
+func orderStatechainBlocks(blocks []*statechain.Block) ([]*statechain.Block, error) {
+	if blocks == nil {
+		return nil, errors.New("nil blocks")
+	}
+
 	var (
 		stateBlocks   []*statechain.Block
 		blockWrappers byBlockNumber
 	)
 
-	for _, stateBlock := range stateBlocksMap {
+	for _, stateBlock := range blocks {
 		if stateBlock == nil {
 			return nil, errors.New("nil sate block")
 		}
@@ -613,4 +1107,23 @@ func orderStatechainBlocks(stateBlocksMap map[string]*statechain.Block) ([]*stat
 	}
 
 	return stateBlocks, nil
+}
+
+// the return is a map with keys on the image hash
+func groupStateBlocksByImageHash(stateBlocksMap map[string]*statechain.Block) (map[string][]*statechain.Block, error) {
+	if stateBlocksMap == nil {
+		return nil, errors.New("nil stateblocks map")
+	}
+
+	ret := make(map[string][]*statechain.Block)
+
+	for _, block := range stateBlocksMap {
+		if block == nil {
+			return nil, errors.New("nil block")
+		}
+
+		ret[block.Props().ImageHash] = append(ret[block.Props().ImageHash], block)
+	}
+
+	return ret, nil
 }

@@ -118,9 +118,7 @@ func Start(cfg *nodetypes.Config) error {
 	}
 
 	// TODO: add cli flags for different types
-	// diskStore, err := fsstore.New(cfg.DataDir)
 	diskStore, err := leveldbstore.New(cfg.DataDir, nil)
-	// diskStore, err := leveldbds.NewDatastore(cfg.DataDir, nil)
 	if err != nil {
 		return fmt.Errorf("err building disk store\n%v", err)
 	}
@@ -232,10 +230,10 @@ func fetchHeadBlock(headBlock *mainchain.Block, peers []peer.ID, pBuff protobuff
 	defer cancel()
 	ch := make(chan interface{})
 
-	// note: err == nil, here!
 	if err := pBuff.FetchHeadBlock(peers[1], ch); err != nil {
 		return err
 	}
+
 	select {
 	case v := <-ch:
 		switch v.(type) {

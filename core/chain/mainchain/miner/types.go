@@ -26,6 +26,7 @@ var (
 )
 
 // Props is passed to the new function
+// TODO: replace IsValid with a context
 type Props struct {
 	IsValid             *bool // TODO: implement better fix than this isValid var
 	PreviousBlock       *mainchain.Block
