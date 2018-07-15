@@ -393,16 +393,21 @@ func EncodeAddress(pub *ecdsa.PublicKey) (string, error) {
 		return "", err
 	}
 
-	return hexutil.EncodeString(string(bytes)), nil
+	return hexutil.AddLeader(string(hexutil.EncodeBytes(bytes))), nil
 }
 
 // DecodeAddress ...
 func DecodeAddress(address string) (*ecdsa.PublicKey, error) {
-	pubStr, err := hexutil.DecodeString(address)
+	byteStr, err := hexutil.StripLeader(address)
 	if err != nil {
 		return nil, err
 	}
-	pub, err := DeserializePublicKey([]byte(pubStr))
+
+	bytes, err := hexutil.DecodeBytes([]byte(byteStr))
+	if err != nil {
+		return nil, err
+	}
+	pub, err := DeserializePublicKey(bytes)
 	if err != nil {
 		return nil, err
 	}

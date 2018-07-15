@@ -33,6 +33,10 @@ func (s Service) spawnNextBlockMiner(prevBlock *mainchain.Block) error {
 	if err != nil {
 		return err
 	}
+	encMinerAddr, err := c3crypto.EncodeAddress(s.props.Keys.Pub)
+	if err != nil {
+		return err
+	}
 
 	isValid := true
 	ch := make(chan interface{})
@@ -43,6 +47,7 @@ func (s Service) spawnNextBlockMiner(prevBlock *mainchain.Block) error {
 		Channel:             ch,
 		Async:               true, // TODO: need to make this a cli flag
 		P2P:                 s.props.P2P,
+		EncodedMinerAddress: encMinerAddr,
 		PendingTransactions: pendingTransactions,
 	})
 	if err != nil {
@@ -207,13 +212,13 @@ func (s Service) spawnBlocksListener() error {
 				continue
 			}
 
-			block := new(mainchain.Block)
+			block := new(miner.MinedBlock)
 			if err := block.Deserialize(msg.GetData()); err != nil {
 				s.props.SubscriberChannel <- err
 				continue
 			}
 
-			s.props.SubscriberChannel <- &block
+			s.props.SubscriberChannel <- block
 		}
 	}()
 
@@ -245,7 +250,7 @@ func (s Service) spawnTransactionsListener() error {
 				continue
 			}
 
-			s.props.SubscriberChannel <- &tx
+			s.props.SubscriberChannel <- tx
 		}
 	}()
 
@@ -304,7 +309,7 @@ func (s Service) BroadcastTransaction(tx *statechain.Transaction) (*nodetypes.Se
 //return &res, err
 //}
 
-func (s Service) handleReceiptOfMainchainBlock(minedBlock *miner.MinedBlock) {
+func (s Service) handleReceiptOfMinedBlock(minedBlock *miner.MinedBlock) {
 	if minedBlock == nil {
 		log.Println("[node] received nil block")
 		return
@@ -318,75 +323,59 @@ func (s Service) handleReceiptOfMainchainBlock(minedBlock *miner.MinedBlock) {
 		return
 	}
 
+	log.Printf("[node] received mined block on the channel\n%v", *minedBlock)
+
 	if err := s.props.Store.SetPendingMainchainBlock(minedBlock.NextBlock); err != nil {
 		log.Printf("[node] err setting pending mainchain block\n%v", err)
 		return
 	}
+	defer func() {
+		if err := s.props.Store.RemovePendingMainchainBlock(*minedBlock.NextBlock.Props().BlockHash); err != nil {
+			log.Printf("[node] err removing pending mainchain block\n%v", err)
+		}
+	}()
 
 	// TODO: check the block explorer to be sure that we haven't already received this block
 	// TODO: handle this (and generally all of these) err(ors) better?
 	//  1) try again?
 	//  2) ping the network to see if other nodes have accepted?
-	// TODO: implement better fix than this isValid var
+	// TODO: implement context.Context rather than a pointer to a bool
 	isValid := true
 	// TODO: add method to verify mined block
-	ok, err := miner.VerifyMainchainBlock(s.props.P2P, &isValid, minedBlock.NextBlock)
+	ok, err := miner.VerifyMinedBlock(s.props.P2P, &isValid, minedBlock)
 	if err != nil {
-		log.Printf("[node] received err while verifying mainchain block\nblock: %v\nerr: %v", *minedBlock.NextBlock, err)
-
-		if err := s.props.Store.RemovePendingMainchainBlock(*minedBlock.NextBlock.Props().BlockHash); err != nil {
-			log.Printf("[node] err removing pending mainchain block\n%v", err)
-		}
+		log.Printf("[node] received err while verifying mined block\nblock: %v\nerr: %v", *minedBlock.NextBlock, err)
 		return
 	}
 
 	// note: ping the other nodes to tell them we didn't accept the block? See if they did?
 	if !ok {
-		log.Printf("[node] received invalid mainnchain block\nblock: %v\nerr: %v", *minedBlock, err)
-
-		if err := s.props.Store.RemovePendingMainchainBlock(*minedBlock.NextBlock.Props().BlockHash); err != nil {
-			log.Printf("[node] err removing pending mainchain block\n%v", err)
-		}
+		log.Printf("[node] received invalid mined block\nblock: %v\nerr: %v", *minedBlock, err)
 		return
 	}
+	log.Println("[node] mined block was validated")
 
 	// compare it to the block head that we have
 	localHeadBlock, err := s.props.Store.GetHeadBlock()
 	if err != nil {
 		log.Printf("[node] err getting our head block\n%v", err)
-
-		if err := s.props.Store.RemovePendingMainchainBlock(*minedBlock.NextBlock.Props().BlockHash); err != nil {
-			log.Printf("[node] err removing pending mainchain block\n%v", err)
-		}
 		return
 	}
 
 	localBlockHeight, err := hexutil.DecodeUint64(localHeadBlock.Props().BlockNumber)
 	if err != nil {
 		log.Printf("[node] err decoding head block height\n%v", err)
-
-		if err := s.props.Store.RemovePendingMainchainBlock(*minedBlock.NextBlock.Props().BlockHash); err != nil {
-			log.Printf("[node] err removing pending mainchain block\n%v", err)
-		}
 		return
 	}
 	receivedBlockHeight, err := hexutil.DecodeUint64(minedBlock.NextBlock.Props().BlockNumber)
 	if err != nil {
 		log.Printf("[node] err decoding received block height\n%v", err)
-
-		if err := s.props.Store.RemovePendingMainchainBlock(*minedBlock.NextBlock.Props().BlockHash); err != nil {
-			log.Printf("[node] err removing pending mainchain block\n%v", err)
-		}
 		return
 	}
 
 	// TODO: if delta(local, received) > 1 then we need to backfill our missing blocks
 	if localBlockHeight >= receivedBlockHeight {
 		log.Printf("[node] local block height is %v and received is %v, therefore, not adding block to chain", localBlockHeight, receivedBlockHeight)
-
-		if err := s.props.Store.RemovePendingMainchainBlock(*minedBlock.NextBlock.Props().BlockHash); err != nil {
-			log.Printf("[node] err removing pending mainchain block\n%v", err)
-		}
 		return
 	}
 
@@ -395,10 +384,6 @@ func (s Service) handleReceiptOfMainchainBlock(minedBlock *miner.MinedBlock) {
 
 	if err := s.props.Store.SetHeadBlock(minedBlock.NextBlock); err != nil {
 		log.Printf("[node] err setting head block in node store\n%v", err)
-
-		if err := s.props.Store.RemovePendingMainchainBlock(*minedBlock.NextBlock.Props().BlockHash); err != nil {
-			log.Printf("[node] err removing pending mainchain block\n%v", err)
-		}
 		return
 	}
 	if err := s.props.Store.RemovePendingMainchainBlock(*minedBlock.NextBlock.Props().BlockHash); err != nil {
