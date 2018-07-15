@@ -201,6 +201,7 @@ func VerifyMainchainBlock(p2pSvc p2p.Interface, isValid *bool, block *mainchain.
 
 	ok, err := CheckBlockHashAgainstDifficulty(block)
 	if err != nil {
+		log.Printf("err checking block hash against difficulty\n%v", err)
 		return false, err
 	}
 	if !ok {
@@ -213,6 +214,7 @@ func VerifyMainchainBlock(p2pSvc p2p.Interface, isValid *bool, block *mainchain.
 	}
 	tmpHash, err := block.CalculateHash()
 	if err != nil {
+		log.Printf("err calculating tmpHash\n%v", err)
 		return false, err
 	}
 	// note: already checked for nil hash
@@ -232,10 +234,12 @@ func VerifyMainchainBlock(p2pSvc p2p.Interface, isValid *bool, block *mainchain.
 	// note: checked for nil sig, above
 	sigR, err := hexutil.DecodeBigInt(block.Props().MinerSig.R)
 	if err != nil {
+		log.Printf("err decoding miner sig r\n%v", err)
 		return false, err
 	}
 	sigS, err := hexutil.DecodeBigInt(block.Props().MinerSig.S)
 	if err != nil {
+		log.Printf("err decoding miner sig s\n%v", err)
 		return false, err
 	}
 
@@ -250,11 +254,13 @@ func VerifyMainchainBlock(p2pSvc p2p.Interface, isValid *bool, block *mainchain.
 
 	treeCID, err := p2p.GetCIDByHash(block.Props().StateBlocksMerkleHash)
 	if err != nil {
+		log.Printf("[miner] err getting cid by has\n%v", err)
 		return false, nil
 	}
 
 	tree, err := p2pSvc.GetMerkleTree(treeCID)
 	if err != nil {
+		log.Printf("[miner] err getting merkle tree\n%v", err)
 		return false, err
 	}
 
@@ -320,6 +326,7 @@ func VerifyMinedBlock(p2pSvc p2p.Interface, isValid *bool, minedBlock *MinedBloc
 
 	ok, err := CheckBlockHashAgainstDifficulty(minedBlock.NextBlock)
 	if err != nil {
+		log.Printf("err checking block hash against difficulty\n%v", err)
 		return false, err
 	}
 	if !ok {
@@ -351,10 +358,12 @@ func VerifyMinedBlock(p2pSvc p2p.Interface, isValid *bool, minedBlock *MinedBloc
 	// note: checked for nil sig, above
 	sigR, err := hexutil.DecodeBigInt(minedBlock.NextBlock.Props().MinerSig.R)
 	if err != nil {
+		log.Printf("err decoding r\n%v", err)
 		return false, err
 	}
 	sigS, err := hexutil.DecodeBigInt(minedBlock.NextBlock.Props().MinerSig.S)
 	if err != nil {
+		log.Printf("err decoding s\n%v", err)
 		return false, err
 	}
 
@@ -387,7 +396,14 @@ func VerifyStateBlocksFromMinedBlock(p2pSvc p2p.Interface, isValid *bool, minedB
 	}
 
 	// 1. Verify state blocks merkle hash
-	if ok, err := VerifyMerkleTreeFromMinedBlock(isValid, minedBlock); !ok || err != nil {
+	ok, err := VerifyMerkleTreeFromMinedBlock(isValid, minedBlock)
+	if err != nil {
+		log.Printf("[miner] err verifying merkle tree\n%v", err)
+		return false, err
+	}
+
+	if !ok {
+		log.Println("[miner] merkle tree didn't verify")
 		return false, nil
 	}
 

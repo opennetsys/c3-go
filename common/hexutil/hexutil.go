@@ -126,7 +126,7 @@ func DecodeFloat64(hexStr string) (float64, error) {
 
 func StripLeader(hexStr string) (string, error) {
 	leaderLen := len(Leader)
-	if len(hexStr) <= leaderLen {
+	if len(hexStr) < leaderLen {
 		return "", ErrNotHexString
 	}
 

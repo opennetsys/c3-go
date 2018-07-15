@@ -44,14 +44,14 @@ type Service struct {
 
 // MinedBlock ...
 type MinedBlock struct {
-	NextBlock     *mainchain.Block
-	PreviousBlock *mainchain.Block
+	NextBlock     *mainchain.Block `json:"nextBlock"`
+	PreviousBlock *mainchain.Block `json:"previousBlock"`
 
 	// map keys are hashes
 	// TODO: add previous statechain blocks map
-	mut                 sync.Mutex
-	StatechainBlocksMap map[string]*statechain.Block
-	TransactionsMap     map[string]*statechain.Transaction
-	DiffsMap            map[string]*statechain.Diff
-	MerkleTreesMap      map[string]*merkle.Tree
+	mut                 sync.Mutex                         `json:"-"`
+	StatechainBlocksMap map[string]*statechain.Block       `json:"statechainBlocksMap"`
+	TransactionsMap     map[string]*statechain.Transaction `json:"transactionsMap"`
+	DiffsMap            map[string]*statechain.Diff        `json:"diffsMap"`
+	MerkleTreesMap      map[string]*merkle.Tree            `json:"merkleTreesMap"`
 }

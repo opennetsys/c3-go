@@ -160,7 +160,7 @@ func Start(cfg *nodetypes.Config) error {
 	nextBlock := &mainchain.GenesisBlock
 	peers := newNode.Peerstore().Peers()
 	if len(peers) > 1 {
-		if err := fetchHeadBlock(nextBlock, peers, pBuff); err != nil {
+		if err := fetchHeadBlock(newNode.ID(), nextBlock, peers, pBuff); err != nil {
 			return fmt.Errorf("err fetching headblock\n%v", err)
 		}
 	}
@@ -199,12 +199,13 @@ func Start(cfg *nodetypes.Config) error {
 	for {
 		switch v := <-n.props.SubscriberChannel; v.(type) {
 		case error:
+			err, _ := v.(error)
 			log.Println("[node] received an error on the channel", err)
 
 		case *miner.MinedBlock:
 			log.Print("[node] received mined block")
 			b, _ := v.(*miner.MinedBlock)
-			go n.handleReceiptOfMainchainBlock(b)
+			go n.handleReceiptOfMinedBlock(b)
 
 		case *statechain.Transaction:
 			log.Print("[node] received statechain transaction")
@@ -238,14 +239,21 @@ func genUpgrader(n *swarm.Swarm) *tptu.Upgrader {
 
 }
 
-func fetchHeadBlock(headBlock *mainchain.Block, peers []peer.ID, pBuff protobuff.Interface) error {
+func fetchHeadBlock(self peer.ID, headBlock *mainchain.Block, peers []peer.ID, pBuff protobuff.Interface) error {
 	// TODO: pass contexts to pBuff functions
 	ctx1, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	ch := make(chan interface{})
 
-	// note: err == nil, here!
-	if err := pBuff.FetchHeadBlock(peers[1], ch); err != nil {
+	var peer peer.ID
+	for _, peerID := range peers {
+		if peerID != self {
+			peer = peerID
+			break
+		}
+	}
+
+	if err := pBuff.FetchHeadBlock(peer, ch); err != nil {
 		return err
 	}
 	select {

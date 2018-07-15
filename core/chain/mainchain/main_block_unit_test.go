@@ -8,11 +8,12 @@ import (
 	"testing"
 	"unicode"
 
+	"github.com/c3systems/c3/common/coder"
 	"github.com/prometheus/common/log"
 )
 
 var (
-	hash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+	hash = "0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 	bSig = BlockSig{
 		R: "0x1",
 		S: "0x1",
@@ -21,9 +22,9 @@ var (
 		BlockHash:             &hash,
 		BlockNumber:           "0x1",
 		BlockTime:             "0x5",
-		ImageHash:             "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-		StateBlocksMerkleHash: "stateBlocksHash",
-		PrevBlockHash:         "prevBlockHash",
+		ImageHash:             "0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+		StateBlocksMerkleHash: "0xstateBlocksHash",
+		PrevBlockHash:         "0xprevBlockHash",
 		Nonce:                 "0x1",
 		Difficulty:            "0x1",
 		MinerAddress:          "0x123",
@@ -145,6 +146,7 @@ func TestSerialize(t *testing.T) {
 		if err != nil {
 			t.Fatalf("test %d failed; err serializing block: %v", idx+1, err)
 		}
+		t.Log(actual)
 
 		expected := []byte(removeWhiteSpace(expecteds[idx]))
 		actual = []byte(removeWhiteSpace(string(actual)))
@@ -264,6 +266,35 @@ func TestSerializeDeserialize(t *testing.T) {
 	}
 }
 
+func TestSerializeDeserializeString(t *testing.T) {
+	b := &Block{
+		props: p,
+	}
+	b1 := &Block{
+		props: p1,
+	}
+
+	inputs := []*Block{b, b1}
+	for idx, in := range inputs {
+		str, err := in.SerializeString()
+		if err != nil {
+			t.Fatalf("test %d failed\nerr serializing: %v", idx+1, err)
+		}
+
+		tmpBlock := new(Block)
+		if err := tmpBlock.DeserializeString(str); err != nil {
+			t.Fatalf("test %d failed\nerr deserializing: %v", idx+1, err)
+		}
+
+		if !reflect.DeepEqual(in, tmpBlock) {
+			if tmpBlock.props.BlockHash != nil {
+				t.Logf("block hash %s", *tmpBlock.props.BlockHash)
+			}
+			t.Errorf("test #%d faild\nexpected: %v\nreceived: %v\n", idx+1, *in, *tmpBlock)
+		}
+	}
+}
+
 func TestDeepEqual(t *testing.T) {
 	b := &Block{
 		props: p,
@@ -274,6 +305,25 @@ func TestDeepEqual(t *testing.T) {
 
 	if !reflect.DeepEqual(b, b1) {
 		t.Error("not equal")
+	}
+}
+
+func TestSerializeDeserializeSig(t *testing.T) {
+	bytes, err := coder.Serialize(bSig)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sig := new(BlockSig)
+	if err := coder.Deserialize(bytes, &sig); err != nil {
+		t.Fatal(err)
+	}
+	if sig == nil {
+		t.Fatal("nil sig")
+	}
+
+	if !reflect.DeepEqual(*sig, bSig) {
+		t.Errorf("expected %v\nreceived %v", bSig, *sig)
 	}
 }
 
