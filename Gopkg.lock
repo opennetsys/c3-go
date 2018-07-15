@@ -131,7 +131,15 @@
 
 [[projects]]
   name = "github.com/ethereum/go-ethereum"
-  packages = ["rlp"]
+  packages = [
+    "common",
+    "common/hexutil",
+    "common/math",
+    "crypto",
+    "crypto/secp256k1",
+    "crypto/sha3",
+    "rlp"
+  ]
   revision = "37685930d953bcbe023f9bc65b135a8d8b8f1488"
   version = "v1.8.12"
 
@@ -952,6 +960,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0433553acd8f4865eb1725545a322c3b05cb19428d5e882d5bd00a5f88362a4e"
+  inputs-digest = "f4545e5e68c51b8682ce833c6e624d747c4997081c90fe1f7e2162f5d432638d"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -13,7 +13,11 @@ deps:
 	&& rm rpc.pb.go && rm rpc.proto \
 	&& wget https://github.com/c3systems/go-libp2p-pubsub/raw/master/pb/rpc.pb.go \
 	&& wget https://github.com/c3systems/go-libp2p-pubsub/raw/master/pb/rpc.proto)
+	$(MAKE) deps/copy/ethereum/crypto
 
+.PHONY: deps/copy/ethereum/crypto
+deps/copy/ethereum/crypto:
+	@cp -r "${GOPATH}/src/github.com/ethereum/go-ethereum/crypto/secp256k1/libsecp256k1" "vendor/github.com/ethereum/go-ethereum/crypto/secp256k1/"
 
 .PHONY: build
 build:
