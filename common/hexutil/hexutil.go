@@ -4,8 +4,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"strconv"
+	"unsafe"
 )
 
 // Leader ...
@@ -113,20 +115,25 @@ func DecodeInt(hexStr string) (int, error) {
 }
 
 // EncodeFloat64 ...
+// https://www.h-schmidt.net/FloatConverter/IEEE754.html
 func EncodeFloat64(f float64) string {
-	// note: this may not be the correct way of doing this, but we're just converting to a string, first
-	return EncodeString(strconv.FormatFloat(f, 'f', -1, 64))
+	return AddLeader(fmt.Sprintf("%x", math.Float64bits(f)))
 }
 
 // DecodeFloat64 ...
 func DecodeFloat64(hexStr string) (float64, error) {
-	// note: this may not be the correct way of doing this, but we're just converting to a string, first
-	f, err := DecodeString(hexStr)
+	hx, err := StripLeader(hexStr)
 	if err != nil {
-		return 0.0, err
+		return float64(0), err
+	}
+	n, err := strconv.ParseUint(hx, 16, 64)
+	if err != nil {
+		return float64(0), err
 	}
 
-	return strconv.ParseFloat(f, 64)
+	n2 := uint64(n)
+	f := *(*float64)(unsafe.Pointer(&n2))
+	return f, nil
 }
 
 // StripLeader ...
