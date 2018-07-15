@@ -223,7 +223,7 @@ func (s Service) spawnBlocksListener() error {
 				continue
 			}
 
-			s.props.SubscriberChannel <- &block
+			s.props.SubscriberChannel <- block
 		}
 	}()
 
@@ -255,7 +255,7 @@ func (s Service) spawnTransactionsListener() error {
 				continue
 			}
 
-			s.props.SubscriberChannel <- &tx
+			s.props.SubscriberChannel <- tx
 		}
 	}()
 

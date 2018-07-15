@@ -4,6 +4,7 @@ package c3crypto
 
 import (
 	"crypto/ecdsa"
+	"encoding/hex"
 	"os"
 	"reflect"
 	"testing"
@@ -256,6 +257,31 @@ func TestReadWritePairsToPEM(t *testing.T) {
 
 	if !reflect.DeepEqual(pub, pub2) || !reflect.DeepEqual(priv, priv2) {
 		t.Errorf("expected priv: %v\nexpected pub: %v\nreceived priv: %v\nreceived pub: %v", priv, pub, priv2, pub2)
+	}
+}
+
+func TestDecodeAddress(t *testing.T) {
+	_, pub, err := NewKeyPair()
+	pubBytes, err := PublicKeyToBytes(pub)
+	if err != nil {
+		t.Error(err)
+	}
+
+	addr := hex.EncodeToString(pubBytes)
+	decodedPub, err := DecodeAddress(addr)
+	if err != nil {
+		t.Error(err)
+	}
+
+	decodedPubBytes, err := PublicKeyToBytes(decodedPub)
+	if err != nil {
+		t.Error(err)
+	}
+
+	decodedPubAddr := hex.EncodeToString(decodedPubBytes)
+
+	if addr != decodedPubAddr {
+		t.Errorf("want %s; got %s", decodedPubAddr, addr)
 	}
 }
 

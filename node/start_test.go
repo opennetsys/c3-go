@@ -1,7 +1,9 @@
 package node
 
 import (
+	"encoding/hex"
 	"log"
+	"os"
 	"testing"
 	"time"
 
@@ -9,11 +11,13 @@ import (
 	"github.com/c3systems/c3/core/chain/statechain"
 	nodetypes "github.com/c3systems/c3/node/types"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func TestBroadcast(t *testing.T) {
-	pem := "./test_data/key.pem"
-	nodeURI := "/ip4/0.0.0.0/tcp/9004"
+	privPEM := "./test_data/priv.pem"
+	nodeURI := "/ip4/0.0.0.0/tcp/9006"
+	peer := os.Getenv("PEER")
 	dataDir := "~/.c3"
 	n := new(Service)
 	ready := make(chan bool)
@@ -21,10 +25,10 @@ func TestBroadcast(t *testing.T) {
 		go func() {
 			err := Start(n, &nodetypes.Config{
 				URI:     nodeURI,
-				Peer:    "/ip4/0.0.0.0/tcp/9005/ipfs/QmTwGKMGvVL9Txti4AhB14bRZ6rhQNeAX4ZAhn6r1xfUxK",
+				Peer:    peer,
 				DataDir: dataDir,
 				Keys: nodetypes.Keys{
-					PEMFile:  pem,
+					PEMFile:  privPEM,
 					Password: "",
 				},
 			})
@@ -34,23 +38,26 @@ func TestBroadcast(t *testing.T) {
 			}
 		}()
 
-		time.Sleep(60 * time.Second)
+		time.Sleep(10 * time.Second)
 		ready <- true
 	}()
 
 	<-ready
 
-	priv, err := c3crypto.ReadPrivateKeyFromPem(pem, nil)
+	priv, err := c3crypto.ReadPrivateKeyFromPem(privPEM, nil)
 	if err != nil {
 		t.Error(err)
 	}
+
+	pub, err := c3crypto.GetPublicKey(priv)
+	pubBytes := crypto.FromECDSAPub(pub)
 
 	imageHash := "hello-world"
 	tx := statechain.NewTransaction(&statechain.TransactionProps{
 		ImageHash: imageHash,
 		Method:    "c3_deploy",
 		Payload:   []byte(`["foo", "bar"]`),
-		From:      "abc",
+		From:      hex.EncodeToString(pubBytes),
 	})
 
 	err = tx.SetHash()
