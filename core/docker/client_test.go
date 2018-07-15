@@ -2,7 +2,6 @@ package docker
 
 import (
 	"io"
-	"log"
 	"os"
 	"testing"
 
@@ -27,7 +26,7 @@ func TestListImages(t *testing.T) {
 	client := NewClient()
 	images, err := client.ListImages()
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 
 	spew.Dump(images)
@@ -38,7 +37,7 @@ func TestPullImage(t *testing.T) {
 	client := NewClient()
 	err := client.PullImage(TestImage)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 }
 
@@ -47,11 +46,11 @@ func TestReadImage(t *testing.T) {
 	client := NewClient()
 	err := client.PullImage(TestImage)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 	reader, err := client.ReadImage(TestImage)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 
 	io.Copy(os.Stdout, reader)
@@ -62,11 +61,11 @@ func TestLoadImage(t *testing.T) {
 	client := NewClient()
 	input, err := os.Open(TestImageTar)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 	err = client.LoadImage(input)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 }
 
@@ -75,7 +74,7 @@ func TestLoadImageByFilepath(t *testing.T) {
 	client := NewClient()
 	err := client.LoadImageByFilepath(TestImageTar)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 }
 
@@ -84,15 +83,15 @@ func TestRunContainer(t *testing.T) {
 	client := NewClient()
 	err := client.PullImage(TestImage)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 	containerID, err := client.RunContainer(TestImage, []string{}, nil)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 
 	if containerID == "" {
-		t.Fatal("expected container ID")
+		t.Error("expected container ID")
 	}
 }
 
@@ -101,16 +100,16 @@ func TestStopContainer(t *testing.T) {
 	client := NewClient()
 	err := client.PullImage(TestImage)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 	containerID, err := client.RunContainer(TestImage, []string{}, nil)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 
 	err = client.StopContainer(containerID)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 }
 
@@ -119,24 +118,24 @@ func TestInspectContainer(t *testing.T) {
 	client := NewClient()
 	err := client.PullImage(TestImage)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 	containerID, err := client.RunContainer(TestImage, []string{}, nil)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 	info, err := client.InspectContainer(containerID)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 
 	if info.ID != containerID {
-		log.Fatal("expected id to match")
+		t.Error("expected id to match")
 	}
 
 	err = client.StopContainer(containerID)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 }
 
