@@ -72,7 +72,7 @@ test/c3:
 	@go test -v c3/*.go $(ARGS)
 
 .PHONY: test/common
-test/common: test/common/network test/common/stringutil test/hexutil
+test/common: test/common/network test/common/stringutil test/common/hexutil
 
 .PHONY: test/common/network
 test/common/network:
