@@ -83,8 +83,12 @@ func Start(cfg *nodetypes.Config) error {
 	}
 
 	ps := peerstore.NewPeerstore()
-	ps.AddPrivKey(pid, wPriv)
-	ps.AddPubKey(pid, wPub)
+	if err := ps.AddPrivKey(pid, wPriv); err != nil {
+		return fmt.Errorf("err adding priv key\n%v", err)
+	}
+	if err := ps.AddPubKey(pid, wPub); err != nil {
+		return fmt.Errorf("err adding pub key\n%v", err)
+	}
 
 	swarmNet := swarm.NewSwarm(ctx, pid, ps, nil)
 	tcpTransport := tcp.NewTCPTransport(genUpgrader(swarmNet))
@@ -130,9 +134,7 @@ func Start(cfg *nodetypes.Config) error {
 	}
 
 	// TODO: add cli flags for different types
-	// diskStore, err := fsstore.New(cfg.DataDir)
 	diskStore, err := leveldbstore.New(cfg.DataDir, nil)
-	// diskStore, err := leveldbds.NewDatastore(cfg.DataDir, nil)
 	if err != nil {
 		return fmt.Errorf("err building disk store\n%v", err)
 	}
@@ -256,6 +258,7 @@ func fetchHeadBlock(self peer.ID, headBlock *mainchain.Block, peers []peer.ID, p
 	if err := pBuff.FetchHeadBlock(peer, ch); err != nil {
 		return err
 	}
+
 	select {
 	case v := <-ch:
 		switch v.(type) {

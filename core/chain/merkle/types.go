@@ -1,7 +1,10 @@
 package merkle
 
 import (
+	"crypto/sha256"
 	"errors"
+
+	"github.com/c3systems/merkletree"
 )
 
 var (
@@ -51,4 +54,24 @@ type TreeProps struct {
 	MerkleTreeRootHash *string
 	Kind               string
 	Hashes             []string
+}
+
+// testContent implements the Content interface provided by merkletree and represents the content stored in the tree.
+type testContent struct {
+	x string
+}
+
+// CalculateHashBytes hashes the values of a TestContent
+func (t testContent) CalculateHashBytes() ([]byte, error) {
+	h := sha256.New()
+	if _, err := h.Write([]byte(t.x)); err != nil {
+		return nil, err
+	}
+
+	return h.Sum(nil), nil
+}
+
+// Equals tests for equality of two Contents
+func (t testContent) Equals(other merkletree.Content) (bool, error) {
+	return t.x == other.(testContent).x, nil
 }

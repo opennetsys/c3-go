@@ -269,13 +269,12 @@ func (s Service) bootstrapNextBlock() (*mainchain.Block, error) {
 	nextProps.BlockNumber = hexutil.EncodeUint64(prevBlockHeight + 1)
 	nextProps.BlockTime = hexutil.EncodeUint64(uint64(time.Now().Unix()))
 	nextProps.Difficulty = hexutil.EncodeUint64(s.props.Difficulty)
+	nextProps.MinerAddress = s.props.EncodedMinerAddress
 
 	return mainchain.New(nextProps), nil
 }
 
 func (s Service) buildNextStates(imageHash string, transactions []*statechain.Transaction) error {
-	// TODO: add miguel's code, here
-
 	var (
 		diffs               []*statechain.Diff
 		newDiffs            []*statechain.Diff

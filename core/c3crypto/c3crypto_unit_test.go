@@ -259,6 +259,34 @@ func TestReadWritePairsToPEM(t *testing.T) {
 	}
 }
 
+func TestEncodeAndDecodeAddress(t *testing.T) {
+	_, pub, err := NewKeyPair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pub == nil {
+		t.Fatal("nil pub key")
+	}
+
+	addr, err := EncodeAddress(pub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("addr %s", addr)
+
+	pub1, err := DecodeAddress(addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pub1 == nil {
+		t.Fatal("pub1 is nil")
+	}
+
+	if !reflect.DeepEqual(pub, pub1) {
+		t.Errorf("expected %v\nreceived %v", *pub, *pub1)
+	}
+}
+
 func createDirIfNotExist(dir string) error {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		return os.MkdirAll(dir, 0777)

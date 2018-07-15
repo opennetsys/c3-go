@@ -26,12 +26,14 @@ var (
 )
 
 // Props is passed to the new function
+// TODO: replace IsValid with a context
 type Props struct {
 	IsValid             *bool // TODO: implement better fix than this isValid var
 	PreviousBlock       *mainchain.Block
 	Difficulty          uint64
 	Channel             chan interface{}
 	Async               bool // note: build state blocks asynchronously?
+	EncodedMinerAddress string
 	P2P                 p2p.Interface
 	PendingTransactions []*statechain.Transaction
 }
@@ -49,7 +51,7 @@ type MinedBlock struct {
 
 	// map keys are hashes
 	// TODO: add previous statechain blocks map
-	mut                 sync.Mutex                         `json:"-"`
+	mut                 sync.Mutex
 	StatechainBlocksMap map[string]*statechain.Block       `json:"statechainBlocksMap"`
 	TransactionsMap     map[string]*statechain.Transaction `json:"transactionsMap"`
 	DiffsMap            map[string]*statechain.Diff        `json:"diffsMap"`

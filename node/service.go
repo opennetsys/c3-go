@@ -33,6 +33,10 @@ func (s Service) spawnNextBlockMiner(prevBlock *mainchain.Block) error {
 	if err != nil {
 		return err
 	}
+	encMinerAddr, err := c3crypto.EncodeAddress(s.props.Keys.Pub)
+	if err != nil {
+		return err
+	}
 
 	isValid := true
 	ch := make(chan interface{})
@@ -43,6 +47,7 @@ func (s Service) spawnNextBlockMiner(prevBlock *mainchain.Block) error {
 		Channel:             ch,
 		Async:               true, // TODO: need to make this a cli flag
 		P2P:                 s.props.P2P,
+		EncodedMinerAddress: encMinerAddr,
 		PendingTransactions: pendingTransactions,
 	})
 	if err != nil {
@@ -324,6 +329,11 @@ func (s Service) handleReceiptOfMinedBlock(minedBlock *miner.MinedBlock) {
 		log.Printf("[node] err setting pending mainchain block\n%v", err)
 		return
 	}
+	defer func() {
+		if err := s.props.Store.RemovePendingMainchainBlock(*minedBlock.NextBlock.Props().BlockHash); err != nil {
+			log.Printf("[node] err removing pending mainchain block\n%v", err)
+		}
+	}()
 
 	// TODO: check the block explorer to be sure that we haven't already received this block
 	// TODO: handle this (and generally all of these) err(ors) better?
@@ -332,21 +342,15 @@ func (s Service) handleReceiptOfMinedBlock(minedBlock *miner.MinedBlock) {
 	// TODO: implement context.Context rather than a pointer to a bool
 	isValid := true
 	// TODO: add method to verify mined block
-	ok, err := miner.VerifyMainchainBlock(s.props.P2P, &isValid, minedBlock.NextBlock)
+	ok, err := miner.VerifyMinedBlock(s.props.P2P, &isValid, minedBlock)
 	if err != nil {
-		log.Printf("[node] received err while verifying mainchain block\nblock: %v\nerr: %v", *minedBlock.NextBlock, err)
-
+		log.Printf("[node] received err while verifying mined block\nblock: %v\nerr: %v", *minedBlock.NextBlock, err)
 		return
 	}
-	defer func() {
-		if err := s.props.Store.RemovePendingMainchainBlock(*minedBlock.NextBlock.Props().BlockHash); err != nil {
-			log.Printf("[node] err removing pending mainchain block\n%v", err)
-		}
-	}()
 
 	// note: ping the other nodes to tell them we didn't accept the block? See if they did?
 	if !ok {
-		log.Printf("[node] received invalid mainnchain block\nblock: %v\nerr: %v", *minedBlock, err)
+		log.Printf("[node] received invalid mined block\nblock: %v\nerr: %v", *minedBlock, err)
 		return
 	}
 	log.Println("[node] mined block was validated")

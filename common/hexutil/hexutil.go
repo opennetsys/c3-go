@@ -53,7 +53,7 @@ func DecodeString(hexStr string) (string, error) {
 		return "", err
 	}
 
-	return AddLeader(string(bytes)), nil
+	return string(bytes), nil
 }
 
 // EncodeBytes ...

@@ -118,11 +118,29 @@ func (t *Tree) DeserializeString(hexStr string) error {
 // CalculateHash ...
 // note: this function doesn't actually calculate the hash but returns the root hash
 func (t *Tree) CalculateHash() (string, error) {
-	if t.props.MerkleTreeRootHash == nil {
+	if t.props.MerkleTreeRootHash != nil {
+		return *t.props.MerkleTreeRootHash, nil
+	}
+
+	var tmpContent []merkletree.Content
+	for _, str := range t.props.Hashes {
+		tmpContent = append(tmpContent, testContent{
+			x: str,
+		})
+	}
+
+	tmpTree, err := BuildFromObjects(tmpContent, t.props.Kind)
+	if err != nil {
+		return "", err
+	}
+	if tmpTree == nil {
+		return "", ErrNilMerkleTree
+	}
+	if tmpTree.Props().MerkleTreeRootHash == nil {
 		return "", ErrNilMerkleTreeRootHash
 	}
 
-	return *t.props.MerkleTreeRootHash, nil
+	return *tmpTree.props.MerkleTreeRootHash, nil
 }
 
 // CalculateHashBytes ...
@@ -152,10 +170,6 @@ func (t *Tree) Equals(other merkletree.Content) (bool, error) {
 
 // SetHash ...
 func (t *Tree) SetHash() error {
-	if t == nil {
-		return ErrNilMerkleTree
-	}
-
 	hash, err := t.CalculateHash()
 	if err != nil {
 		return err
