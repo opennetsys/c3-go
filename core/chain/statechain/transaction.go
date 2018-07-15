@@ -7,7 +7,7 @@ import (
 	"github.com/c3systems/c3/common/coder"
 	"github.com/c3systems/c3/common/hashing"
 	"github.com/c3systems/c3/common/hexutil"
-	"github.com/c3systems/c3/core/c3crypto"
+	"github.com/c3systems/c3/common/c3crypto"
 	"github.com/c3systems/merkletree"
 )
 

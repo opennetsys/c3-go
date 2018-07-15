@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/c3systems/c3/core/c3crypto"
+	"github.com/c3systems/c3/common/c3crypto"
 	"github.com/c3systems/c3/core/chain/statechain"
 	nodetypes "github.com/c3systems/c3/node/types"
 	"github.com/davecgh/go-spew/spew"
