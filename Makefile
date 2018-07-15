@@ -65,11 +65,11 @@ test/cleanup:
 	@. scripts/test_cleanup.sh
 
 .PHONY: test
-test: test/check test/c3 test/common test/common test/registry test/core test/node test/cleanup
+test: test/check test/sdk test/common test/common test/registry test/core test/node test/cleanup
 
-.PHONY: test/c3
-test/c3:
-	@go test -v c3/*.go $(ARGS)
+.PHONY: test/sdk
+test/sdk:
+	@go test -v sdk/*.go $(ARGS)
 
 .PHONY: test/common
 test/common: test/common/network test/common/stringutil test/common/hexutil

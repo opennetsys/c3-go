@@ -15,7 +15,7 @@ import (
 	"github.com/c3systems/c3/core/p2p"
 	"github.com/c3systems/c3/core/p2p/protobuff"
 	pb "github.com/c3systems/c3/core/p2p/protobuff/pb"
-	"github.com/c3systems/c3/core/p2p/store/fsstore"
+	"github.com/c3systems/c3/core/p2p/store/leveldbstore"
 	"github.com/c3systems/c3/node/store/safemempool"
 	nodetypes "github.com/c3systems/c3/node/types"
 
@@ -81,8 +81,12 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 	}
 
 	ps := peerstore.NewPeerstore()
-	ps.AddPrivKey(pid, wPriv)
-	ps.AddPubKey(pid, wPub)
+	if err := ps.AddPrivKey(pid, wPriv); err != nil {
+		return fmt.Errorf("err adding priv key\n%v", err)
+	}
+	if err := ps.AddPubKey(pid, wPub); err != nil {
+		return fmt.Errorf("err adding pub key\n%v", err)
+	}
 
 	swarmNet := swarm.NewSwarm(ctx, pid, ps, nil)
 	tcpTransport := tcp.NewTCPTransport(genUpgrader(swarmNet))
@@ -131,7 +135,8 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 		return fmt.Errorf("err initializing mempool\n%v", err)
 	}
 
-	diskStore, err := fsstore.New(cfg.DataDir)
+	// TODO: add cli flags for different types
+	diskStore, err := leveldbstore.New(cfg.DataDir, nil)
 	if err != nil {
 		return fmt.Errorf("err building disk store\n%v", err)
 	}
@@ -159,7 +164,7 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 	nextBlock := &mainchain.GenesisBlock
 	peers := newNode.Peerstore().Peers()
 	if len(peers) > 1 {
-		if err := fetchHeadBlock(nextBlock, peers, pBuff); err != nil {
+		if err := fetchHeadBlock(newNode.ID(), nextBlock, peers, pBuff); err != nil {
 			return fmt.Errorf("err fetching headblock\n%v", err)
 		}
 	}
@@ -198,12 +203,13 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 	for {
 		switch v := <-n.props.SubscriberChannel; v.(type) {
 		case error:
+			err, _ := v.(error)
 			log.Println("[node] received an error on the channel", err)
 
 		case *miner.MinedBlock:
 			log.Print("[node] received mined block")
 			b, _ := v.(*miner.MinedBlock)
-			go n.handleReceiptOfMainchainBlock(b)
+			go n.handleReceiptOfMinedBlock(b)
 
 		case *statechain.Transaction:
 			log.Print("[node] received statechain transaction")
@@ -236,16 +242,24 @@ func genUpgrader(n *swarm.Swarm) *tptu.Upgrader {
 	}
 }
 
-func fetchHeadBlock(headBlock *mainchain.Block, peers []peer.ID, pBuff protobuff.Interface) error {
+func fetchHeadBlock(self peer.ID, headBlock *mainchain.Block, peers []peer.ID, pBuff protobuff.Interface) error {
 	// TODO: pass contexts to pBuff functions
 	ctx1, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	ch := make(chan interface{})
 
-	// note: err == nil, here!
-	if err := pBuff.FetchHeadBlock(peers[1], ch); err != nil {
+	var peer peer.ID
+	for _, peerID := range peers {
+		if peerID != self {
+			peer = peerID
+			break
+		}
+	}
+
+	if err := pBuff.FetchHeadBlock(peer, ch); err != nil {
 		return err
 	}
+
 	select {
 	case v := <-ch:
 		switch v.(type) {

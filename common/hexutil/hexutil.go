@@ -74,7 +74,12 @@ func DecodeBytes(src []byte) ([]byte, error) {
 
 // EncodeBigInt ....
 func EncodeBigInt(i *big.Int) string {
-	return EncodeString(i.String())
+	nbits := i.BitLen()
+	if nbits == 0 {
+		return "0x0"
+	}
+
+	return fmt.Sprintf("%#x", i)
 }
 
 // DecodeBigInt ...
@@ -127,7 +132,7 @@ func DecodeFloat64(hexStr string) (float64, error) {
 // StripLeader ...
 func StripLeader(hexStr string) (string, error) {
 	leaderLen := len(Leader)
-	if len(hexStr) <= leaderLen {
+	if len(hexStr) < leaderLen {
 		return "", ErrNotHexString
 	}
 

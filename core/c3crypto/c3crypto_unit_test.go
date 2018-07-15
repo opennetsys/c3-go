@@ -4,7 +4,6 @@ package c3crypto
 
 import (
 	"crypto/ecdsa"
-	"encoding/hex"
 	"os"
 	"reflect"
 	"testing"
@@ -262,26 +261,47 @@ func TestReadWritePairsToPEM(t *testing.T) {
 
 func TestDecodeAddress(t *testing.T) {
 	_, pub, err := NewKeyPair()
-	pubBytes, err := PublicKeyToBytes(pub)
 	if err != nil {
 		t.Error(err)
 	}
 
-	addr := hex.EncodeToString(pubBytes)
-	decodedPub, err := DecodeAddress(addr)
+	addr, err := EncodeAddress(pub)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
-	decodedPubBytes, err := PublicKeyToBytes(decodedPub)
+	newPub, err := DecodeAddress(addr)
+
+	if !reflect.DeepEqual(pub, newPub) {
+		t.Errorf("public keys do not match; received %v", newPub)
+	}
+}
+
+func TestEncodeAndDecodeAddress(t *testing.T) {
+	_, pub, err := NewKeyPair()
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
+	}
+	if pub == nil {
+		t.Fatal("nil pub key")
 	}
 
-	decodedPubAddr := hex.EncodeToString(decodedPubBytes)
+	addr, err := EncodeAddress(pub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("addr %s", addr)
 
-	if addr != decodedPubAddr {
-		t.Errorf("want %s; got %s", decodedPubAddr, addr)
+	pub1, err := DecodeAddress(addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pub1 == nil {
+		t.Fatal("pub1 is nil")
+	}
+
+	if !reflect.DeepEqual(pub, pub1) {
+		t.Errorf("expected %v\nreceived %v", *pub, *pub1)
 	}
 }
 

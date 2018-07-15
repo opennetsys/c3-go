@@ -6,7 +6,6 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
-	"encoding/hex"
 	"encoding/pem"
 	"errors"
 	"io/ioutil"
@@ -397,23 +396,28 @@ func EncodeAddress(pub *ecdsa.PublicKey) (string, error) {
 		return "", err
 	}
 
-	return hexutil.EncodeString(string(bytes)), nil
+	return hexutil.AddLeader(string(hexutil.EncodeBytes(bytes))), nil
 }
 
 // DecodeAddress [for now] decodes public address hex to ECDSA public key.
 // Public key are treated as public address at the moment.
 func DecodeAddress(address string) (*ecdsa.PublicKey, error) {
-	pubBytes, err := hex.DecodeString(address)
+	byteStr, err := hexutil.StripLeader(address)
 	if err != nil {
 		return nil, err
 	}
 
-	x, y := elliptic.Unmarshal(Curve, pubBytes)
-	if x == nil {
-		return nil, ErrInvalidPublicKey
+	bytes, err := hexutil.DecodeBytes([]byte(byteStr))
+	if err != nil {
+		return nil, err
 	}
 
-	return &ecdsa.PublicKey{Curve: Curve, X: x, Y: y}, nil
+	pub, err := DeserializePublicKey(bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return pub, nil
 }
 
 // PublicKeyToBytes ...

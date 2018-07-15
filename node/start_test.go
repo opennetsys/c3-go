@@ -14,6 +14,8 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
+// TODO: finish
+
 func TestBroadcast(t *testing.T) {
 	privPEM := "./test_data/priv.pem"
 	nodeURI := "/ip4/0.0.0.0/tcp/9006"
@@ -55,7 +57,7 @@ func TestBroadcast(t *testing.T) {
 	imageHash := "hello-world"
 	tx := statechain.NewTransaction(&statechain.TransactionProps{
 		ImageHash: imageHash,
-		Method:    "c3_deploy",
+		Method:    "c3_transaction",
 		Payload:   []byte(`["foo", "bar"]`),
 		From:      hex.EncodeToString(pubBytes),
 	})
