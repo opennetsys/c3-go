@@ -1,17 +1,83 @@
 package node
 
-/*
-	hash := "fakeHash"
-	// test data
-	tx := statechain.NewTransaction(&statechain.TransactionProps{
-		ImageHash: "QmULmGLSnqf3pkLhdgrC9QxFXv1SuwqYkJw15QpoVzFiEh",
-		TxHash:    &hash,
-		Method:    "c3_invokeMethod",
-		Payload:   []byte(`["setItem", "foo", "bar"]`),
-	})
-	res, err := n.BroadcastTransaction(tx)
+import (
+	"encoding/hex"
+	"log"
+	"os"
+	"testing"
+	"time"
+
+	"github.com/c3systems/c3/core/c3crypto"
+	"github.com/c3systems/c3/core/chain/statechain"
+	nodetypes "github.com/c3systems/c3/node/types"
+	"github.com/davecgh/go-spew/spew"
+	"github.com/ethereum/go-ethereum/crypto"
+)
+
+func TestBroadcast(t *testing.T) {
+	privPEM := "./test_data/priv.pem"
+	nodeURI := "/ip4/0.0.0.0/tcp/9006"
+	peer := os.Getenv("PEER")
+	dataDir := "~/.c3"
+	n := new(Service)
+	ready := make(chan bool)
+	go func() {
+		go func() {
+			err := Start(n, &nodetypes.Config{
+				URI:     nodeURI,
+				Peer:    peer,
+				DataDir: dataDir,
+				Keys: nodetypes.Keys{
+					PEMFile:  privPEM,
+					Password: "",
+				},
+			})
+
+			if err != nil {
+				log.Fatal(err)
+			}
+		}()
+
+		time.Sleep(10 * time.Second)
+		ready <- true
+	}()
+
+	<-ready
+
+	priv, err := c3crypto.ReadPrivateKeyFromPem(privPEM, nil)
 	if err != nil {
-		log.Printf("err broadcasting tx\n%v", err)
+		t.Error(err)
 	}
-	log.Printf("tx resp\n%v", res)
-*/
+
+	pub, err := c3crypto.GetPublicKey(priv)
+	pubBytes := crypto.FromECDSAPub(pub)
+
+	imageHash := "hello-world"
+	tx := statechain.NewTransaction(&statechain.TransactionProps{
+		ImageHash: imageHash,
+		Method:    "c3_deploy",
+		Payload:   []byte(`["foo", "bar"]`),
+		From:      hex.EncodeToString(pubBytes),
+	})
+
+	err = tx.SetHash()
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = tx.SetSig(priv)
+	if err != nil {
+		t.Error(err)
+	}
+
+	resp, err := n.BroadcastTransaction(tx)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if resp.TxHash == nil {
+		t.Error("expected txhash")
+	}
+
+	spew.Dump(resp)
+}

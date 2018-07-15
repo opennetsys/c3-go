@@ -1,19 +1,25 @@
 package fsstore
 
 import (
-	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
+
+	"github.com/c3systems/c3/core/p2p/store"
 
 	flatfs "github.com/ipfs/go-ds-flatfs"
 )
+
+/*
+ *
+ * BEWARE: https://github.com/ipfs/go-ds-flatfs/issues/44
+ *
+ */
 
 // New ...
 func New(path string) (*flatfs.Datastore, error) {
 	// expand tilde
 	if strings.HasPrefix(path, "~/") {
-		path = filepath.Join(userHomeDir(), path[2:])
+		path = filepath.Join(store.UserHomeDir(), path[2:])
 	}
 
 	var (
@@ -21,7 +27,7 @@ func New(path string) (*flatfs.Datastore, error) {
 		err     error
 	)
 
-	if err := createDirIfNotExist(path); err != nil {
+	if err := store.CreateDirIfNotExist(path); err != nil {
 		return nil, err
 	}
 
@@ -34,28 +40,4 @@ func New(path string) (*flatfs.Datastore, error) {
 	}
 
 	return flatfs.CreateOrOpen(path, shardFn, true)
-}
-
-func userHomeDir() string {
-	if runtime.GOOS == "windows" {
-		home := os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
-		if home == "" {
-			home = os.Getenv("USERPROFILE")
-		}
-		return home
-	} else if runtime.GOOS == "linux" {
-		home := os.Getenv("XDG_CONFIG_HOME")
-		if home != "" {
-			return home
-		}
-	}
-	return os.Getenv("HOME")
-}
-
-func createDirIfNotExist(path string) error {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return os.MkdirAll(path, 0757)
-	}
-
-	return nil
 }

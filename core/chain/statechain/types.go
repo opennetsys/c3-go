@@ -28,12 +28,12 @@ type TransactionsMap map[string][]*Transaction
 
 // TransactionProps ...
 type TransactionProps struct {
-	TxHash    *string     `json:"txHash,omitempty"`
+	TxHash    *string     `json:"txHash,omitempty" rlp:"nil"`
 	ImageHash string      `json:"imageHash"`
 	Method    string      `json:"method"`
 	Payload   interface{} `json:"payload"`
 	From      string      `json:"from"`
-	Sig       *TxSig      `json:"txSig,omitempty"`
+	Sig       *TxSig      `json:"txSig,omitempty" rlp:"nil"`
 }
 
 // Transaction ...
@@ -43,7 +43,7 @@ type Transaction struct {
 
 // BlockProps ...
 type BlockProps struct {
-	BlockHash         *string `json:"blockHash,omitempty"`
+	BlockHash         *string `json:"blockHash,omitempty" rlp:"nil"`
 	BlockNumber       string  `json:"blockNumber"`
 	BlockTime         string  `json:"blockTime"` // unix timestamp
 	ImageHash         string  `json:"imageHash"`
@@ -61,7 +61,7 @@ type Block struct {
 // DiffProps ...
 // note @miguelmota: any better system than simply storing as a string?
 type DiffProps struct {
-	DiffHash *string `json:"diffHash,omitempty"`
+	DiffHash *string `json:"diffHash,omitempty" rlp:"nil"`
 	// what's the best way to store a diff?
 	Data string `json:"data"`
 }

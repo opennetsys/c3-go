@@ -13,7 +13,11 @@ import (
 
 var (
 	hash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-	p    = Props{
+	bSig = BlockSig{
+		R: "0x1",
+		S: "0x1",
+	}
+	p = Props{
 		BlockHash:             &hash,
 		BlockNumber:           "0x1",
 		BlockTime:             "0x5",
@@ -22,6 +26,8 @@ var (
 		PrevBlockHash:         "prevBlockHash",
 		Nonce:                 "0x1",
 		Difficulty:            "0x1",
+		MinerAddress:          "0x123",
+		MinerSig:              &bSig,
 	}
 	p1 = Props{
 		BlockHash:             nil,
@@ -32,6 +38,8 @@ var (
 		PrevBlockHash:         "prevBlockHash",
 		Nonce:                 "0x1",
 		Difficulty:            "0x1",
+		MinerAddress:          "",
+		MinerSig:              nil,
 	}
 	s = `{
 		"blockHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -224,6 +232,48 @@ func TestGenesisBlockHash(t *testing.T) {
 
 	if hash != GenesisBlockHash {
 		log.Errorf("received %s\nexpected %s", hash, GenesisBlockHash)
+	}
+}
+
+func TestSerializeDeserialize(t *testing.T) {
+	b := &Block{
+		props: p,
+	}
+	b1 := &Block{
+		props: p1,
+	}
+
+	inputs := []*Block{b, b1}
+	for idx, in := range inputs {
+		bytes, err := in.Serialize()
+		if err != nil {
+			t.Fatalf("test %d failed\nerr serializing: %v", idx+1, err)
+		}
+
+		tmpBlock := new(Block)
+		if err := tmpBlock.Deserialize(bytes); err != nil {
+			t.Fatalf("test %d failed\nerr deserializing: %v", idx+1, err)
+		}
+
+		if !reflect.DeepEqual(in, tmpBlock) {
+			if tmpBlock.props.BlockHash != nil {
+				t.Logf("block hash %s", *tmpBlock.props.BlockHash)
+			}
+			t.Errorf("test #%d faild\nexpected: %v\nreceived: %v\n", idx+1, *in, *tmpBlock)
+		}
+	}
+}
+
+func TestDeepEqual(t *testing.T) {
+	b := &Block{
+		props: p,
+	}
+	b1 := &Block{
+		props: p,
+	}
+
+	if !reflect.DeepEqual(b, b1) {
+		t.Error("not equal")
 	}
 }
 

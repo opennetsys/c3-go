@@ -53,7 +53,7 @@ func DecodeString(hexStr string) (string, error) {
 		return "", err
 	}
 
-	return AddLeader(string(bytes)), nil
+	return string(bytes), nil
 }
 
 // EncodeBytes ...
@@ -79,13 +79,13 @@ func EncodeBigInt(i *big.Int) string {
 
 // DecodeBigInt ...
 func DecodeBigInt(hexStr string) (*big.Int, error) {
-	str, err := DecodeString(hexStr)
+	i := new(big.Int)
+	hx, err := StripLeader(hexStr)
 	if err != nil {
 		return nil, err
 	}
 
-	i := new(big.Int)
-	if _, ok := i.SetString(str, 10); !ok {
+	if _, ok := i.SetString(hx, 16); !ok {
 		return nil, errors.New("could not decode to big.Int")
 	}
 
@@ -124,6 +124,7 @@ func DecodeFloat64(hexStr string) (float64, error) {
 	return strconv.ParseFloat(f, 64)
 }
 
+// StripLeader ...
 func StripLeader(hexStr string) (string, error) {
 	leaderLen := len(Leader)
 	if len(hexStr) <= leaderLen {
@@ -137,6 +138,7 @@ func StripLeader(hexStr string) (string, error) {
 	return hexStr[leaderLen:], nil
 }
 
+// AddLeader ...
 func AddLeader(str string) string {
 	return fmt.Sprintf("%s%s", Leader, str)
 }

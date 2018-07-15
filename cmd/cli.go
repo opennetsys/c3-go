@@ -89,6 +89,26 @@ For more info visit: https://github.com/c3systems/c3,
 		},
 	}
 
+	deployCmd := &cobra.Command{
+		Use:   "deploy",
+		Short: "Deploy image to the blockchain",
+		Long:  `Deploys the docker image to the decentralized registry on IPFS and broadcasts a transaction to the blockchain for it to be mined`,
+		Args: func(cmd *cobra.Command, args []string) error {
+			// c3 deploy {imageID} "foo" "bar"
+
+			if len(args) == 0 {
+				return ErrImageIDRequired
+			}
+
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			// broadcast transaction as grpc
+
+			return nil
+		},
+	}
+
 	nodeCmd := &cobra.Command{
 		Use:              "node [OPTIONS] [COMMANDS] [OPTIONS]",
 		Short:            "c3 node commands",
@@ -100,7 +120,8 @@ For more info visit: https://github.com/c3systems/c3,
 		Short: "Start a c3 node",
 		Long:  "By starting a c3 node, you will participate in the c3 network: mining and storing blocks and responding to RPC requests. Thank you, you are making the c3 network stronger by participating.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return node.Start(&nodetypes.Config{
+			n := new(node.Service)
+			return node.Start(n, &nodetypes.Config{
 				URI:     nodeURI,
 				Peer:    peer,
 				DataDir: dataDir,
@@ -121,7 +142,7 @@ For more info visit: https://github.com/c3systems/c3,
 	// TODO: add more flags for blockstore and nodestore, etc.
 
 	nodeCmd.AddCommand(startSubCmd)
-	rootCmd.AddCommand(pushCmd, pullCmd, nodeCmd)
+	rootCmd.AddCommand(pushCmd, pullCmd, deployCmd, nodeCmd)
 
 	return rootCmd
 }

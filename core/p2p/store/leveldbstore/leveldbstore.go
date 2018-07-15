@@ -1,14 +1,24 @@
 package leveldbstore
 
 import (
+	"path/filepath"
+	"strings"
+
+	"github.com/c3systems/c3/core/p2p/store"
+
+	ds "github.com/ipfs/go-datastore"
 	leveldbds "github.com/ipfs/go-ds-leveldb"
-	bstore "github.com/ipfs/go-ipfs-blockstore"
-	opt "github.com/syndtr/goleveldb/leveldb/opt"
-	//bstore "gx/ipfs/QmTVDM4LCSUMFNQzbDLL9zQwp8usE6QHymFdh3h8vL9v6b/go-ipfs-blockstore"
 )
 
-type Options opt.Options
+func New(path string, options *leveldbds.Options) (ds.Batching, error) {
+	// expand tilde
+	if strings.HasPrefix(path, "~/") {
+		path = filepath.Join(store.UserHomeDir(), path[2:])
+	}
 
-func New(path string, options *Options) (bstore.Blockstore, error) {
+	if err := store.CreateDirIfNotExist(path); err != nil {
+		return nil, err
+	}
+
 	return leveldbds.NewDatastore(path, options)
 }

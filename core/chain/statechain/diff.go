@@ -3,6 +3,7 @@ package statechain
 import (
 	"encoding/json"
 
+	"github.com/c3systems/c3/common/coder"
 	"github.com/c3systems/c3/common/hashing"
 	"github.com/c3systems/c3/common/hexutil"
 	"github.com/c3systems/merkletree"
@@ -26,12 +27,18 @@ func (d Diff) Props() DiffProps {
 
 // Serialize ...
 func (d *Diff) Serialize() ([]byte, error) {
-	return d.MarshalJSON()
+	return coder.Serialize(d.props)
 }
 
 // Deserialize ...
 func (d *Diff) Deserialize(data []byte) error {
-	return d.UnmarshalJSON(data)
+	var tmpProps DiffProps
+	if err := coder.Deserialize(data, &tmpProps); err != nil {
+		return err
+	}
+
+	d.props = tmpProps
+	return nil
 }
 
 // SerializeString ...

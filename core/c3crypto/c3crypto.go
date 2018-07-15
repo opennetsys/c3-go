@@ -6,6 +6,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/pem"
 	"errors"
 	"io/ioutil"
@@ -35,6 +36,8 @@ var (
 	ErrNilData = errors.New("data is nil")
 	// ErrNilSigParams ...
 	ErrNilSigParams = errors.New("r and s params cannot be nil")
+	// ErrInvalidPublicKey ...
+	ErrInvalidPublicKey = errors.New("invalid public key")
 	// ErrGeneratingECIESPublicKey ...
 	ErrGeneratingECIESPublicKey = errors.New("could not generate ecies public key from ecda public key")
 	// ErrGeneratingECIESPrivateKey ...
@@ -47,6 +50,7 @@ var (
 	Curve = elliptic.P256()
 	//Curve = elliptic.P384() // note: causes a shared key params are too big err
 	//Curve = elliptic.P521() // note: causes an out of range panic at ecies.go L106!!
+	//Curve = secp256k1.S256() // note: what ethereum uses
 )
 
 // NewKeyPair ...
@@ -396,16 +400,37 @@ func EncodeAddress(pub *ecdsa.PublicKey) (string, error) {
 	return hexutil.EncodeString(string(bytes)), nil
 }
 
-// DecodeAddress ...
+// DecodeAddress [for now] decodes public address hex to ECDSA public key.
+// Public key are treated as public address at the moment.
 func DecodeAddress(address string) (*ecdsa.PublicKey, error) {
-	pubStr, err := hexutil.DecodeString(address)
-	if err != nil {
-		return nil, err
-	}
-	pub, err := DeserializePublicKey([]byte(pubStr))
+	pubBytes, err := hex.DecodeString(address)
 	if err != nil {
 		return nil, err
 	}
 
-	return pub, nil
+	x, y := elliptic.Unmarshal(Curve, pubBytes)
+	if x == nil {
+		return nil, ErrInvalidPublicKey
+	}
+
+	return &ecdsa.PublicKey{Curve: Curve, X: x, Y: y}, nil
+}
+
+// PublicKeyToBytes ...
+func PublicKeyToBytes(pub *ecdsa.PublicKey) ([]byte, error) {
+	if pub == nil {
+		return nil, ErrInvalidPublicKey
+	}
+
+	return elliptic.Marshal(Curve, pub.X, pub.Y), nil
+}
+
+// PublicKeyFromBytes ...
+func PublicKeyFromBytes(pub []byte) (*ecdsa.PublicKey, error) {
+	x, y := elliptic.Unmarshal(Curve, pub)
+	if x == nil {
+		return nil, ErrInvalidPublicKey
+	}
+
+	return &ecdsa.PublicKey{Curve: Curve, X: x, Y: y}, nil
 }

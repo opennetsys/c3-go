@@ -8,7 +8,12 @@ install:
 deps:
 	@rm -rf ./vendor && \
 	dep ensure && \
-	gxundo ./vendor
+	gxundo ./vendor && \
+	(cd vendor/github.com/libp2p/go-libp2p-pubsub/pb \
+	&& rm rpc.pb.go && rm rpc.proto \
+	&& wget https://github.com/c3systems/go-libp2p-pubsub/raw/master/pb/rpc.pb.go \
+	&& wget https://github.com/c3systems/go-libp2p-pubsub/raw/master/pb/rpc.proto)
+
 
 .PHONY: build
 build:
@@ -60,14 +65,14 @@ test/cleanup:
 	@. scripts/test_cleanup.sh
 
 .PHONY: test
-test: test/check test/c3 test/common test/common test/registry test/core test/cleanup
+test: test/check test/c3 test/common test/common test/registry test/core test/node test/cleanup
 
 .PHONY: test/c3
 test/c3:
 	@go test -v c3/*.go $(ARGS)
 
 .PHONY: test/common
-test/common: test/common/network test/common/stringutil
+test/common: test/common/network test/common/stringutil test/hexutil
 
 .PHONY: test/common/network
 test/common/network:
@@ -77,12 +82,16 @@ test/common/network:
 test/common/stringutil:
 	@go test -v common/stringutil/*.go $(ARGS)
 
+.PHONY: test/common/hexutil
+test/common/hexutil:
+	@go test -v common/hexutil/*.go $(ARGS)
+
 .PHONY: test/common/command
 test/common/command:
 	@go test -v common/command/*.go $(ARGS)
 
 .PHONY: test/core
-test/core: test/core/server test/core/docker test/core/sandbox
+test/core: test/core/server test/core/docker test/core/ipfs test/core/sandbox test/core/c3crypto
 
 .PHONY: test/core/server
 test/core/server:
@@ -91,6 +100,10 @@ test/core/server:
 .PHONY: test/core/docker
 test/core/docker:
 	@go test -v -parallel 1 core/docker/*.go $(ARGS)
+
+.PHONY: test/core/ipfs
+test/core/ipfs:
+	@go test -v -parallel 1 core/ipfs/*.go $(ARGS)
 
 .PHONY: test/core/sandbox
 test/core/sandbox: docker/build/example
@@ -108,10 +121,22 @@ test/core/chain/mainchain:
 test/core/chain/statechain:
 	@go test -v core/chain/statechain/*.go $(ARGS)
 
+.PHONY: test/core/c3crypto
+test/core/c3crypto:
+	@go test -v -parallel 1 core/c3crypto/*.go $(ARGS)
+
 .PHONY: test/registry
 test/registry:
 	@docker pull hello-world && \
 	go test -v -parallel 1 registry/*.go $(ARGS)
+
+.PHONY: test/node
+test/node:
+	@go test -v node/*.go $(ARGS)
+
+.PHONY: run/node
+run/node:
+	@go run main.go node start --pem=node/test_data/priv2.pem --uri /ip4/0.0.0.0/tcp/9005 --data-dir=~/.c3-1
 
 .PHONY: test/docker/build/snapshot
 test/docker/build/snapshot:

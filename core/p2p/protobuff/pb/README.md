@@ -8,10 +8,10 @@ See:
 First, [install protobuffs](https://github.com/golang/protobuf). Then:
 
 ```bash
-$ go get github.com/gogo/protobuf/protoc-gen-gofast
+$ go get github.com/gogo/protobuf/protoc-gen-gogofast
 ```
 
 ## Usage
 ```bash
-$ protoc --gofast_out=. p2p.proto
+$ protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf --gogofast_out=. p2p.proto
 ```

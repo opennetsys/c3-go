@@ -103,6 +103,7 @@ func VerifyTransaction(tx *statechain.Transaction) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
 	s, err := hexutil.DecodeBigInt(tx.Props().Sig.S)
 	if err != nil {
 		return false, err
