@@ -3,22 +3,94 @@
 package hexutil
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
+	"reflect"
 	"strings"
 	"testing"
 )
 
 func TestDecodeUint64(t *testing.T) {
-	// TODO
+	t.Parallel()
+	tests := []struct {
+		in  string
+		out uint64
+	}{
+		{
+			"0x7B",
+			uint64(123),
+		},
+		{
+			"0x32F9E39",
+			uint64(53452345),
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
+			decoded, err := DecodeUint64(tt.in)
+			if err != nil {
+				t.Error(err)
+			}
+
+			if decoded != tt.out {
+				t.Errorf("want %v; got %v", tt.out, decoded)
+			}
+		})
+	}
 }
 
 func TestEncodeUint64(t *testing.T) {
-	// TODO
+	t.Parallel()
+	tests := []struct {
+		in  uint64
+		out string
+	}{
+		{
+			uint64(123),
+			"0x7B",
+		},
+		{
+			uint64(53452345),
+			"0x32F9E39",
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
+			encoded := EncodeUint64(tt.in)
+			if encoded != strings.ToLower(tt.out) {
+				t.Errorf("want %v; got %v", tt.out, encoded)
+			}
+		})
+	}
 }
 
 func TestEncodeString(t *testing.T) {
-	// TODO
+	t.Parallel()
+	tests := []struct {
+		in  string
+		out string
+	}{
+		{
+			"hello",
+			"0x68656c6c6f",
+		},
+		{
+			"123",
+			"0x313233",
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
+			encoded := EncodeString(tt.in)
+			if encoded != tt.out {
+				t.Errorf("want %v; got %v", tt.out, encoded)
+			}
+		})
+	}
 }
 
 func TestDecodeString(t *testing.T) {
@@ -30,6 +102,10 @@ func TestDecodeString(t *testing.T) {
 		{
 			"0x68656c6c6f",
 			"hello",
+		},
+		{
+			"0x313233",
+			"123",
 		},
 	}
 
@@ -48,11 +124,51 @@ func TestDecodeString(t *testing.T) {
 }
 
 func TestEncodeBytes(t *testing.T) {
-	// TODO
+	t.Parallel()
+	tests := []struct {
+		in  []byte
+		out []byte
+	}{
+		{
+			[]byte("hello"),
+			[]byte("68656c6c6f"),
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
+			encoded := EncodeBytes(tt.in)
+			if !reflect.DeepEqual(encoded, tt.out) {
+				t.Errorf("want %s; got %s", string(tt.out), string(encoded))
+			}
+		})
+	}
 }
 
 func TestDecodeBytes(t *testing.T) {
-	// TODO
+	t.Parallel()
+	tests := []struct {
+		in  []byte
+		out []byte
+	}{
+		{
+			[]byte("68656c6c6f"),
+			[]byte("hello"),
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
+			decoded, err := DecodeBytes(tt.in)
+			if err != nil {
+				t.Error(err)
+			}
+
+			if !reflect.DeepEqual(decoded, tt.out) {
+				t.Errorf("want %s; got %s", string(tt.out), string(decoded))
+			}
+		})
+	}
 }
 
 func TestEncodeBigInt(t *testing.T) {
@@ -108,30 +224,157 @@ func TestDecodeBigInt(t *testing.T) {
 }
 
 func TestEncodeInt(t *testing.T) {
-	// TODO
+	t.Parallel()
+	tests := []struct {
+		in  int
+		out string
+	}{
+		{
+			123,
+			"0x7B",
+		},
+		{
+			-932445,
+			"0xFFFFFFFFFFF1C5A3",
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
+			encoded := EncodeInt(tt.in)
+
+			if encoded != strings.ToLower(tt.out) {
+				t.Errorf("want %s; got %s", tt.out, encoded)
+			}
+		})
+	}
 }
 
 func TestDecodeInt(t *testing.T) {
-	// TODO
+	t.Parallel()
+	tests := []struct {
+		in  string
+		out int
+	}{
+		{
+			"0x7B",
+			123,
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
+			decoded, err := DecodeInt(tt.in)
+			if err != nil {
+				t.Error(err)
+			}
+
+			if decoded != tt.out {
+				t.Errorf("want %v; got %v", tt.out, decoded)
+			}
+		})
+	}
 }
 
 func TestEncodeFloat64(t *testing.T) {
-	// TODO
+	t.Parallel()
+	tests := []struct {
+		in  float64
+		out string
+	}{
+		{
+			float64(123),
+			"0x405EC00000000000",
+		},
+		{
+			float64(-561.2863),
+			"0xC0818A4A57A786C2",
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
+			encoded := EncodeFloat64(tt.in)
+			if encoded != strings.ToLower(tt.out) {
+				t.Errorf("want %v; got %v", tt.out, encoded)
+			}
+		})
+	}
 }
 
 func TestDecodeFloat64(t *testing.T) {
-	// TODO
+	t.Parallel()
+	tests := []struct {
+		in  string
+		out float64
+	}{
+		{
+			"0x405EC00000000000",
+			float64(123),
+		},
+		{
+			"0xC0818A4A57A786C2",
+			float64(-561.2863),
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
+			decoded, err := DecodeFloat64(tt.in)
+			if err != nil {
+				t.Error(err)
+			}
+
+			if decoded != tt.out {
+				t.Errorf("want %v; got %v", tt.out, decoded)
+			}
+		})
+	}
 }
 
 func TestStripLeader(t *testing.T) {
-	// TODO
+	t.Parallel()
+	tests := []struct {
+		in  string
+		out string
+		err error
+	}{
+		{
+			"0x123",
+			"123",
+			nil,
+		},
+		{
+			"123",
+			"",
+			errors.New("not a hex string"),
+		},
+		{
+			"0x",
+			"",
+			nil,
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
+			result, err := StripLeader(tt.in)
+			if err == nil && result != tt.out {
+				t.Errorf("want %v; got %v", tt.out, result)
+			}
+
+			if err != nil && err.Error() != tt.err.Error() {
+				t.Error(err)
+			}
+		})
+	}
 }
 
 func TestAddLeader(t *testing.T) {
-	// TODO
 }
 
 func TestEncodeStringDecodeString(t *testing.T) {
+	t.Parallel()
 	inputs := []string{
 		"foo",
 		"foo bar",
@@ -155,6 +398,7 @@ func TestEncodeStringDecodeString(t *testing.T) {
 }
 
 func TestEncodeDecodeBigInt(t *testing.T) {
+	t.Parallel()
 	b := big.NewInt(20)
 	b1Str := EncodeBigInt(b)
 
