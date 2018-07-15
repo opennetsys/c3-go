@@ -1,6 +1,7 @@
 package node
 
 import (
+	"log"
 	"testing"
 	"time"
 
@@ -12,20 +13,26 @@ import (
 
 func TestBroadcast(t *testing.T) {
 	pem := "./test_data/key.pem"
-	nodeURI := "/ip4/0.0.0.0/tcp/9000"
+	nodeURI := "/ip4/0.0.0.0/tcp/9004"
 	dataDir := "~/.c3"
 	n := new(Service)
 	ready := make(chan bool)
 	go func() {
-		go Start(n, &nodetypes.Config{
-			URI:     nodeURI,
-			Peer:    "/ip4/192.168.84.20/tcp/9005/ipfs/QmTwGKMGvVL9Txti4AhB14bRZ6rhQNeAX4ZAhn6r1xfUxK",
-			DataDir: dataDir,
-			Keys: nodetypes.Keys{
-				PEMFile:  pem,
-				Password: "",
-			},
-		})
+		go func() {
+			err := Start(n, &nodetypes.Config{
+				URI:     nodeURI,
+				Peer:    "/ip4/0.0.0.0/tcp/9005/ipfs/QmTwGKMGvVL9Txti4AhB14bRZ6rhQNeAX4ZAhn6r1xfUxK",
+				DataDir: dataDir,
+				Keys: nodetypes.Keys{
+					PEMFile:  pem,
+					Password: "",
+				},
+			})
+
+			if err != nil {
+				log.Fatal(err)
+			}
+		}()
 
 		time.Sleep(60 * time.Second)
 		ready <- true

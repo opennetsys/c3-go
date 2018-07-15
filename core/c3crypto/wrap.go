@@ -6,7 +6,10 @@ import (
 	"math/big"
 	"reflect"
 
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/gogo/protobuf/proto"
 	glc "github.com/libp2p/go-libp2p-crypto"
+	pb "github.com/libp2p/go-libp2p-crypto/pb"
 )
 
 // note: these structs implement the go-libp2p-crypto private and public key interfaces
@@ -116,7 +119,11 @@ func (wPriv *WrappedPrivateKey) GetPublic() glc.PubKey {
 
 // Bytes ...
 func (wPub *WrappedPublicKey) Bytes() ([]byte, error) {
-	return SerializePublicKey(wPub.props.Pub)
+	pbmes := new(pb.PublicKey)
+	typ := pb.KeyType_RSA
+	pbmes.Type = &typ
+	pbmes.Data = crypto.FromECDSAPub(wPub.props.Pub)
+	return proto.Marshal(pbmes)
 }
 
 // Equals ...

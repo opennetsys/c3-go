@@ -14,7 +14,7 @@ import (
 	"github.com/c3systems/c3/core/p2p"
 	"github.com/c3systems/c3/core/p2p/protobuff"
 	pb "github.com/c3systems/c3/core/p2p/protobuff/pb"
-	"github.com/c3systems/c3/core/p2p/store/leveldbstore"
+	"github.com/c3systems/c3/core/p2p/store/fsstore"
 	"github.com/c3systems/c3/node/store/safemempool"
 	nodetypes "github.com/c3systems/c3/node/types"
 
@@ -102,11 +102,15 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 			return fmt.Errorf("err getting info from peerstore\n%v", err)
 		}
 
+		log.Println("FULL", addr.String())
+		log.Println("PIN INFO", pinfo)
+
 		if err := newNode.Connect(ctx, *pinfo); err != nil {
 			log.Printf("bootstrapping a peer failed\n%v", err)
 		}
 
 		newNode.Peerstore().AddAddrs(pinfo.ID, pinfo.Addrs, peerstore.PermanentAddrTTL)
+		// newNode.Peerstore().Peers()
 	}
 
 	// TODO: add cli flags for different types
@@ -115,10 +119,7 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 		return fmt.Errorf("err initializing mempool\n%v", err)
 	}
 
-	// TODO: add cli flags for different types
-	// diskStore, err := fsstore.New(cfg.DataDir)
-	diskStore, err := leveldbstore.New(cfg.DataDir, nil)
-	// diskStore, err := leveldbds.NewDatastore(cfg.DataDir, nil)
+	diskStore, err := fsstore.New(cfg.DataDir)
 	if err != nil {
 		return fmt.Errorf("err building disk store\n%v", err)
 	}
