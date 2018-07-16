@@ -168,6 +168,8 @@ func (s Service) FetchMostRecentStateBlock(imageHash string, block *mainchain.Bl
 		return nil, err
 	}
 
+	log.Printf("[p2p] cid by hash for state block merkle hash is %s for image hash %s", treeCID, imageHash)
+
 	tree, err := s.GetMerkleTree(treeCID)
 	if err != nil {
 		log.Printf("[p2p] error getting merkle tree for tree cid %s for image hash %s", treeCID, imageHash)
