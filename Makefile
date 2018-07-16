@@ -7,13 +7,25 @@ install:
 .PHONY: deps
 deps:
 	@rm -rf ./vendor && \
+	echo "running dep ensure..." && \
 	dep ensure && \
-	gxundo ./vendor && \
+	. scripts/gxundo.sh vendor/ && \
 	(cd vendor/github.com/libp2p/go-libp2p-pubsub/pb \
 	&& rm rpc.pb.go && rm rpc.proto \
 	&& wget https://github.com/c3systems/go-libp2p-pubsub/raw/master/pb/rpc.pb.go \
 	&& wget https://github.com/c3systems/go-libp2p-pubsub/raw/master/pb/rpc.proto)
 	$(MAKE) deps/copy/ethereum/crypto
+	git clone https://github.com/gxed/pubsub.git vendor/github.com/gxed/pubsub
+
+.PHONY: gxundo
+gxundo:
+	@. scripts/gxundo.sh vendor/
+
+.PHONY: install/gxundo
+install/gxundo:
+	@wget https://raw.githubusercontent.com/c3systems/gxundo/master/gxundo.sh \
+	-O scripts/gxundo.sh && \
+	chmod +x scripts/gxundo.sh
 
 .PHONY: deps/copy/ethereum/crypto
 deps/copy/ethereum/crypto:
