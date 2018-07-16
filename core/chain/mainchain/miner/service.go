@@ -275,20 +275,22 @@ func (s Service) generateNonce() (string, error) {
 func (s Service) bootstrapNextBlock() (*mainchain.Block, error) {
 	nextProps := new(mainchain.Props)
 
-	/*
-			prevProps := s.props.PreviousBlock.Props()
-				if prevProps.BlockHash == nil {
-					return nil, errors.New("previous block's block hash is nil")
-				}
+	// previous block will be nil if first block
+	if s.props.PreviousBlock != nil {
+		prevProps := s.props.PreviousBlock.Props()
+		if prevProps.BlockHash == nil {
+			return nil, errors.New("previous block's block hash is nil")
+		}
 
-			// note: checked for nil block hash, above
-			nextProps.PrevBlockHash = *prevProps.BlockHash
-			prevBlockHeight, err := hexutil.DecodeUint64(prevProps.BlockNumber)
-			if err != nil {
-				return nil, err
-			}
+		// note: checked for nil block hash, above
+		nextProps.PrevBlockHash = *prevProps.BlockHash
+		prevBlockHeight, err := hexutil.DecodeUint64(prevProps.BlockNumber)
+		if err != nil {
+			return nil, err
+		}
 		nextProps.BlockNumber = hexutil.EncodeUint64(prevBlockHeight + 1)
-	*/
+	}
+
 	nextProps.BlockNumber = hexutil.EncodeUint64(0)
 	nextProps.BlockTime = hexutil.EncodeUint64(uint64(time.Now().Unix()))
 	nextProps.Difficulty = hexutil.EncodeUint64(s.props.Difficulty)
