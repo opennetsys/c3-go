@@ -15,7 +15,7 @@ deps:
 	@rm -rf ./vendor && \
 		echo "running dep ensure..." && \
 		dep ensure && \
-		. scripts/gxundo.sh vendor/ && \
+		$(MAKE) gxundo && \
 		(cd vendor/github.com/libp2p/go-libp2p-pubsub/pb \
 		&& rm rpc.pb.go && rm rpc.proto \
 		&& wget https://github.com/c3systems/go-libp2p-pubsub/raw/master/pb/rpc.pb.go \
@@ -26,7 +26,7 @@ deps:
 
 .PHONY: gxundo
 gxundo:
-	@. scripts/gxundo.sh vendor/
+	@bash scripts/gxundo.sh vendor/
 
 .PHONY: install/gxundo
 install/gxundo:
