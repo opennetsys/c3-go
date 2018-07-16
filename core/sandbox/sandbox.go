@@ -20,6 +20,7 @@ import (
 	"github.com/c3systems/c3/common/stringutil"
 	c3config "github.com/c3systems/c3/config"
 	"github.com/c3systems/c3/core/docker"
+	"github.com/c3systems/c3/logger"
 	"github.com/c3systems/c3/registry"
 )
 
@@ -271,4 +272,8 @@ func (s *Sandbox) cleanup() {
 			log.Printf("[server] error %s", err)
 		}
 	}
+}
+
+func init() {
+	log.AddHook(logger.ContextHook{})
 }

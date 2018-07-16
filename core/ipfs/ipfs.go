@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/c3systems/c3/logger"
 	log "github.com/sirupsen/logrus"
 
 	api "github.com/ipfs/go-ipfs-api"
@@ -99,4 +100,8 @@ func getIpfsAPIURL() (string, error) {
 	}
 
 	return strings.TrimSpace(string(out)), nil
+}
+
+func init() {
+	log.AddHook(logger.ContextHook{})
 }

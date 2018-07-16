@@ -7,6 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/c3systems/c3/config"
+	"github.com/c3systems/c3/logger"
 	"github.com/c3systems/c3/node"
 	nodetypes "github.com/c3systems/c3/node/types"
 	"github.com/c3systems/c3/registry"
@@ -155,4 +156,8 @@ func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
+}
+
+func init() {
+	log.AddHook(logger.ContextHook{})
 }

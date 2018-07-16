@@ -7,6 +7,8 @@ import (
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/merkle"
 	"github.com/c3systems/c3/core/chain/statechain"
+	"github.com/c3systems/c3/logger"
+	log "github.com/sirupsen/logrus"
 
 	cid "github.com/ipfs/go-cid"
 	nonerouting "github.com/ipfs/go-ipfs-routing/none"
@@ -230,4 +232,8 @@ func (s Service) FetchMostRecentStateBlock(imageHash string, block *mainchain.Bl
 	}
 
 	return nil, nil
+}
+
+func init() {
+	log.AddHook(logger.ContextHook{})
 }

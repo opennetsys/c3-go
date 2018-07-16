@@ -11,6 +11,7 @@ import (
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/mainchain/miner"
 	"github.com/c3systems/c3/core/chain/statechain"
+	"github.com/c3systems/c3/logger"
 	nodetypes "github.com/c3systems/c3/node/types"
 	"github.com/davecgh/go-spew/spew"
 
@@ -551,4 +552,8 @@ func (s *Service) removeMinedTxs(minedBlock *miner.MinedBlock) error {
 	}
 
 	return s.props.Store.RemoveTxs(txs)
+}
+
+func init() {
+	log.AddHook(logger.ContextHook{})
 }

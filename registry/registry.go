@@ -22,6 +22,7 @@ import (
 	c3config "github.com/c3systems/c3/config"
 	"github.com/c3systems/c3/core/docker"
 	"github.com/c3systems/c3/core/ipfs"
+	"github.com/c3systems/c3/logger"
 	"github.com/c3systems/c3/registry/server"
 	"github.com/c3systems/c3/registry/util"
 	"github.com/davecgh/go-spew/spew"
@@ -494,4 +495,8 @@ func readJSONArray(filepath string) ([]map[string]interface{}, error) {
 func normalizeImageName(name string) string {
 	// TODO
 	return name
+}
+
+func init() {
+	log.AddHook(logger.ContextHook{})
 }
