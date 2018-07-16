@@ -2,6 +2,7 @@ package statechain
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/c3systems/c3/common/coder"
 	"github.com/c3systems/c3/common/hashing"
@@ -28,17 +29,26 @@ func (b Block) Props() BlockProps {
 
 // Serialize ...
 func (b *Block) Serialize() ([]byte, error) {
-	return coder.Serialize(b.props)
+	tmp := BuildCoderFromBlock(b)
+
+	return tmp.Marshal()
 }
 
 // Deserialize ...
 func (b *Block) Deserialize(data []byte) error {
-	var tmpProps BlockProps
-	if err := coder.Deserialize(data, &tmpProps); err != nil {
-		return err
+	if data == nil {
+		return errors.New("nil bytes")
+	}
+	if b == nil {
+		return errors.New("nil block")
 	}
 
-	b.props = tmpProps
+	props, err := BuildBlockPropsFromBytes(data)
+	if err != nil {
+		return err
+	}
+	b.props = *props
+
 	return nil
 }
 
@@ -145,4 +155,76 @@ func (b *Block) UnmarshalJSON(data []byte) error {
 	b.props = props
 
 	return nil
+}
+
+// BuildCoderFromBlock ...
+func BuildCoderFromBlock(b *Block) *coder.StatechainBlock {
+	tmp := &coder.StatechainBlock{
+		BlockNumber:       b.props.BlockNumber,
+		BlockTime:         b.props.BlockTime,
+		ImageHash:         b.props.ImageHash,
+		TxHash:            b.props.TxHash,
+		PrevBlockHash:     b.props.PrevBlockHash,
+		StatePrevDiffHash: b.props.StatePrevDiffHash,
+		StateCurrentHash:  b.props.StateCurrentHash,
+	}
+
+	// note: is there a better way to handle nil with protobuff?
+	if b.props.BlockHash != nil {
+		tmp.BlockHash = *b.props.BlockHash
+	}
+
+	return tmp
+}
+
+// BuildBlockPropsFromBytes ...
+func BuildBlockPropsFromBytes(data []byte) (*BlockProps, error) {
+	if data == nil {
+		return nil, errors.New("nil bytes")
+	}
+
+	c, err := BuildBlockCoderFromBytes(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return BuildBlockPropsFromCoder(c)
+}
+
+// BuildBlockCoderFromBytes ...
+func BuildBlockCoderFromBytes(data []byte) (*coder.StatechainBlock, error) {
+	if data == nil {
+		return nil, errors.New("nil bytes")
+	}
+
+	tmp := new(coder.StatechainBlock)
+	if err := tmp.Unmarshal(data); err != nil {
+		return nil, err
+	}
+
+	return tmp, nil
+}
+
+// BuildBlockPropsFromCoder ...
+func BuildBlockPropsFromCoder(tmp *coder.StatechainBlock) (*BlockProps, error) {
+	if tmp == nil {
+		return nil, errors.New("nil bytes")
+	}
+
+	props := &BlockProps{
+		BlockNumber:       tmp.BlockNumber,
+		BlockTime:         tmp.BlockTime,
+		ImageHash:         tmp.ImageHash,
+		TxHash:            tmp.TxHash,
+		PrevBlockHash:     tmp.PrevBlockHash,
+		StatePrevDiffHash: tmp.StatePrevDiffHash,
+		StateCurrentHash:  tmp.StateCurrentHash,
+	}
+	// note: is there any better way of checking forn nil with protobuf?
+	if tmp.BlockHash != "" {
+		s := tmp.BlockHash
+		props.BlockHash = &s
+	}
+
+	return props, nil
 }

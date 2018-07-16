@@ -2,6 +2,7 @@ package statechain
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/c3systems/c3/common/coder"
 	"github.com/c3systems/c3/common/hashing"
@@ -27,17 +28,27 @@ func (d Diff) Props() DiffProps {
 
 // Serialize ...
 func (d *Diff) Serialize() ([]byte, error) {
-	return coder.Serialize(d.props)
+	tmp := BuildCoderFromDiff(d)
+
+	return tmp.Marshal()
 }
 
 // Deserialize ...
 func (d *Diff) Deserialize(data []byte) error {
-	var tmpProps DiffProps
-	if err := coder.Deserialize(data, &tmpProps); err != nil {
+	if data == nil {
+		return errors.New("nil bytes")
+	}
+	if d == nil {
+		return errors.New("nil diff")
+	}
+
+	props, err := BuildDiffPropsFromBytes(data)
+	if err != nil {
 		return err
 	}
 
-	d.props = tmpProps
+	d.props = *props
+
 	return nil
 }
 
@@ -138,4 +149,66 @@ func (d *Diff) UnmarshalJSON(data []byte) error {
 	d.props = props
 
 	return nil
+}
+
+// BuildCoderFromDiff ...
+func BuildCoderFromDiff(d *Diff) *coder.Diff {
+	tmp := &coder.Diff{
+		Data: d.props.Data,
+	}
+
+	// note: is there a better way to handle nil with protobuff?
+	if d.props.DiffHash != nil {
+		tmp.DiffHash = *d.props.DiffHash
+	}
+
+	return tmp
+}
+
+// BuildDiffPropsFromBytes ...
+func BuildDiffPropsFromBytes(data []byte) (*DiffProps, error) {
+	if data == nil {
+		return nil, errors.New("nil bytes")
+	}
+
+	c, err := BuildBytesCoderFromBytes(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return BuildDiffPropsFromCoder(c)
+}
+
+// BuildBytesCoderFromBytes ...
+func BuildBytesCoderFromBytes(data []byte) (*coder.Diff, error) {
+	if data == nil {
+		return nil, errors.New("nil bytes")
+	}
+
+	tmp := new(coder.Diff)
+	if err := tmp.Unmarshal(data); err != nil {
+		return nil, err
+	}
+	if tmp == nil {
+		return nil, errors.New("nil output")
+	}
+
+	return tmp, nil
+}
+
+// BuildDiffPropsFromCoder ...
+func BuildDiffPropsFromCoder(tmp *coder.Diff) (*DiffProps, error) {
+	if tmp == nil {
+		return nil, errors.New("nil coder")
+	}
+
+	props := &DiffProps{
+		Data: tmp.Data,
+	}
+	if tmp.DiffHash != "" {
+		s := tmp.DiffHash
+		props.DiffHash = &s
+	}
+
+	return props, nil
 }

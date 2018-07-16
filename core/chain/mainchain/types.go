@@ -32,8 +32,8 @@ var (
 // https://play.golang.org/p/69Z8ot5uly5
 const ImageHash = "0xc672b8d1ef56ed28ab87c3622c5114069bdd3ad7b8f9737498d0c01ecef0967a"
 
-// BlockSig ...
-type BlockSig struct {
+// MinerSig ...
+type MinerSig struct {
 	R string `json:"r"`
 	S string `json:"s"`
 }
@@ -49,7 +49,7 @@ type Props struct {
 	Nonce                 string    `json:"nonce"`
 	Difficulty            string    `json:"difficulty"`
 	MinerAddress          string    `json:"minerAddress"`
-	MinerSig              *BlockSig `json:"blockSig,omitempty" rlp:"nil"`
+	MinerSig              *MinerSig `json:"minerSig,omitempty" rlp:"nil"`
 }
 
 // Block ...
