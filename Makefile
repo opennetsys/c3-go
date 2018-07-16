@@ -131,7 +131,8 @@ test/common/c3crypto:
 # CORE
 
 .PHONY: test/core
-test/core: test/core/server test/core/docker test/core/ipfs test/core/sandbox test/core/chain/mainchain/miner
+test/core: test/core/server test/core/docker test/core/ipfs test/core/sandbox
+	# test/core/chain/mainchain/miner
 
 .PHONY: test/core/server
 test/core/server:

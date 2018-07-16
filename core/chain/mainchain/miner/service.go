@@ -20,6 +20,7 @@ import (
 	"github.com/c3systems/c3/core/diffing"
 	"github.com/c3systems/c3/core/p2p"
 	"github.com/c3systems/c3/core/sandbox"
+	methodTypes "github.com/c3systems/c3/core/types/methods"
 	"github.com/c3systems/c3/logger"
 	"github.com/c3systems/merkletree"
 )
@@ -275,6 +276,11 @@ func (s Service) generateNonce() (string, error) {
 func (s Service) bootstrapNextBlock() (*mainchain.Block, error) {
 	nextProps := new(mainchain.Props)
 
+	nextProps.BlockNumber = hexutil.EncodeUint64(0)
+	nextProps.BlockTime = hexutil.EncodeUint64(uint64(time.Now().Unix()))
+	nextProps.Difficulty = hexutil.EncodeUint64(s.props.Difficulty)
+	nextProps.MinerAddress = s.props.EncodedMinerAddress
+
 	// previous block will be nil if first block
 	if s.props.PreviousBlock != nil {
 		prevProps := s.props.PreviousBlock.Props()
@@ -288,20 +294,16 @@ func (s Service) bootstrapNextBlock() (*mainchain.Block, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		nextProps.BlockNumber = hexutil.EncodeUint64(prevBlockHeight + 1)
 	}
-
-	nextProps.BlockNumber = hexutil.EncodeUint64(0)
-	nextProps.BlockTime = hexutil.EncodeUint64(uint64(time.Now().Unix()))
-	nextProps.Difficulty = hexutil.EncodeUint64(s.props.Difficulty)
-	nextProps.MinerAddress = s.props.EncodedMinerAddress
 
 	return mainchain.New(nextProps), nil
 }
 
 func (s Service) isGenesisTransaction(imageHash string, transactions []*statechain.Transaction) (bool, error) {
 	for _, tx := range transactions {
-		if tx.Props().Method == "c3_deploy" {
+		if tx.Props().Method == methodTypes.Deploy {
 			prevStateBlock, err := s.props.P2P.FetchMostRecentStateBlock(imageHash, s.props.PreviousBlock)
 			if err != nil {
 				log.Printf("[miner] error fetching most recent state block for image hash %s %s", imageHash, err)
@@ -486,7 +488,7 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 		var nextState []byte
 		log.Printf("[miner] tx method %s", tx.Props().Method)
 
-		if tx.Props().Method == "c3_invokeMethod" {
+		if tx.Props().Method == methodTypes.InvokeMethod {
 			payload := tx.Props().Payload
 
 			var parsed []string

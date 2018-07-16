@@ -5,6 +5,7 @@ import (
 
 	"github.com/c3systems/c3/common/c3crypto"
 	"github.com/c3systems/c3/core/chain/statechain"
+	methodTypes "github.com/c3systems/c3/core/types/methods"
 )
 
 func TestBuildGenesisStateBlock(t *testing.T) {
@@ -28,7 +29,7 @@ func TestBuildGenesisStateBlock(t *testing.T) {
 
 	tx := statechain.NewTransaction(&statechain.TransactionProps{
 		ImageHash: imageHash,
-		Method:    "c3_invokeMethod",
+		Method:    methodTypes.InvokeMethod,
 		Payload:   []byte(`["setItem", "foo", "bar"]`),
 		From:      encodedPub,
 	})

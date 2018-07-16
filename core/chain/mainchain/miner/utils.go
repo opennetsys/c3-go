@@ -20,6 +20,7 @@ import (
 	"github.com/c3systems/c3/core/diffing"
 	"github.com/c3systems/c3/core/p2p"
 	"github.com/c3systems/c3/core/sandbox"
+	methodTypes "github.com/c3systems/c3/core/types/methods"
 	"github.com/davecgh/go-spew/spew"
 )
 
@@ -640,7 +641,7 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, prevState []byte, prevBlo
 	prevStateFileName := prevStateFile.Name()
 
 	var nextState []byte
-	if tx.Props().Method == "c3_invokeMethod" {
+	if tx.Props().Method == methodTypes.InvokeMethod {
 		payload := tx.Props().Payload
 
 		var parsed []string
@@ -958,7 +959,7 @@ func BuildNextState(p2pSvc p2p.Interface, block *statechain.Block, tx *statechai
 	// apply state to container and run tx
 	var nextState []byte
 
-	if tx.Props().Method == "c3_invokeMethod" {
+	if tx.Props().Method == methodTypes.InvokeMethod {
 		payload := tx.Props().Payload
 
 		var parsed []string
