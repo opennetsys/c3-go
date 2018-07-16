@@ -8,7 +8,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/c3systems/c3/core/c3crypto"
+	"github.com/c3systems/c3/common/c3crypto"
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/mainchain/miner"
 	"github.com/c3systems/c3/core/chain/statechain"
@@ -118,8 +118,8 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 			return fmt.Errorf("err getting info from peerstore\n%v", err)
 		}
 
-		log.Println("FULL", addr.String())
-		log.Println("PIN INFO", pinfo)
+		log.Println("[node] FULL", addr.String())
+		log.Println("[node] PIN INFO", pinfo)
 
 		if err := newNode.Connect(ctx, *pinfo); err != nil {
 			log.Printf("bootstrapping a peer failed\n%v", err)
@@ -132,13 +132,13 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 	// TODO: add cli flags for different types
 	memPool, err := safemempool.New(&safemempool.Props{})
 	if err != nil {
-		return fmt.Errorf("err initializing mempool\n%v", err)
+		return fmt.Errorf("[node] err initializing mempool\n%v", err)
 	}
 
 	// TODO: add cli flags for different types
 	diskStore, err := leveldbstore.New(cfg.DataDir, nil)
 	if err != nil {
-		return fmt.Errorf("err building disk store\n%v", err)
+		return fmt.Errorf("[node] err building disk store\n%v", err)
 	}
 	// wrap the datastore in a 'content addressed blocks' layer
 	// TODO: implement metrics? https://github.com/ipfs/go-ds-measure

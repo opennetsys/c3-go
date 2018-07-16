@@ -4,12 +4,14 @@ import (
 	"errors"
 	"log"
 
+	"github.com/c3systems/c3/common/c3crypto"
 	"github.com/c3systems/c3/common/hexutil"
-	"github.com/c3systems/c3/core/c3crypto"
+	"github.com/c3systems/c3/config"
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/mainchain/miner"
 	"github.com/c3systems/c3/core/chain/statechain"
 	nodetypes "github.com/c3systems/c3/node/types"
+	"github.com/davecgh/go-spew/spew"
 
 	peer "github.com/libp2p/go-libp2p-peer"
 )
@@ -38,7 +40,7 @@ func (s *Service) setProps(props Props) error {
 	return nil
 }
 
-func (s Service) spawnNextBlockMiner(prevBlock *mainchain.Block) error {
+func (s *Service) spawnNextBlockMiner(prevBlock *mainchain.Block) error {
 	pendingTransactions, err := s.props.Store.GatherPendingTransactions()
 	if err != nil {
 		return err
@@ -48,12 +50,14 @@ func (s Service) spawnNextBlockMiner(prevBlock *mainchain.Block) error {
 		return err
 	}
 
+	log.Printf("[node] pending tx count: %v", len(pendingTransactions))
+
 	isValid := true
 	ch := make(chan interface{})
 	minerSvc, err := miner.New(&miner.Props{
 		IsValid:             &isValid,
 		PreviousBlock:       prevBlock,
-		Difficulty:          6, // TODO: need to get this from the network
+		Difficulty:          config.BlockDifficulty, // TODO: need to get this from the network
 		Channel:             ch,
 		Async:               true, // TODO: need to make this a cli flag
 		P2P:                 s.props.P2P,
@@ -73,7 +77,7 @@ func (s Service) spawnNextBlockMiner(prevBlock *mainchain.Block) error {
 	return s.spawnMinerListener(ch, &isValid)
 }
 
-func (s Service) spawnMinerListener(minerChan chan interface{}, isValid *bool) error {
+func (s *Service) spawnMinerListener(minerChan chan interface{}, isValid *bool) error {
 	if isValid == nil {
 		return errors.New("nil IsValid")
 	}
@@ -149,6 +153,7 @@ func (s Service) spawnMinerListener(minerChan chan interface{}, isValid *bool) e
 						log.Printf("[node] err signing mined block\n%v", err)
 						return
 					}
+
 					nextProps := minedBlock.NextBlock.Props()
 					nextProps.MinerSig = &mainchain.BlockSig{
 						R: hexutil.EncodeBigInt(sigR),
@@ -195,7 +200,7 @@ func (s Service) spawnMinerListener(minerChan chan interface{}, isValid *bool) e
 	return nil
 }
 
-func (s Service) listenForEvents() error {
+func (s *Service) listenForEvents() error {
 	if err := s.spawnBlocksListener(); err != nil {
 		return err
 	}
@@ -203,7 +208,7 @@ func (s Service) listenForEvents() error {
 	return s.spawnTransactionsListener()
 }
 
-func (s Service) spawnBlocksListener() error {
+func (s *Service) spawnBlocksListener() error {
 	sub, err := s.props.Pubsub.Subscribe("blocks")
 	if err != nil {
 		return err
@@ -235,7 +240,7 @@ func (s Service) spawnBlocksListener() error {
 	return nil
 }
 
-func (s Service) spawnTransactionsListener() error {
+func (s *Service) spawnTransactionsListener() error {
 	sub, err := s.props.Pubsub.Subscribe("transactions")
 	if err != nil {
 		return err
@@ -269,7 +274,7 @@ func (s Service) spawnTransactionsListener() error {
 
 // BroadcastMinedBlock ...
 // note: only mainchain blocks get broadcast
-func (s Service) BroadcastMinedBlock(minedBlock *miner.MinedBlock) error {
+func (s *Service) BroadcastMinedBlock(minedBlock *miner.MinedBlock) error {
 	if minedBlock == nil {
 		return errors.New("cannot broadcast nil block")
 	}
@@ -296,8 +301,6 @@ func (s *Service) BroadcastTransaction(tx *statechain.Transaction) (*nodetypes.S
 		return nil, err
 	}
 
-	log.Println("HIIII", s.props, s.props.Pubsub)
-
 	if err := s.props.Pubsub.Publish("transactions", data); err != nil {
 		return nil, err
 	}
@@ -308,7 +311,7 @@ func (s *Service) BroadcastTransaction(tx *statechain.Transaction) (*nodetypes.S
 }
 
 //// GetInfo ...
-//func (s Service) GetInfo() (*nodetypes.GetInfoResponse, error) {
+//func (s *Service) GetInfo() (*nodetypes.GetInfoResponse, error) {
 //var res nodetypes.GetInfoResponse
 
 //head, err := s.props.Blockchain.MainHead()
@@ -321,7 +324,7 @@ func (s *Service) BroadcastTransaction(tx *statechain.Transaction) (*nodetypes.S
 //return &res, err
 //}
 
-func (s Service) handleReceiptOfMinedBlock(minedBlock *miner.MinedBlock) {
+func (s *Service) handleReceiptOfMinedBlock(minedBlock *miner.MinedBlock) {
 	if minedBlock == nil {
 		log.Println("[node] received nil block")
 		return
@@ -335,7 +338,8 @@ func (s Service) handleReceiptOfMinedBlock(minedBlock *miner.MinedBlock) {
 		return
 	}
 
-	log.Printf("[node] received mined block on the channel\n%v", *minedBlock)
+	log.Printf("[node] received mined block on the channel\n")
+	spew.Dump(minedBlock)
 
 	if err := s.props.Store.SetPendingMainchainBlock(minedBlock.NextBlock); err != nil {
 		log.Printf("[node] err setting pending mainchain block\n%v", err)
@@ -362,7 +366,8 @@ func (s Service) handleReceiptOfMinedBlock(minedBlock *miner.MinedBlock) {
 
 	// note: ping the other nodes to tell them we didn't accept the block? See if they did?
 	if !ok {
-		log.Printf("[node] received invalid mined block\nblock: %v\nerr: %v", *minedBlock, err)
+		log.Printf("[node] received invalid mined block\nerr: %v", err)
+		spew.Dump(minedBlock)
 		return
 	}
 	log.Println("[node] mined block was validated")
@@ -434,7 +439,7 @@ func (s Service) handleReceiptOfMinedBlock(minedBlock *miner.MinedBlock) {
 	}
 }
 
-func (s Service) handleReceiptOfStatechainTransaction(tx *statechain.Transaction) {
+func (s *Service) handleReceiptOfStatechainTransaction(tx *statechain.Transaction) {
 	if tx == nil {
 		return
 	}
@@ -444,6 +449,7 @@ func (s Service) handleReceiptOfStatechainTransaction(tx *statechain.Transaction
 		log.Printf("[node] err verifying tx: %v\nerr: %v", *tx, err)
 		return
 	}
+
 	if !ok {
 		log.Printf("[node] received an invalid tx\n%v", *tx)
 		return
@@ -453,13 +459,21 @@ func (s Service) handleReceiptOfStatechainTransaction(tx *statechain.Transaction
 	// TODO: check the miner to see if it needs to stop
 	// note: verify tx checks that TxHash is not nil
 	ok, err = s.props.Store.HasTx(*tx.Props().TxHash)
-	if err == nil && ok {
+
+	if ok {
+		log.Printf("[node] tx already in mempool; tx hash: %s", *tx.Props().TxHash)
+	}
+
+	if err == nil && !ok {
 		if err := s.props.Store.AddTx(tx); err != nil {
 			// TODO: need to handle this err better
 			log.Printf("[node] err adding tx to store\n%v", err)
 			return
 		}
+
+		log.Printf("[node] tx added to mempool; tx hash: %s", *tx.Props().TxHash)
 	}
+
 	if err != nil {
 		log.Printf("[node] err checking if store has tx\n%v", err)
 	}
@@ -471,7 +485,7 @@ func (s Service) handleReceiptOfStatechainTransaction(tx *statechain.Transaction
 	}
 }
 
-func (s Service) setMinedBlockData(minedBlock *miner.MinedBlock) error {
+func (s *Service) setMinedBlockData(minedBlock *miner.MinedBlock) error {
 	if minedBlock == nil {
 		return errors.New("nil mined block")
 	}
@@ -529,7 +543,7 @@ func (s Service) setMinedBlockData(minedBlock *miner.MinedBlock) error {
 	return nil
 }
 
-func (s Service) removeMinedTxs(minedBlock *miner.MinedBlock) error {
+func (s *Service) removeMinedTxs(minedBlock *miner.MinedBlock) error {
 	var txs []string
 	for txHash := range minedBlock.TransactionsMap {
 		txs = append(txs, txHash)

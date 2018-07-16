@@ -2,7 +2,9 @@ package merkle
 
 import (
 	"encoding/json"
+	"errors"
 
+	"github.com/c3systems/c3/common/coder"
 	"github.com/c3systems/c3/common/hexutil"
 
 	"github.com/c3systems/merkletree"
@@ -83,12 +85,28 @@ func (t *Tree) Props() TreeProps {
 
 // Serialize ...
 func (t *Tree) Serialize() ([]byte, error) {
-	return t.MarshalJSON()
+	tmp := BuildCoderFromTree(t)
+
+	return tmp.Marshal()
 }
 
 // Deserialize ...
 func (t *Tree) Deserialize(data []byte) error {
-	return t.UnmarshalJSON(data)
+	if data == nil {
+		return errors.New("nil bytes")
+	}
+	if t == nil {
+		return errors.New("nil tree")
+	}
+
+	props, err := BuildTreePropsFromBytes(data)
+	if err != nil {
+		return err
+	}
+
+	t.props = *props
+
+	return nil
 }
 
 // SerializeString ...
@@ -205,4 +223,72 @@ func (t *Tree) UnmarshalJSON(data []byte) error {
 	t.props = props
 
 	return nil
+}
+
+// BuildCOderFromTree ...
+func BuildCoderFromTree(t *Tree) *coder.MerkleTree {
+	tmp := &coder.MerkleTree{
+		Kind:   t.props.Kind,
+		Hashes: t.props.Hashes,
+	}
+
+	// note: is there a better way to handle nil with protobuff?
+	if t.props.MerkleTreeRootHash != nil {
+		tmp.MerkleTreeRootHash = *t.props.MerkleTreeRootHash
+	}
+
+	return tmp
+}
+
+// BuildTreePropsFromBytes ...
+func BuildTreePropsFromBytes(data []byte) (*TreeProps, error) {
+	if data == nil {
+		return nil, errors.New("nil bytes")
+	}
+
+	c, err := BuildCoderFromBytes(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return BuildTreePropsFromCoder(c)
+}
+
+// BuildCoderFromBytes ...
+func BuildCoderFromBytes(data []byte) (*coder.MerkleTree, error) {
+	if data == nil {
+		return nil, errors.New("nil bytes")
+	}
+
+	tmp := new(coder.MerkleTree)
+	if err := tmp.Unmarshal(data); err != nil {
+		return nil, err
+	}
+	if tmp == nil {
+		return nil, errors.New("nil output")
+	}
+
+	return tmp, nil
+}
+
+// BuildTreePropsFromCoder ...
+func BuildTreePropsFromCoder(tmp *coder.MerkleTree) (*TreeProps, error) {
+	if tmp == nil {
+		return nil, errors.New("nil coder")
+	}
+
+	props := &TreeProps{
+		Kind: tmp.Kind,
+	}
+
+	// note: is there a better way to handle nil with protobuff?
+	if tmp.MerkleTreeRootHash != "" {
+		s := tmp.MerkleTreeRootHash
+		props.MerkleTreeRootHash = &s
+	}
+	if tmp.Hashes != nil && len(tmp.Hashes) > 0 {
+		props.Hashes = tmp.Hashes
+	}
+
+	return props, nil
 }

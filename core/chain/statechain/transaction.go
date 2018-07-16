@@ -3,11 +3,12 @@ package statechain
 import (
 	"crypto/ecdsa"
 	"encoding/json"
+	"errors"
 
+	"github.com/c3systems/c3/common/c3crypto"
 	"github.com/c3systems/c3/common/coder"
 	"github.com/c3systems/c3/common/hashing"
 	"github.com/c3systems/c3/common/hexutil"
-	"github.com/c3systems/c3/core/c3crypto"
 	"github.com/c3systems/merkletree"
 )
 
@@ -29,17 +30,29 @@ func (tx *Transaction) Props() TransactionProps {
 
 // Serialize ...
 func (tx *Transaction) Serialize() ([]byte, error) {
-	return coder.Serialize(tx.props)
+	tmp, err := BuildCoderFromTransaction(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	return tmp.Marshal()
 }
 
 // Deserialize ...
 func (tx *Transaction) Deserialize(data []byte) error {
-	var tmpProps TransactionProps
-	if err := coder.Deserialize(data, &tmpProps); err != nil {
-		return err
+	if data == nil {
+		return errors.New("nil bytes")
+	}
+	if tx == nil {
+		return errors.New("nil tx")
 	}
 
-	tx.props = tmpProps
+	props, err := BuildTransactionPropsFromBytes(data)
+	if err != nil {
+		return err
+	}
+	tx.props = *props
+
 	return nil
 }
 
@@ -177,4 +190,101 @@ func (tx *Transaction) UnmarshalJSON(data []byte) error {
 	tx.props = props
 
 	return nil
+}
+
+// BuildCoderFromTransaction ...
+func BuildCoderFromTransaction(tx *Transaction) (*coder.Transaction, error) {
+	// note: is there a better way to handle interfaces in protobufs? google.protobuf.Any? bson?
+	payloadBytes, err := json.Marshal(tx.props.Payload)
+	if err != nil {
+		return nil, err
+	}
+
+	tmp := &coder.Transaction{
+		ImageHash: tx.props.ImageHash,
+		Method:    tx.props.Method,
+		Payload:   payloadBytes,
+		From:      tx.props.From,
+	}
+
+	// note: is there a better way to handle nil with protobuff?
+	if tx.props.TxHash != nil {
+		tmp.TxHash = *tx.props.TxHash
+	}
+	if tx.props.Sig != nil {
+		tmp.Sig = &coder.TxSig{
+			R: tx.props.Sig.R,
+			S: tx.props.Sig.S,
+		}
+	}
+
+	return tmp, nil
+}
+
+// BuildTransactionPropsFromBytes ...
+func BuildTransactionPropsFromBytes(data []byte) (*TransactionProps, error) {
+	if data == nil {
+		return nil, errors.New("nil bytes")
+	}
+
+	c, err := BuildTransactionCoderFromBytes(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return BuildTransactionPropsFromCoder(c)
+}
+
+// BuildTransactionCoderFromBytes ...
+func BuildTransactionCoderFromBytes(data []byte) (*coder.Transaction, error) {
+	if data == nil {
+		return nil, errors.New("nil bytes")
+	}
+
+	tmp := new(coder.Transaction)
+	if err := tmp.Unmarshal(data); err != nil {
+		return nil, err
+	}
+	if tmp == nil {
+		return nil, errors.New("nil output")
+	}
+
+	return tmp, nil
+}
+
+// BuildTransactionPropsFromCoder ...
+func BuildTransactionPropsFromCoder(tmp *coder.Transaction) (*TransactionProps, error) {
+	if tmp == nil {
+		return nil, errors.New("nil coder")
+	}
+
+	props := &TransactionProps{
+		ImageHash: tmp.ImageHash,
+		Method:    tmp.Method,
+		From:      tmp.From,
+	}
+
+	if tmp.Payload != nil {
+		var v interface{}
+		if err := json.Unmarshal(tmp.Payload, &v); err != nil {
+			return nil, err
+		}
+		props.Payload = v
+	}
+
+	// note: is there a better way to handle nil with protobuff?
+	if tmp.TxHash != "" {
+		s := tmp.TxHash
+		props.TxHash = &s
+	}
+	if tmp.Sig != nil && tmp.Sig.R != "" && tmp.Sig.S != "" {
+		sig := &TxSig{
+			R: tmp.Sig.R,
+			S: tmp.Sig.S,
+		}
+
+		props.Sig = sig
+	}
+
+	return props, nil
 }

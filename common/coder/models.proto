@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package coder;
+
+/*import "google/protobuf/any.proto";*/
+
+message MinedBlock {
+  MainchainBlock nextBlock = 1;
+  MainchainBlock previousBlock = 2;
+  map<string, StatechainBlock> statechainBlocksMap = 3;
+  map<string, Transaction> transactionsMap = 4;
+  map<string, Diff> diffsMap = 5;
+  map<string, MerkleTree> merkleTreesMap = 6;
+}
+
+message MerkleTree {
+  string merkleTreeRootHash = 1;
+  string kind = 2;
+  repeated string hashes = 3;
+}
+
+message MainchainBlock {
+  string blockHash = 1;
+  string blockNumber = 2;
+  string blockTime = 3;
+  string imageHash = 4;
+  string stateBlocksMerkleHash = 5;
+  string prevBlockHash = 6;
+  string nonce = 7;
+  string difficulty = 8;
+  string minerAddress = 9;
+  MinerSig minerSig = 10;
+}
+
+message MinerSig {
+  string r = 1;
+  string s = 2; 
+}
+
+message StatechainBlock {
+  string blockHash = 1;
+  string blockNumber = 2;
+  string blockTime = 3;
+  string imageHash = 4;
+  string txHash = 5;
+  string prevBlockHash = 6;
+  string statePrevDiffHash = 7;
+  string stateCurrentHash = 8;
+}
+
+message TxSig {
+  string r = 1;
+  string s = 2; 
+}
+
+message Transaction {
+  string txHash = 1;
+  string imageHash = 2;
+  string method = 3;
+  /*google.protobuf.Any payload = 4;*/
+  bytes payload = 4;
+  string from = 5;
+  TxSig sig=6;
+}
+
+message Diff {
+  string diffHash = 1;
+  string data = 2;
+}

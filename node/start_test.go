@@ -1,22 +1,32 @@
 package node
 
 import (
-	"encoding/hex"
 	"log"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/c3systems/c3/core/c3crypto"
+	"github.com/c3systems/c3/common/c3crypto"
 	"github.com/c3systems/c3/core/chain/statechain"
+	"github.com/c3systems/c3/core/docker"
 	nodetypes "github.com/c3systems/c3/node/types"
+	"github.com/c3systems/c3/registry"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/ethereum/go-ethereum/crypto"
 )
 
-// TODO: finish
-
 func TestBroadcast(t *testing.T) {
+	dockerclient := docker.NewClient()
+	err := dockerclient.LoadImageByFilepath("./test_data/go_example_image.tar")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	registry := registry.NewRegistry(&registry.Config{})
+	imageHash, err := registry.PushImageByID("goexample")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	privPEM := "./test_data/priv.pem"
 	nodeURI := "/ip4/0.0.0.0/tcp/9006"
 	peer := os.Getenv("PEER")
@@ -52,14 +62,20 @@ func TestBroadcast(t *testing.T) {
 	}
 
 	pub, err := c3crypto.GetPublicKey(priv)
-	pubBytes := crypto.FromECDSAPub(pub)
+	if err != nil {
+		t.Error(err)
+	}
 
-	imageHash := "hello-world"
+	encodedPub, err := c3crypto.EncodeAddress(pub)
+	if err != nil {
+		t.Error(err)
+	}
+
 	tx := statechain.NewTransaction(&statechain.TransactionProps{
 		ImageHash: imageHash,
 		Method:    "c3_transaction",
 		Payload:   []byte(`["foo", "bar"]`),
-		From:      hex.EncodeToString(pubBytes),
+		From:      encodedPub,
 	})
 
 	err = tx.SetHash()
