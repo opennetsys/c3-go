@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/c3systems/c3/common/hexutil"
-	"github.com/c3systems/c3/core/c3crypto"
+	"github.com/c3systems/c3/common/c3crypto"
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/mainchain/miner"
 	"github.com/c3systems/c3/core/chain/statechain"

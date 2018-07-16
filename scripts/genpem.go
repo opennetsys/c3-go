@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/c3systems/c3/core/c3crypto"
+	"github.com/c3systems/c3/common/c3crypto"
 )
 
 // Generates ECDA key in PEM format
