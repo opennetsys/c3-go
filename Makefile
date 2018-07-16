@@ -13,16 +13,16 @@ install:
 .PHONY: deps
 deps:
 	@rm -rf ./vendor && \
-	echo "running dep ensure..." && \
-	dep ensure && \
-	. scripts/gxundo.sh vendor/ && \
-	(cd vendor/github.com/libp2p/go-libp2p-pubsub/pb \
-	&& rm rpc.pb.go && rm rpc.proto \
-	&& wget https://github.com/c3systems/go-libp2p-pubsub/raw/master/pb/rpc.pb.go \
-	&& wget https://github.com/c3systems/go-libp2p-pubsub/raw/master/pb/rpc.proto)
-	git clone https://github.com/gxed/pubsub.git vendor/github.com/gxed/pubsub && \
-	rm -rf vendor/github.com/gxed/pubsub/.git
-	$(MAKE) deps/copy/ethereum/crypto
+		echo "running dep ensure..." && \
+		dep ensure && \
+		. scripts/gxundo.sh vendor/ && \
+		(cd vendor/github.com/libp2p/go-libp2p-pubsub/pb \
+		&& rm rpc.pb.go && rm rpc.proto \
+		&& wget https://github.com/c3systems/go-libp2p-pubsub/raw/master/pb/rpc.pb.go \
+		&& wget https://github.com/c3systems/go-libp2p-pubsub/raw/master/pb/rpc.proto) && \
+		git clone https://github.com/gxed/pubsub.git vendor/github.com/gxed/pubsub && \
+		rm -rf vendor/github.com/gxed/pubsub/.git && \
+		$(MAKE) deps/copy/ethereum/crypto
 
 .PHONY: gxundo
 gxundo:
@@ -36,7 +36,9 @@ install/gxundo:
 
 .PHONY: deps/copy/ethereum/crypto
 deps/copy/ethereum/crypto:
-	@cp -r "${GOPATH}/src/github.com/ethereum/go-ethereum/crypto/secp256k1/libsecp256k1" "vendor/github.com/ethereum/go-ethereum/crypto/secp256k1/"
+	@mkdir -p vendor/github.com/ethereum/go-ethereum/crypto/secp256k1 && \
+		go get github.com/ethereum/go-ethereum/crypto/secp256k1/... && \
+		cp -r "${GOPATH}/src/github.com/ethereum/go-ethereum/crypto/secp256k1/libsecp256k1" "vendor/github.com/ethereum/go-ethereum/crypto/secp256k1/"
 
 # /END DEPS
 
