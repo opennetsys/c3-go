@@ -112,6 +112,48 @@ var (
 )
 
 func TestSerializeDeserialize(t *testing.T) {
+	inputs, err := buildMinedBlockInputs()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for idx, input := range inputs {
+		bytes, err := input.Serialize()
+		if err != nil {
+			t.Fatalf("test %d faild serialiation\n%v", idx+1, err)
+		}
+
+		mined := new(MinedBlock)
+		if err := mined.Deserialize(bytes); err != nil {
+			t.Fatalf("test %d failed deserialization\n%v", idx+1, err)
+		}
+
+		isMinedBlockEqual(t, idx, input, mined)
+	}
+}
+
+func TestSerializeDeserializeString(t *testing.T) {
+	inputs, err := buildMinedBlockInputs()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for idx, input := range inputs {
+		str, err := input.SerializeString()
+		if err != nil {
+			t.Fatalf("test %d faild serialiation\n%v", idx+1, err)
+		}
+
+		mined := new(MinedBlock)
+		if err := mined.DeserializeString(str); err != nil {
+			t.Fatalf("test %d failed deserialization\n%v", idx+1, err)
+		}
+
+		isMinedBlockEqual(t, idx, input, mined)
+	}
+}
+
+func buildMinedBlockInputs() ([]*MinedBlock, error) {
 	t1 := statechain.NewTransaction(txProps1)
 	t2 := statechain.NewTransaction(txProps2)
 
@@ -123,17 +165,17 @@ func TestSerializeDeserialize(t *testing.T) {
 
 	tr1, err := merkle.New(merkleTreeProps1)
 	if err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
 	tr2, err := merkle.New(merkleTreeProps2)
 	if err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
 
 	mb1 := mainchain.New(mainchainBlockProps1)
 	mb2 := mainchain.New(mainchainBlockProps2)
 
-	inputs := []*MinedBlock{
+	return []*MinedBlock{
 		b1,
 		&MinedBlock{
 			NextBlock:     mb1,
@@ -155,97 +197,88 @@ func TestSerializeDeserialize(t *testing.T) {
 				"bar": tr2,
 			},
 		},
+	}, nil
+}
+
+func isMinedBlockEqual(t *testing.T, idx int, input, mined *MinedBlock) {
+	if !reflect.DeepEqual(input.NextBlock, mined.NextBlock) {
+		t.Errorf("test %d failed\nexpected next block: %v\nreceived next block: %v", idx+1, input.NextBlock, mined.NextBlock)
 	}
 
-	for idx, input := range inputs {
-		bytes, err := input.Serialize()
-		if err != nil {
-			t.Fatalf("test %d faild serialiation\n%v", idx+1, err)
-		}
+	if !reflect.DeepEqual(input.PreviousBlock, mined.PreviousBlock) {
+		t.Errorf("test %d failed\nexpected previous block: %v\nreceived previous block: %v", idx+1, input.PreviousBlock, mined.PreviousBlock)
+	}
 
-		mined := new(MinedBlock)
-		if err := mined.Deserialize(bytes); err != nil {
-			t.Fatalf("test %d failed deserialization\n%v", idx+1, err)
-		}
-
-		if !reflect.DeepEqual(input.NextBlock, mined.NextBlock) {
-			t.Errorf("test %d failed\nexpected next block: %v\nreceived next block: %v", idx+1, input.NextBlock, mined.NextBlock)
-		}
-
-		if !reflect.DeepEqual(input.PreviousBlock, mined.PreviousBlock) {
-			t.Errorf("test %d failed\nexpected previous block: %v\nreceived previous block: %v", idx+1, input.PreviousBlock, mined.PreviousBlock)
-		}
-
-		if len(input.MerkleTreesMap) == len(mined.MerkleTreesMap) {
-			for k, v := range input.MerkleTreesMap {
-				v1, ok := mined.MerkleTreesMap[k]
-				if !ok {
-					t.Errorf("test %d failed\n merkle tree maps key %s not present", idx+1, k)
-				}
-
-				if v.Props().Kind != v1.Props().Kind {
-					t.Errorf("test %d failed\nexpected: %v\nreceived: %v", idx+1, v.Props(), v1.Props())
-				}
-
-				if !reflect.DeepEqual(v.Props().MerkleTreeRootHash, v1.Props().MerkleTreeRootHash) {
-					t.Errorf("test %d failed\nexpected: %v\n received: %v", idx+1, v.Props().MerkleTreeRootHash, v1.Props().MerkleTreeRootHash)
-				}
-
-				if !reflect.DeepEqual(v.Props().Hashes, v1.Props().Hashes) {
-					t.Errorf("test %d failed\nexpected hashes: %v\n received hashes: %v", idx+1, v.Props().Hashes, v1.Props().Hashes)
-				}
+	if len(input.MerkleTreesMap) == len(mined.MerkleTreesMap) {
+		for k, v := range input.MerkleTreesMap {
+			v1, ok := mined.MerkleTreesMap[k]
+			if !ok {
+				t.Errorf("test %d failed\n merkle tree maps key %s not present", idx+1, k)
 			}
-		}
 
-		if len(input.DiffsMap) == len(mined.DiffsMap) {
-			for k, v := range input.DiffsMap {
-				v1, ok := mined.DiffsMap[k]
-				if !ok {
-					t.Errorf("test %d failed\n diff maps key %s not present", idx+1, k)
-				}
-
-				if v.Props().Data != v1.Props().Data {
-					t.Errorf("test %d failed\nexpected: %v\nreceived: %v", idx+1, v.Props(), v1.Props())
-				}
-
-				if !reflect.DeepEqual(v.Props().DiffHash, v1.Props().DiffHash) {
-					t.Errorf("test %d failed\nexpected txHash: %v\n received txHash: %v", idx+1, v.Props().DiffHash, v1.Props().DiffHash)
-				}
+			if v.Props().Kind != v1.Props().Kind {
+				t.Errorf("test %d failed\nexpected: %v\nreceived: %v", idx+1, v.Props(), v1.Props())
 			}
-		}
 
-		if len(input.StatechainBlocksMap) == len(mined.StatechainBlocksMap) {
-			for k, v := range input.StatechainBlocksMap {
-				v1, ok := mined.StatechainBlocksMap[k]
-				if !ok {
-					t.Errorf("test %d failed\n state blocks maps key %s not present", idx+1, k)
-				}
-
-				if !reflect.DeepEqual(v.Props(), v1.Props()) {
-					t.Errorf("test %d failed\nexpected: %v\nreceived: %v", idx+1, v.Props(), v1.Props())
-				}
+			if !reflect.DeepEqual(v.Props().MerkleTreeRootHash, v1.Props().MerkleTreeRootHash) {
+				t.Errorf("test %d failed\nexpected: %v\n received: %v", idx+1, v.Props().MerkleTreeRootHash, v1.Props().MerkleTreeRootHash)
 			}
-		}
 
-		if len(input.TransactionsMap) == len(mined.TransactionsMap) {
-			for k, v := range input.TransactionsMap {
-				v1, ok := mined.TransactionsMap[k]
-				if !ok {
-					t.Errorf("test %d failed\n diff maps key %s not present", idx+1, k)
-				}
-
-				if v.Props().ImageHash != v1.Props().ImageHash || v.Props().Method != v1.Props().Method || v.Props().From != v1.Props().From {
-					t.Errorf("test %d failed\nexpected: %v\nreceived: %v", idx+1, *v, *v1)
-				}
-
-				if !reflect.DeepEqual(v.Props().Payload, v1.Props().Payload) {
-					t.Errorf("test %d failed\nexpected payload type %T: %v\n received payload %T: %v", idx+1, v.Props().Payload, v.Props().Payload, v1.Props().Payload, v1.Props().Payload)
-				}
-
-				if !reflect.DeepEqual(v.Props().TxHash, v1.Props().TxHash) {
-					t.Errorf("test %d failed\nexpected txHash: %v\n received txHash: %v", idx+1, v.Props().TxHash, v1.Props().TxHash)
-				}
+			if !reflect.DeepEqual(v.Props().Hashes, v1.Props().Hashes) {
+				t.Errorf("test %d failed\nexpected hashes: %v\n received hashes: %v", idx+1, v.Props().Hashes, v1.Props().Hashes)
 			}
 		}
 	}
+
+	if len(input.DiffsMap) == len(mined.DiffsMap) {
+		for k, v := range input.DiffsMap {
+			v1, ok := mined.DiffsMap[k]
+			if !ok {
+				t.Errorf("test %d failed\n diff maps key %s not present", idx+1, k)
+			}
+
+			if v.Props().Data != v1.Props().Data {
+				t.Errorf("test %d failed\nexpected: %v\nreceived: %v", idx+1, v.Props(), v1.Props())
+			}
+
+			if !reflect.DeepEqual(v.Props().DiffHash, v1.Props().DiffHash) {
+				t.Errorf("test %d failed\nexpected txHash: %v\n received txHash: %v", idx+1, v.Props().DiffHash, v1.Props().DiffHash)
+			}
+		}
+	}
+
+	if len(input.StatechainBlocksMap) == len(mined.StatechainBlocksMap) {
+		for k, v := range input.StatechainBlocksMap {
+			v1, ok := mined.StatechainBlocksMap[k]
+			if !ok {
+				t.Errorf("test %d failed\n state blocks maps key %s not present", idx+1, k)
+			}
+
+			if !reflect.DeepEqual(v.Props(), v1.Props()) {
+				t.Errorf("test %d failed\nexpected: %v\nreceived: %v", idx+1, v.Props(), v1.Props())
+			}
+		}
+	}
+
+	if len(input.TransactionsMap) == len(mined.TransactionsMap) {
+		for k, v := range input.TransactionsMap {
+			v1, ok := mined.TransactionsMap[k]
+			if !ok {
+				t.Errorf("test %d failed\n diff maps key %s not present", idx+1, k)
+			}
+
+			if v.Props().ImageHash != v1.Props().ImageHash || v.Props().Method != v1.Props().Method || v.Props().From != v1.Props().From {
+				t.Errorf("test %d failed\nexpected: %v\nreceived: %v", idx+1, *v, *v1)
+			}
+
+			if !reflect.DeepEqual(v.Props().Payload, v1.Props().Payload) {
+				t.Errorf("test %d failed\nexpected payload type %T: %v\n received payload %T: %v", idx+1, v.Props().Payload, v.Props().Payload, v1.Props().Payload, v1.Props().Payload)
+			}
+
+			if !reflect.DeepEqual(v.Props().TxHash, v1.Props().TxHash) {
+				t.Errorf("test %d failed\nexpected txHash: %v\n received txHash: %v", idx+1, v.Props().TxHash, v1.Props().TxHash)
+			}
+		}
+	}
+
 }
