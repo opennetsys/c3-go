@@ -1,6 +1,9 @@
 package config
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 // ServerHost ...
 const ServerHost = "0.0.0.0"
@@ -28,3 +31,6 @@ const IPFSGateway = "http://127.0.0.1:9001"
 
 // BlockDifficulty ...
 const BlockDifficulty = 5
+
+// MinedBlockVerificationTimeout ...
+const MinedBlockVerificationTimeout = 10 * time.Minute

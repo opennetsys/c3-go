@@ -35,6 +35,8 @@ var (
 )
 
 func TestSerializeDeserializeTransaction(t *testing.T) {
+	t.Parallel()
+
 	inputs := []*Transaction{
 		NewTransaction(props1),
 		NewTransaction(props2),
@@ -69,6 +71,8 @@ func TestSerializeDeserializeTransaction(t *testing.T) {
 }
 
 func TestSerializeDeserializeStringTransaction(t *testing.T) {
+	t.Parallel()
+
 	inputs := []*Transaction{
 		NewTransaction(props1),
 		NewTransaction(props2),
@@ -99,7 +103,5 @@ func TestSerializeDeserializeStringTransaction(t *testing.T) {
 		if !reflect.DeepEqual(input.props.TxHash, tx.props.TxHash) {
 			t.Errorf("test %d failed\nexpected txHash: %v\n received txHash: %v", idx+1, input.props.TxHash, tx.props.TxHash)
 		}
-
 	}
-
 }

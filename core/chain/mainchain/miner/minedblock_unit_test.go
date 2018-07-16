@@ -112,6 +112,8 @@ var (
 )
 
 func TestSerializeDeserialize(t *testing.T) {
+	t.Parallel()
+
 	inputs, err := buildMinedBlockInputs()
 	if err != nil {
 		t.Fatal(err)
@@ -133,6 +135,8 @@ func TestSerializeDeserialize(t *testing.T) {
 }
 
 func TestSerializeDeserializeString(t *testing.T) {
+	t.Parallel()
+
 	inputs, err := buildMinedBlockInputs()
 	if err != nil {
 		t.Fatal(err)
@@ -280,5 +284,4 @@ func isMinedBlockEqual(t *testing.T, idx int, input, mined *MinedBlock) {
 			}
 		}
 	}
-
 }
