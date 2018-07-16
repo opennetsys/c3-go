@@ -84,7 +84,7 @@ test/check:
 	@pgrep -f docker > /dev/null || echo "Docker daemon is not running"
 
 .PHONY: test
-test: test/check test/sdk test/common test/common test/registry test/core test/unit test/integration test/e2e test/cleanup
+test: test/check test/sdk test/common test/registry test/core test/unit test/integration test/e2e test/cleanup
 
 .PHONY: test/cleanup
 test/cleanup:
