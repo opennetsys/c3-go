@@ -139,6 +139,8 @@ func (s Service) buildMainchainBlock() error {
 	// TODO: only choose high value tx's to mine
 	txsMap := BuildTxsMap(s.props.PendingTransactions)
 
+	log.Printf("[miner] build mainchain block; tx count: %v", len(txsMap))
+
 	// 2. apply txs
 	for imageHash, transactions := range txsMap {
 		if s.props.IsValid == nil || *s.props.IsValid == false {
@@ -290,52 +292,69 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 	// fetch the most recent state block
 	prevStateBlock, err := s.props.P2P.FetchMostRecentStateBlock(imageHash, s.props.PreviousBlock)
 	if err != nil {
+		log.Printf("[miner] error fetching most recent state block for image hash %s %s", imageHash, err)
 		return err
 	}
+
+	log.Printf("[miner] gathered prev state block for image hash %s", imageHash)
+
 	// TODO: upload a genesis block if nil
 	if prevStateBlock == nil {
+		log.Printf("[miner] prev state block is nil for image hash %s", imageHash)
 		return errors.New("could not find most recent state block")
 	}
 	if prevStateBlock.Props().BlockHash == nil {
+		log.Printf("[miner] prev state block hash is nil for image hash %s", imageHash)
 		return errors.New("prev state block hash is nil")
 	}
 
 	// gather the diffs
 	diffCID, err := p2p.GetCIDByHash(prevStateBlock.Props().StatePrevDiffHash)
 	if err != nil {
+		log.Printf("[miner] error getting cid by hash for image hash %s", imageHash)
 		return err
 	}
+
 	diff, err := s.props.P2P.GetStatechainDiff(diffCID)
 	if err != nil {
+		log.Printf("[miner] error getting statechain diff for image hash %s", imageHash)
 		return err
 	}
 	// note: prepend
 	diffs = append([]*statechain.Diff{diff}, diffs...)
+	log.Printf("[miner] diffs %v", len(diffs))
 
 	head := prevStateBlock
 	for head.Props().BlockNumber != mainchain.GenesisBlock.Props().BlockNumber {
 		prevStateCID, err := p2p.GetCIDByHash(head.Props().PrevBlockHash)
 		if err != nil {
+			log.Printf("[miner] error getting cid by hash for %s for image hash %s", head.Props().PrevBlockHash, imageHash)
 			return err
 		}
+		log.Printf("[miner] got prev state cid for image hash %s", imageHash)
 
 		prevStateBlock, err := s.props.P2P.GetStatechainBlock(prevStateCID)
 		if err != nil {
 			return err
 		}
 		head = prevStateBlock
+		log.Printf("[miner] set head to prev state block for image hash %s", imageHash)
 
 		diffCID, err := p2p.GetCIDByHash(prevStateBlock.Props().StatePrevDiffHash)
 		if err != nil {
+			log.Printf("[miner] error getting cid by hash for prev state block diff hash for image hash %s", imageHash)
 			return err
 		}
 		diff, err := s.props.P2P.GetStatechainDiff(diffCID)
 		if err != nil {
+			log.Printf("[miner] error getting state chain diff for diff cid for image hash %s", imageHash)
 			return err
 		}
 		// note: prepend
 		diffs = append([]*statechain.Diff{diff}, diffs...)
 	}
+
+	log.Printf("[miner] total diffs %v", len(diffs))
 
 	// apply the diffs to get the current state
 	// TODO: get the genesis state of the block
@@ -343,14 +362,18 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 	ts := time.Now().Unix()
 	tmpStateFile, err := ioutil.TempFile("", fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
 	if err != nil {
+		log.Printf("[miner] error creating tmp state file %s", err)
 		return err
 	}
+	log.Printf("[miner] tmp state file %s", tmpStateFile.Name())
 	defer os.Remove(tmpStateFile.Name()) // clean up
 
 	if _, err := tmpStateFile.Write([]byte(genesisState)); err != nil {
+		log.Printf("[miner] error writing genesis state to tmp state file %s", err)
 		return err
 	}
 	if err := tmpStateFile.Close(); err != nil {
+		log.Printf("[miner] error closing tmp state file %s", err)
 		return err
 	}
 
@@ -366,14 +389,18 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 	for i, diff := range diffs {
 		tmpPatchFile, err := ioutil.TempFile("", fmt.Sprintf("%s/%v/patch.%d.txt", imageHash, ts, i))
 		if err != nil {
+			log.Printf("[miner] error creating tmp patch file %s", err)
 			return err
 		}
+		log.Printf("[miner] tmp patch file %s", tmpPatchFile.Name())
 		defer os.Remove(tmpPatchFile.Name()) // clean up
 
 		if _, err := tmpPatchFile.Write([]byte(diff.Props().Data)); err != nil {
+			log.Printf("[miner] error writing diff data to tmp patch file %s", err)
 			return err
 		}
 		if err := tmpPatchFile.Close(); err != nil {
+			log.Printf("[miner] error closing tmp patch file %s", err)
 			return err
 		}
 
@@ -384,14 +411,16 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 
 	// now apply the combined patch file to the state
 	if err := diffing.Patch(outPatchFile.Name(), false, true); err != nil {
+		log.Printf("[miner] error diffing patch file %s", err)
 		return err
 	}
 	state, err := ioutil.ReadFile(tmpStateFile.Name())
 	if err != nil {
+		log.Printf("[miner] error reading tmp state file %s", err)
 		return err
 	}
 
-	log.Printf("[miner] state\n%s", string(state))
+	log.Printf("[miner] state for image hash %s\nstate: %s", imageHash, string(state))
 	headStateFileName := tmpStateFile.Name()
 	runningBlockNumber, err := hexutil.DecodeUint64(prevStateBlock.Props().BlockNumber)
 	if err != nil {
@@ -402,22 +431,27 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 	// apply state to container and start running transactions
 	for i, tx := range transactions {
 		if tx == nil {
+			log.Printf("[miner] tx is nil for image hash %s", imageHash)
 			return errors.New("nil tx")
 		}
 		if tx.Props().TxHash == nil {
+			log.Printf("[miner] tx hash is nil for %v", tx.Props())
 			return errors.New("nil tx hash")
 		}
 
 		var nextState []byte
+		log.Printf("[miner] tx method %s", tx.Props().Method)
 
 		if tx.Props().Method == "c3_invokeMethod" {
 			payload, ok := tx.Props().Payload.([]byte)
 			if !ok {
+				log.Printf("[miner] error parsing payload for image hash %s", imageHash)
 				return errors.New("could not parse payload")
 			}
 
 			var parsed []string
 			if err := json.Unmarshal(payload, &parsed); err != nil {
+				log.Printf("[miner] error unmarshalling json for image hash %s", imageHash)
 				return err
 			}
 
@@ -429,8 +463,11 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 				Params: parsed[1:],
 			})
 			if err != nil {
+				log.Printf("[miner] error marshalling json for image hash %s", imageHash)
 				return err
 			}
+
+			log.Printf("[miner] invoking method %s for image hash %s", parsed[0], imageHash)
 
 			// run container, passing the tx inputs
 			sb := sandbox.NewSandbox(&sandbox.Config{})
