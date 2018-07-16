@@ -104,6 +104,8 @@ func (s Service) buildMainchainBlockAsync() error {
 	// TODO: only choose high value tx's to mine
 	txsMap := BuildTxsMap(s.props.PendingTransactions)
 
+	log.Printf("[miner] build mainchain block async; tx count: %v", len(txsMap))
+
 	// 2. apply txs
 	for imageHash, transactions := range txsMap {
 		wg.Add(1)
@@ -275,6 +277,8 @@ func (s Service) bootstrapNextBlock() (*mainchain.Block, error) {
 }
 
 func (s Service) buildNextStates(imageHash string, transactions []*statechain.Transaction) error {
+	log.Printf("[miner] build next state state; image hash: %s, tx count: %v", imageHash, len(transactions))
+
 	var (
 		diffs               []*statechain.Diff
 		newDiffs            []*statechain.Diff
@@ -386,7 +390,7 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 		return err
 	}
 
-	log.Printf("state\n%s", string(state))
+	log.Printf("[miner] state\n%s", string(state))
 	headStateFileName := tmpStateFile.Name()
 	runningBlockNumber, err := hexutil.DecodeUint64(prevStateBlock.Props().BlockNumber)
 	if err != nil {
@@ -439,7 +443,7 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 				return err
 			}
 
-			log.Printf("container new state: %s", string(nextState))
+			log.Printf("[miner] container new state: %s", string(nextState))
 		}
 
 		nextStateFile, err := ioutil.TempFile("", fmt.Sprintf("%s/%v/state.%d.txt", imageHash, ts, i))

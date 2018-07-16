@@ -25,3 +25,6 @@ const DockerRegistryPort = 5000
 
 // IPFSGateway ...
 const IPFSGateway = "http://127.0.0.1:9001"
+
+// BlockDifficulty ...
+const BlockDifficulty = 5

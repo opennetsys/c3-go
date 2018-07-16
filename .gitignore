@@ -30,3 +30,5 @@ notes.txt
 .testfiles/
 
 *.pem
+
+node/test_data/go_example_image.tar

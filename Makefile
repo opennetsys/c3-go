@@ -1,8 +1,14 @@
 all: build
 
+# INSTALL
+
 .PHONY: install
 install:
 	@go get -u github.com/c3systems/c3
+
+# /END INSTALL
+
+# DEPS
 
 .PHONY: deps
 deps:
@@ -15,7 +21,8 @@ deps:
 	&& wget https://github.com/c3systems/go-libp2p-pubsub/raw/master/pb/rpc.pb.go \
 	&& wget https://github.com/c3systems/go-libp2p-pubsub/raw/master/pb/rpc.proto)
 	$(MAKE) deps/copy/ethereum/crypto
-	git clone https://github.com/gxed/pubsub.git vendor/github.com/gxed/pubsub
+	git clone https://github.com/gxed/pubsub.git vendor/github.com/gxed/pubsub && \
+	rm -rf vendor/github.com/gxed/pubsub/.git
 
 .PHONY: gxundo
 gxundo:
@@ -30,6 +37,10 @@ install/gxundo:
 .PHONY: deps/copy/ethereum/crypto
 deps/copy/ethereum/crypto:
 	@cp -r "${GOPATH}/src/github.com/ethereum/go-ethereum/crypto/secp256k1/libsecp256k1" "vendor/github.com/ethereum/go-ethereum/crypto/secp256k1/"
+
+# /END DEPS
+
+# BUILD
 
 .PHONY: build
 build:
@@ -58,14 +69,9 @@ clean:
 	@go clean && \
 	rm -rf bin/
 
-.PHONY: ipfs/daemon
-ipfs/daemon:
-	@ipfs daemon
+# /END BUILD
 
-.PHONY: localhostproxy
-localhostproxy:
-	# proxy localhost to 123.123.123.123 required so that docker container can communicate with host machine
-	@sudo ifconfig lo0 alias 123.123.123.123/24
+# TEST ALL
 
 .PHONY: test/check
 test/check:
@@ -75,20 +81,28 @@ test/check:
 	@pgrep -f ipfs > /dev/null || echo "IPFS daemon is not running"
 	@pgrep -f docker > /dev/null || echo "Docker daemon is not running"
 
+.PHONY: test
+test: test/check test/sdk test/common test/common test/registry test/core test/cleanup
+
 .PHONY: test/cleanup
 test/cleanup:
 	@chmod +x scripts/test_cleanup.sh
 	@. scripts/test_cleanup.sh
 
-.PHONY: test
-test: test/check test/sdk test/common test/common test/registry test/core test/node test/cleanup
+# /END TEST ALL
+
+# SDK
 
 .PHONY: test/sdk
 test/sdk:
 	@go test -v sdk/*.go $(ARGS)
 
+# /END SDK
+
+# COMMON
+
 .PHONY: test/common
-test/common: test/common/network test/common/stringutil test/common/hexutil
+test/common: test/common/network test/common/stringutil test/common/hexutil test/common/c3crypto
 
 .PHONY: test/common/network
 test/common/network:
@@ -106,8 +120,16 @@ test/common/hexutil:
 test/common/command:
 	@go test -v common/command/*.go $(ARGS)
 
+.PHONY: test/common/c3crypto
+test/common/c3crypto:
+	@go test -v -parallel 1 common/c3crypto/*.go $(ARGS)
+
+# /END COMMON
+
+# CORE
+
 .PHONY: test/core
-test/core: test/core/server test/core/docker test/core/ipfs test/core/sandbox test/core/c3crypto
+test/core: test/core/server test/core/docker test/core/ipfs test/core/sandbox
 
 .PHONY: test/core/server
 test/core/server:
@@ -137,22 +159,37 @@ test/core/chain/mainchain:
 test/core/chain/statechain:
 	@go test -v core/chain/statechain/*.go $(ARGS)
 
-.PHONY: test/core/c3crypto
-test/core/c3crypto:
-	@go test -v -parallel 1 core/c3crypto/*.go $(ARGS)
+# /END CORE
+
+
+# REGISTRY
 
 .PHONY: test/registry
 test/registry:
 	@docker pull hello-world && \
 	go test -v -parallel 1 registry/*.go $(ARGS)
 
+# /END REGISTRY
+
 .PHONY: test/node
 test/node:
 	@go test -v node/*.go $(ARGS)
 
+# /END REGISTRY
+
+# NODE
+
 .PHONY: run/node
 run/node:
 	@go run main.go node start --pem=node/test_data/priv2.pem --uri /ip4/0.0.0.0/tcp/9005 --data-dir=~/.c3-1
+
+.PHONY: node/save/testimage
+node/save/testimage:
+	@docker save goexample -o node/test_data/go_example_image.tar
+
+# /END NODE
+
+# DOCKER
 
 .PHONY: test/docker/build/snapshot
 test/docker/build/snapshot:
@@ -196,7 +233,7 @@ docker/build/example:
 
 .PHONY: docker/run/example
 docker/run/example:
-	@docker run -p 3333 --mount type=bind,src=/tmp/633029102,target=/tmp -t goexample
+	@docker run -p 3333 --mount type=bind,src=/tmp,target=/tmp -t goexample
 
 .PHONY: docker/example/cat
 docker/example/cat:
@@ -218,3 +255,22 @@ docker/run/example/bash:
 docker/deploy/example: docker/build/example
 	# build image -> push to ipfs -> pull from ipfs
 	@go run main.go pull $$(go run main.go push $$(docker images -q | grep -m1 "") | grep "uploaded to" | sed -E 's/.*uploaded to \/ipfs\///g' | tr -d ' ' | tr -d '\n')
+
+# /END DOCKER
+
+# IPFS
+
+.PHONY: ipfs/daemon
+ipfs/daemon:
+	@ipfs daemon
+
+# /END IPFS
+
+# MISC
+
+.PHONY: localhostproxy
+localhostproxy:
+	# proxy localhost to 123.123.123.123 required so that docker container can communicate with host machine
+	@sudo ifconfig lo0 alias 123.123.123.123/24
+
+# /END MISC
