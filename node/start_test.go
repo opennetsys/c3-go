@@ -72,10 +72,18 @@ func TestBroadcast(t *testing.T) {
 
 	tx := statechain.NewTransaction(&statechain.TransactionProps{
 		ImageHash: imageHash,
-		Method:    "c3_transaction",
+		Method:    "c3_deploy",
+		Payload:   []byte(`{"hello": "world"}`),
+		From:      encodedPub,
+	})
+
+	tx2 := statechain.NewTransaction(&statechain.TransactionProps{
+		ImageHash: imageHash,
+		Method:    "c3_invokeMethod",
 		Payload:   []byte(`[""setItem", "foo", "bar"]`),
 		From:      encodedPub,
 	})
+	_ = tx2
 
 	err = tx.SetHash()
 	if err != nil {
