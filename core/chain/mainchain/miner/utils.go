@@ -19,6 +19,7 @@ import (
 	"github.com/c3systems/c3/core/diffing"
 	"github.com/c3systems/c3/core/p2p"
 	"github.com/c3systems/c3/core/sandbox"
+	methodTypes "github.com/c3systems/c3/core/types/methods"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -816,11 +817,8 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, prevState []byte, prevBlo
 	prevStateFileName := prevStateFile.Name()
 
 	var nextState []byte
-	if tx.Props().Method == "c3_invokeMethod" {
-		payload, ok := tx.Props().Payload.([]byte)
-		if !ok {
-			return nil, nil, nil, errors.New("could not parse payload")
-		}
+	if tx.Props().Method == methodTypes.InvokeMethod {
+		payload := tx.Props().Payload
 
 		var parsed []string
 		if err := json.Unmarshal(payload, &parsed); err != nil {
@@ -1232,11 +1230,8 @@ func BuildNextState(p2pSvc p2p.Interface, block *statechain.Block, tx *statechai
 	// apply state to container and run tx
 	var nextState []byte
 
-	if tx.Props().Method == "c3_invokeMethod" {
-		payload, ok := tx.Props().Payload.([]byte)
-		if !ok {
-			return nil, nil, errors.New("could not parse payload")
-		}
+	if tx.Props().Method == methodTypes.InvokeMethod {
+		payload := tx.Props().Payload
 
 		var parsed []string
 		if err := json.Unmarshal(payload, &parsed); err != nil {

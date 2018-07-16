@@ -4,8 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/c3systems/c3/common/coder"
 	"github.com/c3systems/c3/common/hexutil"
+	"github.com/c3systems/c3/logger"
 
 	"github.com/c3systems/merkletree"
 )
@@ -45,11 +48,13 @@ func BuildFromObjects(chainObjects []merkletree.Content, kind string) (*Tree, er
 	)
 
 	if ok := checkKind(kind); !ok {
+		log.Println("[merkle] unknown kind")
 		return nil, ErrUnknownKind
 	}
 
 	for _, chainObject := range chainObjects {
 		if chainObject == nil {
+			log.Println("[merkle] nil chain object")
 			return nil, ErrNilChainObject
 		}
 
@@ -57,6 +62,7 @@ func BuildFromObjects(chainObjects []merkletree.Content, kind string) (*Tree, er
 
 		hash, err := chainObject.CalculateHashBytes()
 		if err != nil {
+			log.Printf("[merkle] error calculating hash bytes; %s", err)
 			return nil, err
 		}
 		hashes = append(hashes, string(hash))
@@ -64,6 +70,7 @@ func BuildFromObjects(chainObjects []merkletree.Content, kind string) (*Tree, er
 
 	t, err := merkletree.NewTree(list)
 	if err != nil {
+		log.Printf("[merkle] error creating new merkle tree; %s", err)
 		return nil, err
 	}
 
@@ -141,6 +148,7 @@ func (t *Tree) CalculateHash() (string, error) {
 	}
 
 	var tmpContent []merkletree.Content
+	log.Printf("[merkle] calculate hash - hashes length: %v", len(t.props.Hashes))
 	for _, str := range t.props.Hashes {
 		tmpContent = append(tmpContent, testContent{
 			x: str,
@@ -200,12 +208,12 @@ func (t *Tree) SetHash() error {
 
 func checkKind(kind string) bool {
 	for _, allowedKind := range allowedKinds {
-		if allowedKind != kind {
-			return false
+		if allowedKind == kind {
+			return true
 		}
 	}
 
-	return true
+	return false
 }
 
 // MarshalJSON ...
@@ -225,7 +233,7 @@ func (t *Tree) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// BuildCOderFromTree ...
+// BuildCoderFromTree ...
 func BuildCoderFromTree(t *Tree) *coder.MerkleTree {
 	tmp := &coder.MerkleTree{
 		Kind:   t.props.Kind,
@@ -291,4 +299,8 @@ func BuildTreePropsFromCoder(tmp *coder.MerkleTree) (*TreeProps, error) {
 	}
 
 	return props, nil
+}
+
+func init() {
+	log.AddHook(logger.ContextHook{})
 }

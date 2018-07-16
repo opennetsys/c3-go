@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -19,6 +20,8 @@ import (
 	"github.com/c3systems/c3/core/diffing"
 	"github.com/c3systems/c3/core/p2p"
 	"github.com/c3systems/c3/core/sandbox"
+	methodTypes "github.com/c3systems/c3/core/types/methods"
+	"github.com/c3systems/c3/logger"
 	"github.com/c3systems/merkletree"
 )
 
@@ -161,6 +164,7 @@ func (s Service) buildMainchainBlock() error {
 func (s Service) mineBlock() error {
 	// TODO: timeout?
 	if err := s.generateMerkle(); err != nil {
+		log.Printf("[miner] error mining block; %s", err)
 		return err
 	}
 
@@ -171,11 +175,13 @@ func (s Service) mineBlock() error {
 
 		hash, nonce, err := s.generateHashAndNonce()
 		if err != nil {
+			log.Printf("[miner] error generating hash and nonce; %s", err)
 			return err
 		}
 
 		check, err := CheckHashAgainstDifficulty(hash, s.props.Difficulty)
 		if err != nil {
+			log.Printf("[miner] error checking hash against difficulty; %s", err)
 			return err
 		}
 
@@ -185,6 +191,7 @@ func (s Service) mineBlock() error {
 			nextBlock := mainchain.New(&nextProps)
 			s.minedBlock.NextBlock = nextBlock
 
+			log.Println("[miner] difficulty checks out")
 			return s.minedBlock.NextBlock.SetHash()
 		}
 
@@ -193,6 +200,7 @@ func (s Service) mineBlock() error {
 }
 
 func (s Service) generateMerkle() error {
+	log.Println("[miner] generating merkle")
 	var (
 		hashes []string
 		list   []merkletree.Content
@@ -200,15 +208,19 @@ func (s Service) generateMerkle() error {
 
 	s.minedBlock.mut.Lock()
 	defer s.minedBlock.mut.Unlock()
+
+	log.Printf("[miner] state chain blocks length; %v", len(s.minedBlock.StatechainBlocksMap))
 	for _, statechainBlock := range s.minedBlock.StatechainBlocksMap {
 		if s.props.Context.Err() != nil {
 			return s.props.Context.Err()
 		}
 
 		if statechainBlock == nil {
+			log.Println("[miner] state chain block is nil")
 			return errors.New("nil block")
 		}
 		if statechainBlock.Props().BlockHash == nil {
+			log.Println("[miner] state chain block hash is nil")
 			return errors.New("nil block hash")
 		}
 
@@ -218,12 +230,15 @@ func (s Service) generateMerkle() error {
 
 	tree, err := merkle.BuildFromObjects(list, merkle.StatechainBlocksKindStr)
 	if err != nil {
+		log.Printf("[miner] error building merkle tree from objects; %s", list)
 		return err
 	}
 	if tree == nil {
+		log.Println("[miner] tree is nil")
 		return errors.New("nil tree")
 	}
 	if tree.Props().MerkleTreeRootHash == nil {
+		log.Println("[miner] merkle root hash is nil")
 		return errors.New("nil merkle root hash")
 	}
 
@@ -263,23 +278,49 @@ func (s Service) generateNonce() (string, error) {
 func (s Service) bootstrapNextBlock() (*mainchain.Block, error) {
 	nextProps := new(mainchain.Props)
 
-	prevProps := s.props.PreviousBlock.Props()
-	if prevProps.BlockHash == nil {
-		return nil, errors.New("previous block's block hash is nil")
-	}
-
-	// note: checked for nil block hash, above
-	nextProps.PrevBlockHash = *prevProps.BlockHash
-	prevBlockHeight, err := hexutil.DecodeUint64(prevProps.BlockNumber)
-	if err != nil {
-		return nil, err
-	}
-	nextProps.BlockNumber = hexutil.EncodeUint64(prevBlockHeight + 1)
+	nextProps.BlockNumber = hexutil.EncodeUint64(0)
 	nextProps.BlockTime = hexutil.EncodeUint64(uint64(time.Now().Unix()))
 	nextProps.Difficulty = hexutil.EncodeUint64(s.props.Difficulty)
 	nextProps.MinerAddress = s.props.EncodedMinerAddress
 
+	// previous block will be nil if first block
+	if s.props.PreviousBlock != nil {
+		prevProps := s.props.PreviousBlock.Props()
+		if prevProps.BlockHash == nil {
+			return nil, errors.New("previous block's block hash is nil")
+		}
+
+		// note: checked for nil block hash, above
+		nextProps.PrevBlockHash = *prevProps.BlockHash
+		prevBlockHeight, err := hexutil.DecodeUint64(prevProps.BlockNumber)
+		if err != nil {
+			return nil, err
+		}
+
+		nextProps.BlockNumber = hexutil.EncodeUint64(prevBlockHeight + 1)
+	}
+
 	return mainchain.New(nextProps), nil
+}
+
+func (s Service) isGenesisTransaction(imageHash string, transactions []*statechain.Transaction) (bool, error) {
+	for _, tx := range transactions {
+		if tx.Props().Method == methodTypes.Deploy {
+			prevStateBlock, err := s.props.P2P.FetchMostRecentStateBlock(imageHash, s.props.PreviousBlock)
+			if err != nil {
+				log.Printf("[miner] error fetching most recent state block for image hash %s %s", imageHash, err)
+				return false, err
+			}
+			if prevStateBlock != nil {
+				log.Printf("[miner] prev state block exists image hash %s", imageHash)
+				return false, errors.New("prev state block exists; can't deploy")
+			}
+
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 func (s Service) buildNextStates(imageHash string, transactions []*statechain.Transaction) error {
@@ -292,21 +333,28 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 		newStatechainBlocks []*statechain.Block
 	)
 
-	// fetch the most recent state block
+	ts := time.Now().Unix()
+
+	// tmp hack to make genesis block work
+	// TODO: move genesis tx at the top of the list
+	isGenesisTx, err := s.isGenesisTransaction(imageHash, transactions)
+	if err != nil {
+		return err
+	}
+	if isGenesisTx {
+		// TODO: process other transactions as well
+		tx := transactions[0]
+		return s.buildGenesisStateBlock(imageHash, tx)
+	}
+
 	prevStateBlock, err := s.props.P2P.FetchMostRecentStateBlock(imageHash, s.props.PreviousBlock)
 	if err != nil {
 		log.Printf("[miner] error fetching most recent state block for image hash %s %s", imageHash, err)
 		return err
 	}
-
-	// TODO: upload a genesis block if nil?
-	if prevStateBlock == nil {
-		log.Printf("[miner] prev state block is nil for image hash %s", imageHash)
-		return errors.New("could not find most recent state block")
-	}
-	if prevStateBlock.Props().BlockHash == nil {
-		log.Printf("[miner] prev state block hash is nil for image hash %s", imageHash)
-		return errors.New("prev state block hash is nil")
+	if prevStateBlock != nil {
+		log.Printf("[miner] prev state block exists image hash %s", imageHash)
+		return errors.New("prev state block exists; can't deploy")
 	}
 
 	// gather the diffs
@@ -361,8 +409,7 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 	// apply the diffs to get the current state
 	// TODO: get the genesis state of the block
 	genesisState := ""
-	ts := time.Now().Unix()
-	tmpStateFile, err := ioutil.TempFile("", fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
+	tmpStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
 	if err != nil {
 		log.Printf("[miner] error creating tmp state file %s", err)
 		return err
@@ -378,7 +425,7 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 		return err
 	}
 
-	outPatchFile, err := ioutil.TempFile("", fmt.Sprintf("%s/%v/combined.txt", imageHash, ts))
+	outPatchFile, err := makeTempFile(fmt.Sprintf("%s/%v/combined.txt", imageHash, ts))
 	if err != nil {
 		return err
 	}
@@ -392,7 +439,7 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 			return s.props.Context.Err()
 		}
 
-		tmpPatchFile, err := ioutil.TempFile("", fmt.Sprintf("%s/%v/patch.%d.txt", imageHash, ts, i))
+		tmpPatchFile, err := makeTempFile(fmt.Sprintf("%s/%v/patch.%d.txt", imageHash, ts, i))
 		if err != nil {
 			log.Printf("[miner] error creating tmp patch file %s", err)
 			return err
@@ -449,12 +496,8 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 		var nextState []byte
 		log.Printf("[miner] tx method %s", tx.Props().Method)
 
-		if tx.Props().Method == "c3_invokeMethod" {
-			payload, ok := tx.Props().Payload.([]byte)
-			if !ok {
-				log.Printf("[miner] error parsing payload for image hash %s", imageHash)
-				return errors.New("could not parse payload")
-			}
+		if tx.Props().Method == methodTypes.InvokeMethod {
+			payload := tx.Props().Payload
 
 			var parsed []string
 			if err := json.Unmarshal(payload, &parsed); err != nil {
@@ -485,13 +528,14 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 			})
 
 			if err != nil {
+				log.Printf("[miner] error running container for image hash: %s; error: %s", tx.Props().ImageHash, err)
 				return err
 			}
 
 			log.Printf("[miner] container new state: %s", string(nextState))
 		}
 
-		nextStateFile, err := ioutil.TempFile("", fmt.Sprintf("%s/%v/state.%d.txt", imageHash, ts, i))
+		nextStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.%d.txt", imageHash, ts, i))
 		if err != nil {
 			return err
 		}
@@ -554,4 +598,133 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 	}
 
 	return nil
+}
+
+// TODO: improve
+func (s Service) buildGenesisStateBlock(imageHash string, tx *statechain.Transaction) error {
+	log.Printf("[miner] building genesis state block for image hash %s", imageHash)
+
+	ts := time.Now().Unix()
+	var (
+		newDiffs            []*statechain.Diff
+		newTxs              []*statechain.Transaction
+		newStatechainBlocks []*statechain.Block
+	)
+
+	if tx.Props().TxHash == nil {
+		log.Printf("[miner] tx hash is nil for %v", tx.Props())
+		return errors.New("nil tx hash")
+	}
+
+	if tx.Props().TxHash == nil {
+		log.Printf("[miner] tx hash is nil for %v", tx.Props())
+		return errors.New("nil tx hash")
+	}
+
+	log.Printf("[miner] tx method %s", tx.Props().Method)
+
+	// initial state
+	nextState := tx.Props().Payload
+	log.Printf("[miner] container initial state: %s", string(nextState))
+
+	nextStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
+	if err != nil {
+		return err
+	}
+	defer os.Remove(nextStateFile.Name()) // clean up
+
+	tmpStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
+	if err != nil {
+		return err
+	}
+	headStateFileName := tmpStateFile.Name()
+
+	if _, err := nextStateFile.Write(nextState); err != nil {
+		return err
+	}
+	if err := nextStateFile.Close(); err != nil {
+		return err
+	}
+
+	outPatchFile, err := makeTempFile(fmt.Sprintf("%s/%v/combined.txt", imageHash, ts))
+	if err != nil {
+		return err
+	}
+	defer os.Remove(outPatchFile.Name()) // clean up
+	if err := outPatchFile.Close(); err != nil {
+		return err
+	}
+
+	if err := diffing.Diff(headStateFileName, nextStateFile.Name(), outPatchFile.Name(), false); err != nil {
+		return err
+	}
+	headStateFileName = nextStateFile.Name()
+
+	// build the diff struct
+	diffData, err := ioutil.ReadFile(outPatchFile.Name())
+	if err != nil {
+		return err
+	}
+
+	diffStruct := statechain.NewDiff(&statechain.DiffProps{
+		Data: string(diffData),
+	})
+	if err := diffStruct.SetHash(); err != nil {
+		return err
+	}
+	nextStateHash := hexutil.EncodeBytes(nextState)
+	nextStateStruct := statechain.New(&statechain.BlockProps{
+		BlockNumber:       hexutil.EncodeUint64(0),
+		BlockTime:         hexutil.EncodeUint64(uint64(ts)),
+		ImageHash:         imageHash,
+		TxHash:            *tx.Props().TxHash, // note: checked for nil pointer, above
+		PrevBlockHash:     "",
+		StatePrevDiffHash: *diffStruct.Props().DiffHash, // note: used setHash, above so it would've erred
+		StateCurrentHash:  string(nextStateHash),
+	})
+
+	if err := nextStateStruct.SetHash(); err != nil {
+		return err
+	}
+
+	newDiffs = append(newDiffs, diffStruct)
+	newTxs = append(newTxs, tx)
+	newStatechainBlocks = append(newStatechainBlocks, nextStateStruct)
+
+	// write to the mined block
+	s.minedBlock.mut.Lock()
+	// note: they should all have same length
+	for i := 0; i < len(newDiffs); i++ {
+		s.minedBlock.DiffsMap[*newDiffs[i].Props().DiffHash] = newDiffs[i]
+		s.minedBlock.TransactionsMap[*newTxs[i].Props().TxHash] = newTxs[i]
+		s.minedBlock.StatechainBlocksMap[*newStatechainBlocks[i].Props().BlockHash] = newStatechainBlocks[i]
+	}
+	s.minedBlock.mut.Unlock()
+	log.Printf("[miner] mined state block for image hash %s", imageHash)
+
+	return nil
+}
+
+func makeTempFile(filename string) (*os.File, error) {
+	paths := strings.Split(filename, "/")
+	prefix := strings.Join(paths[:len(paths)-1], "_") // does not like slashes for some reason
+	filename = strings.Join(paths[len(paths)-1:len(paths)], "")
+
+	tmpdir, err := ioutil.TempDir("/tmp", prefix)
+	if err != nil {
+		return nil, err
+	}
+
+	filepath := fmt.Sprintf("%s/%s", tmpdir, filename)
+
+	f, err := os.OpenFile(filepath, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		return nil, err
+	}
+
+	return f, nil
+}
+
+func init() {
+	log.AddHook(logger.ContextHook{})
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/c3systems/c3/common/c3crypto"
 	"github.com/c3systems/c3/core/chain/statechain"
 	"github.com/c3systems/c3/core/docker"
+	methodTypes "github.com/c3systems/c3/core/types/methods"
 	nodetypes "github.com/c3systems/c3/node/types"
 	"github.com/c3systems/c3/registry"
 	"github.com/davecgh/go-spew/spew"
@@ -72,10 +73,18 @@ func TestBroadcast(t *testing.T) {
 
 	tx := statechain.NewTransaction(&statechain.TransactionProps{
 		ImageHash: imageHash,
-		Method:    "c3_transaction",
+		Method:    methodTypes.Deploy,
+		Payload:   []byte(`{"hello": "world"}`),
+		From:      encodedPub,
+	})
+
+	tx2 := statechain.NewTransaction(&statechain.TransactionProps{
+		ImageHash: imageHash,
+		Method:    methodTypes.InvokeMethod,
 		Payload:   []byte(`[""setItem", "foo", "bar"]`),
 		From:      encodedPub,
 	})
+	_ = tx2
 
 	err = tx.SetHash()
 	if err != nil {

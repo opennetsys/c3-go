@@ -28,12 +28,12 @@ type TransactionsMap map[string][]*Transaction
 
 // TransactionProps ...
 type TransactionProps struct {
-	TxHash    *string     `json:"txHash,omitempty" rlp:"nil"`
-	ImageHash string      `json:"imageHash"`
-	Method    string      `json:"method"`
-	Payload   interface{} `json:"payload"`
-	From      string      `json:"from"`
-	Sig       *TxSig      `json:"txSig,omitempty" rlp:"nil"`
+	TxHash    *string `json:"txHash,omitempty" rlp:"nil"`
+	ImageHash string  `json:"imageHash"`
+	Method    string  `json:"method"`
+	Payload   []byte  `json:"payload"`
+	From      string  `json:"from"`
+	Sig       *TxSig  `json:"txSig,omitempty" rlp:"nil"`
 }
 
 // Transaction ...

@@ -149,6 +149,7 @@ test/common/c3crypto:
 
 .PHONY: test/core
 test/core: test/core/server test/core/docker test/core/ipfs test/core/sandbox
+	# test/core/chain/mainchain/miner
 
 .PHONY: test/core/server
 test/core/server:
@@ -177,6 +178,10 @@ test/core/chain/mainchain:
 .PHONY: test/core/chain/statechain
 test/core/chain/statechain:
 	@go test -v core/chain/statechain/*.go $(ARGS)
+
+.PHONY: test/core/chain/mainchain/miner
+test/core/chain/mainchain/miner:
+	@go test -v core/chain/mainchain/miner/*.go $(ARGS)
 
 # /END CORE
 

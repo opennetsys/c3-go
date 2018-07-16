@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/c3systems/c3/common/hexutil"
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/merkle"
 	"github.com/c3systems/c3/core/chain/statechain"
@@ -161,41 +162,53 @@ func (s Service) FetchMostRecentStateBlock(imageHash string, block *mainchain.Bl
 		return nil, errors.New("block hash is nil")
 	}
 
-	// 1. search the current block
-	treeCID, err := GetCIDByHash(block.Props().StateBlocksMerkleHash)
+	log.Printf("[p2p] state block merkle hash is %s for image hash %s", block.Props().StateBlocksMerkleHash, imageHash)
+
+	decodedMerkleHash, err := hexutil.DecodeString(block.Props().StateBlocksMerkleHash)
 	if err != nil {
-		log.Printf("[p2p] error getting cid by hash for state block merkle hash %s for image hash %s", block.Props().StateBlocksMerkleHash, imageHash)
+		log.Printf("[p2p] error decoding merkle hash for image hash %s; error: %s", imageHash, err)
 		return nil, err
 	}
 
-	log.Printf("[p2p] cid by hash for state block merkle hash is %s for image hash %s", treeCID, imageHash)
+	log.Printf("[p2p] block merkle hash for block %s is %s image hash %s", *block.Props().BlockHash, decodedMerkleHash, imageHash)
 
-	tree, err := s.GetMerkleTree(treeCID)
-	if err != nil {
-		log.Printf("[p2p] error getting merkle tree for tree cid %s for image hash %s", treeCID, imageHash)
-		return nil, err
-	}
-
-	log.Printf("[p2p] tree hashes for for image hash %s; %v", imageHash, len(tree.Props().Hashes))
-
-	// TODO: check kind
-	// TODO: use go routines
-	for _, stateBlockHash := range tree.Props().Hashes {
-		stateBlockCID, err := GetCIDByHash(stateBlockHash)
+	if decodedMerkleHash != "" {
+		// 1. search the current block
+		treeCID, err := GetCIDByHash(block.Props().StateBlocksMerkleHash)
 		if err != nil {
-			log.Printf("[p2p] error getting cid by hash for state block hash %s for image hash %s", stateBlockHash, imageHash)
+			log.Printf("[p2p] error getting cid by hash for state block merkle hash %s for image hash %s", block.Props().StateBlocksMerkleHash, imageHash)
 			return nil, err
 		}
 
-		stateBlock, err := s.GetStatechainBlock(stateBlockCID)
+		log.Printf("[p2p] cid by hash for state block merkle hash is %s for image hash %s", treeCID, imageHash)
+
+		tree, err := s.GetMerkleTree(treeCID)
 		if err != nil {
-			log.Printf("[p2p] error getting state chain block for state block cid %s for image hash %s", stateBlockCID, imageHash)
+			log.Printf("[p2p] error getting merkle tree for tree cid %s for image hash %s", treeCID, imageHash)
 			return nil, err
 		}
 
-		if stateBlock.Props().ImageHash == imageHash {
-			log.Printf("[p2p] state block image hash matches image hash %s", imageHash)
-			return stateBlock, nil
+		log.Printf("[p2p] tree hashes for for image hash %s; %v", imageHash, len(tree.Props().Hashes))
+
+		// TODO: check kind
+		// TODO: use go routines
+		for _, stateBlockHash := range tree.Props().Hashes {
+			stateBlockCID, err := GetCIDByHash(stateBlockHash)
+			if err != nil {
+				log.Printf("[p2p] error getting cid by hash for state block hash %s for image hash %s", stateBlockHash, imageHash)
+				return nil, err
+			}
+
+			stateBlock, err := s.GetStatechainBlock(stateBlockCID)
+			if err != nil {
+				log.Printf("[p2p] error getting state chain block for state block cid %s for image hash %s", stateBlockCID, imageHash)
+				return nil, err
+			}
+
+			if stateBlock.Props().ImageHash == imageHash {
+				log.Printf("[p2p] state block image hash matches image hash %s", imageHash)
+				return stateBlock, nil
+			}
 		}
 	}
 
@@ -214,6 +227,17 @@ func (s Service) FetchMostRecentStateBlock(imageHash string, block *mainchain.Bl
 			return nil, err
 		}
 		head = prevBlock
+
+		decodedMerkleHash, err := hexutil.DecodeString(block.Props().StateBlocksMerkleHash)
+		if err != nil {
+			log.Printf("[p2p] error decoding merkle hash for image hash %s; error: %s", imageHash, err)
+			return nil, err
+		}
+
+		if decodedMerkleHash == "" {
+			log.Printf("[p2p] decoded merkle hash for block %s is empty for image hash %s, continuing", *prevBlock.Props().BlockHash, imageHash)
+			continue
+		}
 
 		treeCID, err := GetCIDByHash(prevBlock.Props().StateBlocksMerkleHash)
 		if err != nil {
