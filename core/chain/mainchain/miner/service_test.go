@@ -29,7 +29,7 @@ func TestBuildGenesisStateBlock(t *testing.T) {
 	tx := statechain.NewTransaction(&statechain.TransactionProps{
 		ImageHash: imageHash,
 		Method:    "c3_invokeMethod",
-		Payload:   []byte(`[""setItem", "foo", "bar"]`),
+		Payload:   []byte(`["setItem", "foo", "bar"]`),
 		From:      encodedPub,
 	})
 	err = tx.SetHash()

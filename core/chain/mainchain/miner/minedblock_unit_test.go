@@ -87,7 +87,7 @@ var (
 		StatePrevDiffHash: "prevStateHash",
 		StateCurrentHash:  "currentStateHash",
 	}
-	txPayload = `{"foo":"bar"}`
+	txPayload = []byte(`{"foo":"bar"}`)
 	txHash    = "0xHash"
 	txSig     = &statechain.TxSig{
 		R: " 0x0",

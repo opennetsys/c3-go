@@ -641,10 +641,7 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, prevState []byte, prevBlo
 
 	var nextState []byte
 	if tx.Props().Method == "c3_invokeMethod" {
-		payload, ok := tx.Props().Payload.([]byte)
-		if !ok {
-			return nil, nil, nil, errors.New("could not parse payload")
-		}
+		payload := tx.Props().Payload
 
 		var parsed []string
 		if err := json.Unmarshal(payload, &parsed); err != nil {
@@ -962,10 +959,7 @@ func BuildNextState(p2pSvc p2p.Interface, block *statechain.Block, tx *statechai
 	var nextState []byte
 
 	if tx.Props().Method == "c3_invokeMethod" {
-		payload, ok := tx.Props().Payload.([]byte)
-		if !ok {
-			return nil, nil, errors.New("could not parse payload")
-		}
+		payload := tx.Props().Payload
 
 		var parsed []string
 		if err := json.Unmarshal(payload, &parsed); err != nil {

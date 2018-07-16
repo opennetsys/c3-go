@@ -265,7 +265,7 @@ func BuildTransactionPropsFromCoder(tmp *coder.Transaction) (*TransactionProps, 
 	}
 
 	if tmp.Payload != nil {
-		var v interface{}
+		var v []byte
 		if err := json.Unmarshal(tmp.Payload, &v); err != nil {
 			return nil, err
 		}
