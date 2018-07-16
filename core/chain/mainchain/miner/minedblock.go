@@ -34,7 +34,7 @@ func (m *MinedBlock) Deserialize(data []byte) error {
 		return err
 	}
 	if b != nil {
-		*m = *b
+		*m = *b // note: ignore the sync copy linting error
 	}
 
 	return nil

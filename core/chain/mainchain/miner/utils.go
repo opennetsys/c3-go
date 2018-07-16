@@ -1,6 +1,7 @@
 package miner
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -8,8 +9,6 @@ import (
 	"os"
 	"sort"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 
 	"github.com/c3systems/c3/common/c3crypto"
 	"github.com/c3systems/c3/common/hashing"
@@ -20,7 +19,8 @@ import (
 	"github.com/c3systems/c3/core/diffing"
 	"github.com/c3systems/c3/core/p2p"
 	"github.com/c3systems/c3/core/sandbox"
-	"github.com/davecgh/go-spew/spew"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // CheckBlockHashAgainstDifficulty ...
@@ -125,12 +125,10 @@ func VerifyTransaction(tx *statechain.Transaction) (bool, error) {
 // VerifyStatechainBlock verifies a statechain block
 // TODO: check timestamp?
 // TODO: pass all necessary data and remove the p2pSvc
-func VerifyStatechainBlock(p2pSvc p2p.Interface, isValid *bool, block *statechain.Block) (bool, error) {
+/*
+func VerifyStatechainBlock(ctx context.Context, p2pSvc p2p.Interface, block *statechain.Block) (bool, error) {
 	if block == nil {
 		return false, ErrNilBlock
-	}
-	if isValid == nil || *isValid == false {
-		return false, errors.New("received nil or false isValid")
 	}
 
 	// 1. block must have a hash
@@ -153,9 +151,6 @@ func VerifyStatechainBlock(p2pSvc p2p.Interface, isValid *bool, block *statechai
 
 	// 3. verify each tx in the block
 	// TODO: do in go funcs
-	if isValid == nil || *isValid == false {
-		return false, errors.New("received nil or false isValid")
-	}
 	txCid, err := p2p.GetCIDByHash(block.Props().TxHash)
 	if err != nil {
 		log.Printf("[miner] err getting cid for tx\n%v", err)
@@ -187,20 +182,19 @@ func VerifyStatechainBlock(p2pSvc p2p.Interface, isValid *bool, block *statechai
 
 	return true, nil
 }
+*/
 
 // VerifyMainchainBlock verifies a mainchain block
 // TODO: check block time
 // TODO: fetch and check previous block hash
 // TODO: pass all necessary data and remove the p2pSvc
-func VerifyMainchainBlock(p2pSvc p2p.Interface, isValid *bool, block *mainchain.Block) (bool, error) {
+/*
+func VerifyMainchainBlock(ctx context.Context, p2pSvc p2p.Interface, block *mainchain.Block) (bool, error) {
 	if block == nil {
 		return false, errors.New("block is nil")
 	}
 	if block.Props().BlockHash == nil {
 		return false, errors.New("block hash is nil")
-	}
-	if isValid == nil {
-		return false, errors.New("IsValid is nil")
 	}
 	if mainchain.ImageHash != block.Props().ImageHash {
 		return false, nil
@@ -219,9 +213,6 @@ func VerifyMainchainBlock(p2pSvc p2p.Interface, isValid *bool, block *mainchain.
 	}
 
 	// hash must verify
-	if isValid == nil || *isValid == false {
-		return false, errors.New("received nil or false isValid")
-	}
 	tmpHash, err := block.CalculateHash()
 	if err != nil {
 		log.Printf("[miner] err calculating tmpHash\n%v", err)
@@ -233,9 +224,6 @@ func VerifyMainchainBlock(p2pSvc p2p.Interface, isValid *bool, block *mainchain.
 	}
 
 	// the sig must verify
-	if isValid == nil || *isValid == false {
-		return false, errors.New("received nil or false isValid")
-	}
 	pub, err := c3crypto.DecodeAddress(block.Props().MinerAddress)
 	if err != nil {
 		log.Printf("[miner] err decoding miner addr\n%v", err)
@@ -279,8 +267,8 @@ func VerifyMainchainBlock(p2pSvc p2p.Interface, isValid *bool, block *mainchain.
 	// TODO: do in go funcs
 	// TODO: check kind?
 	for _, stateblockHash := range tree.Props().Hashes {
-		if isValid == nil || *isValid == false {
-			return false, errors.New("received nil or false isValid")
+		if ctx.Err() != nil {
+			return false, ctx.Err()
 		}
 
 		stateblockCid, err := p2p.GetCIDByHash(stateblockHash)
@@ -295,7 +283,7 @@ func VerifyMainchainBlock(p2pSvc p2p.Interface, isValid *bool, block *mainchain.
 			return false, err
 		}
 
-		ok, err := VerifyStatechainBlock(p2pSvc, isValid, stateblock)
+		ok, err := VerifyStatechainBlock(ctx, p2pSvc, stateblock)
 		if err != nil {
 			log.Printf("[miner] err verifying statechain block\n%v", err)
 			return false, err
@@ -307,303 +295,491 @@ func VerifyMainchainBlock(p2pSvc p2p.Interface, isValid *bool, block *mainchain.
 
 	return true, nil
 }
+*/
 
 // VerifyMinedBlock ...
-func VerifyMinedBlock(p2pSvc p2p.Interface, isValid *bool, minedBlock *MinedBlock) (bool, error) {
-	if minedBlock == nil {
-		log.Println("[miner] mined block is nil")
-		return false, nil
-	}
-	if minedBlock.NextBlock == nil {
-		log.Println("[miner] next block is nil")
-		return false, nil
-	}
-	if minedBlock.PreviousBlock == nil {
-		log.Println("[miner] mined block is nil")
-		return false, nil
-	}
-	if minedBlock.NextBlock.Props().BlockHash == nil {
-		log.Println("[miner] next block blockhash is nil")
-		return false, nil
-	}
-	if minedBlock.PreviousBlock.Props().BlockHash == nil {
-		log.Println("[miner] prev block block hash is nil")
-		return false, nil
-	}
-	// note checked for nil pointer, above
-	if *minedBlock.PreviousBlock.Props().BlockHash != minedBlock.NextBlock.Props().PrevBlockHash {
-		log.Println("[miner] prev block block hash != next block block hash")
-		return false, nil
-	}
-	if isValid == nil {
-		return false, errors.New("IsValid is nil")
-	}
-	if mainchain.ImageHash != minedBlock.NextBlock.Props().ImageHash {
-		log.Println("[miner] mainchain imagehash != nextblock image hash")
-		return false, nil
-	}
-	if minedBlock.NextBlock.Props().MinerSig == nil {
-		log.Println("[miner] next block miner sig is nil")
-		return false, nil
-	}
+func VerifyMinedBlock(ctx context.Context, p2pSvc p2p.Interface, minedBlock *MinedBlock) (bool, error) {
+	ch := make(chan interface{})
 
-	ok, err := CheckBlockHashAgainstDifficulty(minedBlock.NextBlock)
-	if err != nil {
-		log.Printf("[miner] err checking block hash against difficulty\n%v", err)
-		return false, err
-	}
-	if !ok {
-		log.Println("[miner] block hash did not checkout against difficulty")
-		return false, nil
-	}
+	go func() {
+		if minedBlock == nil {
+			log.Println("[miner] mined block is nil")
+			ch <- false
 
-	// hash must verify
-	if isValid == nil || *isValid == false {
-		return false, errors.New("received nil or false isValid")
-	}
-	tmpHash, err := minedBlock.NextBlock.CalculateHash()
-	if err != nil {
-		log.Printf("[miner] err calculating hash\n%v", err)
-		return false, err
-	}
-	// note: already checked for nil hash
-	if *minedBlock.NextBlock.Props().BlockHash != tmpHash {
-		log.Printf("[miner] next block hash != calced hash\n%s\n%s", *minedBlock.NextBlock.Props().BlockHash, tmpHash)
-		return false, nil
-	}
+			return
+		}
+		if minedBlock.NextBlock == nil {
+			log.Println("[miner] next block is nil")
+			ch <- false
 
-	// the sig must verify
-	if isValid == nil || *isValid == false {
-		return false, errors.New("received nil or false isValid")
-	}
-	pub, err := c3crypto.DecodeAddress(minedBlock.NextBlock.Props().MinerAddress)
-	if err != nil {
-		log.Printf("[miner] err decoding addr\n%v", err)
-		return false, err
-	}
+			return
+		}
+		if minedBlock.PreviousBlock == nil {
+			log.Println("[miner] mined block is nil")
+			ch <- false
 
-	// note: checked for nil sig, above
-	sigR, err := hexutil.DecodeBigInt(minedBlock.NextBlock.Props().MinerSig.R)
-	if err != nil {
-		log.Printf("[miner] err decoding r\n%v", err)
-		return false, err
-	}
-	sigS, err := hexutil.DecodeBigInt(minedBlock.NextBlock.Props().MinerSig.S)
-	if err != nil {
-		log.Printf("[miner] err decoding s\n%v", err)
-		return false, err
-	}
+			return
+		}
+		if minedBlock.NextBlock.Props().BlockHash == nil {
+			log.Println("[miner] next block blockhash is nil")
+			ch <- false
 
-	// note: nil blockhash was checked, above
-	ok, err = c3crypto.Verify(pub, []byte(*minedBlock.NextBlock.Props().BlockHash), sigR, sigS)
-	if err != nil {
-		log.Printf("[miner] err verifying miner sig\n%v", err)
-		return false, err
-	}
-	if !ok {
-		log.Println("[miner] block hash did not checkout agains sig")
-		return false, nil
-	}
+			return
+		}
+		if minedBlock.PreviousBlock.Props().BlockHash == nil {
+			log.Println("[miner] prev block block hash is nil")
+			ch <- false
 
-	// BlockNumber must be +1 prev block number
-	blockNumber, err := hexutil.DecodeUint64(minedBlock.NextBlock.Props().BlockNumber)
-	if err != nil {
-		log.Printf("[miner] err decoding block #\n%v", err)
-		return false, err
-	}
-	prevNumber, err := hexutil.DecodeUint64(minedBlock.PreviousBlock.Props().BlockNumber)
-	if err != nil {
-		log.Printf("[miner] err decoding prev block #\n%v", err)
-		return false, err
-	}
+			return
+		}
+		// note checked for nil pointer, above
+		if *minedBlock.PreviousBlock.Props().BlockHash != minedBlock.NextBlock.Props().PrevBlockHash {
+			log.Println("[miner] prev block block hash != next block block hash")
+			ch <- false
 
-	if prevNumber+1 != blockNumber {
-		log.Println("[miner] prevBlockNumber +1 != nextBlockNumber")
-		return false, nil
-	}
+			return
+		}
+		if mainchain.ImageHash != minedBlock.NextBlock.Props().ImageHash {
+			log.Println("[miner] mainchain imagehash != nextblock image hash")
+			ch <- false
 
-	return VerifyStateBlocksFromMinedBlock(p2pSvc, isValid, minedBlock)
-}
+			return
+		}
+		if minedBlock.NextBlock.Props().MinerSig == nil {
+			log.Println("[miner] next block miner sig is nil")
+			ch <- false
 
-// VerifyStateBlocksFromMinedBlock ...
-// note: this function also checks the merkle tree. That check is not required to be performed, separately.
-func VerifyStateBlocksFromMinedBlock(p2pSvc p2p.Interface, isValid *bool, minedBlock *MinedBlock) (bool, error) {
-	if minedBlock.NextBlock == nil {
-		log.Println("[miner] nil next block")
-		return false, nil
-	}
-	if len(minedBlock.StatechainBlocksMap) != len(minedBlock.TransactionsMap) {
-		log.Println("[miner] len state blocks map != len tx map")
-		return false, nil
-	}
-	// note: ok to have nil map?
-	//if minedBlock.StatechainBlocksMap == nil {
-	//log.Println("nil state blocks map")
-	//return false, nil
-	//}
-	if minedBlock.MerkleTreesMap == nil {
-		log.Println("[miner] nil merkle trees map")
-		return false, nil
-	}
-	if isValid == nil || *isValid == false {
-		return false, errors.New("received nil or false isValid")
-	}
-
-	// 1. Verify state blocks merkle hash
-	ok, err := VerifyMerkleTreeFromMinedBlock(isValid, minedBlock)
-	if err != nil {
-		log.Printf("[miner] err verifying merkle tree\n%v", err)
-		return false, err
-	}
-
-	if !ok {
-		log.Println("[miner] merkle tree didn't verify")
-		return false, nil
-	}
-
-	// 2. Verify each state block
-	// first, group them by image hash
-	groupedBlocks, err := groupStateBlocksByImageHash(minedBlock.StatechainBlocksMap)
-	if err != nil {
-		log.Printf("[miner] err grouping state blocks\n%v", err)
-		return false, err
-	}
-
-	for _, blocks := range groupedBlocks {
-		if isValid == nil || *isValid == false {
-			return false, errors.New("received nil or false isValid")
+			return
 		}
 
-		// then, order them by block number
-		orderedBlocks, err := orderStatechainBlocks(blocks)
+		ok, err := CheckBlockHashAgainstDifficulty(minedBlock.NextBlock)
 		if err != nil {
-			log.Printf("[miner] err ordering state blocks\n%v", err)
-			return false, err
+			log.Printf("[miner] err checking block hash against difficulty\n%v", err)
+			ch <- err
+
+			return
+		}
+		if !ok {
+			log.Println("[miner] block hash did not checkout against difficulty")
+			ch <- false
+
+			return
+		}
+		if ctx.Err() != nil {
+			return
 		}
 
-		if len(orderedBlocks) == 0 {
-			continue
-		}
-		prevBlockHash := orderedBlocks[0].Props().PrevBlockHash
-		prevBlockCID, err := p2p.GetCIDByHash(prevBlockHash)
+		tmpHash, err := minedBlock.NextBlock.CalculateHash()
 		if err != nil {
-			log.Printf("[miner] err getting cid by has\n%v", err)
-			return false, err
+			log.Printf("[miner] err calculating hash\n%v", err)
+			ch <- err
+
+			return
 		}
-		// TODO: check that this is the actual prev block on the blockchain
-		prevBlock, err := p2pSvc.GetStatechainBlock(prevBlockCID)
+		// note: already checked for nil hash
+		if *minedBlock.NextBlock.Props().BlockHash != tmpHash {
+			log.Printf("[miner] next block hash != calced hash\n%s\n%s", *minedBlock.NextBlock.Props().BlockHash, tmpHash)
+			ch <- false
+
+			return
+		}
+		if ctx.Err() != nil {
+			return
+		}
+
+		pub, err := c3crypto.DecodeAddress(minedBlock.NextBlock.Props().MinerAddress)
 		if err != nil {
-			log.Printf("[miner] err getting state block\n%v", err)
-			return false, err
-		}
-		if prevBlock == nil {
-			return false, errors.New("got nil prev block")
-		}
-		if prevBlock.Props().BlockHash == nil {
-			return false, errors.New("got nil prev block hash")
-		}
-		// note: checked for nil pointer, above
-		if *prevBlock.Props().BlockHash != prevBlockHash {
-			return false, nil
+			log.Printf("[miner] err decoding addr\n%v", err)
+			ch <- err
+
+			return
 		}
 
-		prevState, err := fetchCurrentState(p2pSvc, prevBlock)
+		// note: checked for nil sig, above
+		sigR, err := hexutil.DecodeBigInt(minedBlock.NextBlock.Props().MinerSig.R)
 		if err != nil {
-			log.Printf("[miner] err fetching current state\n%v", err)
+			log.Printf("[miner] err decoding r\n%v", err)
+			ch <- err
+
+			return
+		}
+		sigS, err := hexutil.DecodeBigInt(minedBlock.NextBlock.Props().MinerSig.S)
+		if err != nil {
+			log.Printf("[miner] err decoding s\n%v", err)
+			ch <- err
+
+			return
+		}
+
+		// note: nil blockhash was checked, above
+		ok, err = c3crypto.Verify(pub, []byte(*minedBlock.NextBlock.Props().BlockHash), sigR, sigS)
+		if err != nil {
+			log.Printf("[miner] err verifying miner sig\n%v", err)
+			ch <- err
+
+			return
+		}
+		if !ok {
+			log.Println("[miner] block hash did not checkout agains sig")
+			ch <- false
+
+			return
+		}
+		if ctx.Err() != nil {
+			return
+		}
+
+		// BlockNumber must be +1 prev block number
+		blockNumber, err := hexutil.DecodeUint64(minedBlock.NextBlock.Props().BlockNumber)
+		if err != nil {
+			log.Printf("[miner] err decoding block #\n%v", err)
+			ch <- err
+
+			return
+		}
+		prevNumber, err := hexutil.DecodeUint64(minedBlock.PreviousBlock.Props().BlockNumber)
+		if err != nil {
+			log.Printf("[miner] err decoding prev block #\n%v", err)
+			ch <- err
+
+			return
+		}
+		if prevNumber+1 != blockNumber {
+			log.Println("[miner] prevBlockNumber +1 != nextBlockNumber")
+			ch <- false
+
+			return
+		}
+		if ctx.Err() != nil {
+			return
+		}
+
+		ch <- true
+	}()
+
+	select {
+	case v := <-ch:
+		switch v.(type) {
+		case error:
+			err, _ := v.(error)
 			return false, err
-		}
-		prevStateHash := hashing.HashToHexString([]byte(prevState))
-		if prevStateHash != prevBlock.Props().StateCurrentHash {
-			return false, nil
-		}
 
-		for _, block := range orderedBlocks {
-			// 2a. block must have a hash
-			if block == nil || block.Props().BlockHash == nil {
-				return false, nil
-			}
-
-			// 2b. Block #'s must be sequential
-			prevBlockNumber, err := hexutil.DecodeUint64(prevBlock.Props().BlockNumber)
-			if err != nil {
-				log.Printf("[miner] err decoding prev block # 2b\n%v", err)
-				return false, err
-			}
-			blockNumber, err := hexutil.DecodeUint64(block.Props().BlockNumber)
-			if err != nil {
-				log.Printf("[miner] err decoding block # 2b\n %v", err)
-				return false, err
-			}
-			if prevBlockNumber+1 != blockNumber {
-				return false, nil
-			}
-
-			// 2c. verify the block hash
-			tmpHash, err := block.CalculateHash()
-			if err != nil {
-				log.Printf("[miner] err calculating block hash 2c\n%v", err)
-				return false, err
-			}
-			// note: checked nil BlockHash, above
-			if tmpHash != *block.Props().BlockHash {
-				return false, nil
-			}
-
-			// 2d. verify the block tx
-			// note: can't have a state block without transactions?
-			tx, ok := minedBlock.TransactionsMap[block.Props().TxHash]
-			if !ok || tx == nil {
-				return false, err
-			}
-
-			ok, err = VerifyTransaction(tx)
-			if err != nil {
-				log.Printf("[miner] err verifying tx 2d\n %v", err)
-				return false, err
-			}
+		case bool:
+			ok, _ := v.(bool)
 			if !ok {
 				return false, nil
 			}
 
-			// TODO: run the tx through the container
-			nextStateBlock, nextDiff, nextState, err := buildNextStateFromPrevState(p2pSvc, prevState, block, tx)
-			if err != nil {
-				log.Printf("[miner] err building next state from prev state\n %v", err)
-				return false, err
-			}
-			if nextStateBlock == nil {
-				return false, errors.New("nil state block")
-			}
-			if nextDiff == nil {
-				return false, errors.New("nil diff")
-			}
-			if nextState == nil {
-				return false, errors.New("nil next state")
-			}
-			if nextStateBlock.Props().BlockHash == nil {
-				return false, errors.New("nil block hash")
-			}
-			if nextDiff.Props().DiffHash == nil {
-				return false, errors.New("nil diff hash")
-			}
+			return VerifyStateBlocksFromMinedBlock(ctx, p2pSvc, minedBlock)
 
-			// 2e. verify current state hash
-			if nextStateBlock.Props().StateCurrentHash != block.Props().StateCurrentHash {
-				return false, nil
-			}
+		default:
+			log.Printf("[miner] received unknown message of type %T\n%v", v, v)
+			return false, errors.New("received message of unknown type")
 
-			// 2f. verify prevDiff
-			if nextStateBlock.Props().StatePrevDiffHash != block.Props().StatePrevDiffHash {
-				return false, nil
-			}
-
-			// set prev to current for next loop
-			prevState = nextState
-			prevBlock = block
 		}
-	}
 
-	return true, nil
+	case <-ctx.Done():
+		return false, ctx.Err()
+	}
+}
+
+// VerifyStateBlocksFromMinedBlock ...
+// note: this function also checks the merkle tree. That check is not required to be performed, separately.
+func VerifyStateBlocksFromMinedBlock(ctx context.Context, p2pSvc p2p.Interface, minedBlock *MinedBlock) (bool, error) {
+	ch := make(chan interface{})
+
+	go func() {
+		if minedBlock.NextBlock == nil {
+			log.Println("[miner] nil next block")
+			ch <- false
+
+			return
+		}
+		if len(minedBlock.StatechainBlocksMap) != len(minedBlock.TransactionsMap) {
+			log.Println("[miner] len state blocks map != len tx map")
+			ch <- false
+
+			return
+		}
+		// note: ok to have nil map? e.g. in the case that no transactions were included in the main block
+		//if minedBlock.StatechainBlocksMap == nil {
+		//log.Println("nil state blocks map")
+		//return false, nil
+		//}
+		if minedBlock.MerkleTreesMap == nil {
+			log.Println("[miner] nil merkle trees map")
+			ch <- false
+
+			return
+		}
+
+		// 1. Verify state blocks merkle hash
+		ok, err := VerifyMerkleTreeFromMinedBlock(ctx, minedBlock)
+		if err != nil {
+			log.Printf("[miner] err verifying merkle tree\n%v", err)
+			ch <- err
+
+			return
+		}
+		if !ok {
+			log.Println("[miner] merkle tree didn't verify")
+			ch <- false
+
+			return
+		}
+		if ctx.Err() != nil {
+			return
+		}
+
+		// 2. Verify each state block
+		// first, group them by image hash
+		groupedBlocks, err := groupStateBlocksByImageHash(minedBlock.StatechainBlocksMap)
+		if err != nil {
+			log.Printf("[miner] err grouping state blocks\n%v", err)
+			ch <- err
+
+			return
+		}
+
+		for _, blocks := range groupedBlocks {
+			if ctx.Err() != nil {
+				return
+			}
+
+			// order by block number
+			orderedBlocks, err := orderStatechainBlocks(blocks)
+			if err != nil {
+				log.Printf("[miner] err ordering state blocks\n%v", err)
+				ch <- err
+
+				return
+			}
+
+			if orderedBlocks == nil || len(orderedBlocks) == 0 {
+				continue
+			}
+			prevBlockHash := orderedBlocks[0].Props().PrevBlockHash
+			prevBlockCID, err := p2p.GetCIDByHash(prevBlockHash)
+			if err != nil {
+				log.Printf("[miner] err getting cid by has\n%v", err)
+				ch <- err
+
+				return
+			}
+			// TODO: check that this is the actual prev block on the blockchain
+			prevBlock, err := p2pSvc.GetStatechainBlock(prevBlockCID)
+			if err != nil {
+				log.Printf("[miner] err getting state block\n%v", err)
+				ch <- err
+
+				return
+			}
+			if prevBlock == nil {
+				ch <- errors.New("got nil prev block")
+
+				return
+			}
+			if prevBlock.Props().BlockHash == nil {
+				ch <- errors.New("got nil prev block hash")
+
+				return
+			}
+			// note: checked for nil pointer, above
+			if *prevBlock.Props().BlockHash != prevBlockHash {
+				ch <- false
+
+				return
+			}
+
+			prevState, err := fetchCurrentState(ctx, p2pSvc, prevBlock)
+			if err != nil {
+				log.Printf("[miner] err fetching current state\n%v", err)
+				ch <- err
+
+				return
+			}
+			prevStateHash := hashing.HashToHexString([]byte(prevState))
+			if prevStateHash != prevBlock.Props().StateCurrentHash {
+				ch <- false
+
+				return
+			}
+
+			for _, block := range orderedBlocks {
+				if ctx.Err() != nil {
+					return
+				}
+
+				// 2a. block must have a hash
+				if block == nil || block.Props().BlockHash == nil {
+					ch <- false
+
+					return
+				}
+
+				// 2b. Block #'s must be sequential
+				prevBlockNumber, err := hexutil.DecodeUint64(prevBlock.Props().BlockNumber)
+				if err != nil {
+					log.Printf("[miner] err decoding prev block # 2b\n%v", err)
+					ch <- err
+
+					return
+				}
+				blockNumber, err := hexutil.DecodeUint64(block.Props().BlockNumber)
+				if err != nil {
+					log.Printf("[miner] err decoding block # 2b\n %v", err)
+					ch <- err
+
+					return
+				}
+				if prevBlockNumber+1 != blockNumber {
+					ch <- false
+
+					return
+				}
+
+				// 2c. verify the block hash
+				tmpHash, err := block.CalculateHash()
+				if err != nil {
+					log.Printf("[miner] err calculating block hash 2c\n%v", err)
+					ch <- err
+
+					return
+				}
+				// note: checked nil BlockHash, above
+				if tmpHash != *block.Props().BlockHash {
+					ch <- false
+
+					return
+				}
+
+				// 2d. verify the block tx
+				// note: can't have a state block without transactions?
+				tx, ok := minedBlock.TransactionsMap[block.Props().TxHash]
+				if !ok || tx == nil {
+					txCID, err := p2p.GetCIDByHash(block.Props().TxHash)
+					if err != nil {
+						ch <- err
+
+						return
+					}
+
+					tx, err = p2pSvc.GetStatechainTransaction(txCID)
+					if err != nil {
+						ch <- err
+
+						return
+					}
+					if tx == nil {
+						ch <- errors.New("nil tx")
+
+						return
+					}
+				}
+
+				ok, err = VerifyTransaction(tx)
+				if err != nil {
+					log.Printf("[miner] err verifying tx 2d\n %v", err)
+					ch <- err
+
+					return
+				}
+				if !ok {
+					ch <- false
+
+					return
+				}
+				if ctx.Err() != nil {
+					return
+				}
+
+				nextStateBlock, nextDiff, nextState, err := buildNextStateFromPrevState(p2pSvc, prevState, block, tx)
+				if err != nil {
+					log.Printf("[miner] err building next state from prev state\n %v", err)
+					ch <- err
+
+					return
+				}
+				if nextStateBlock == nil {
+					ch <- errors.New("nil state block")
+
+					return
+				}
+				if nextDiff == nil {
+					ch <- errors.New("nil diff")
+
+					return
+				}
+				if nextState == nil {
+					ch <- errors.New("nil next state")
+
+					return
+				}
+				if nextStateBlock.Props().BlockHash == nil {
+					ch <- errors.New("nil block hash")
+
+					return
+				}
+				if nextDiff.Props().DiffHash == nil {
+					ch <- errors.New("nil diff hash")
+
+					return
+				}
+				if ctx.Err() != nil {
+					return
+				}
+
+				// 2e. verify current state hash
+				if nextStateBlock.Props().StateCurrentHash != block.Props().StateCurrentHash {
+					ch <- false
+
+					return
+				}
+
+				// 2f. verify prevDiff
+				if nextStateBlock.Props().StatePrevDiffHash != block.Props().StatePrevDiffHash {
+					ch <- false
+
+					return
+				}
+
+				// set prev to current for next loop
+				prevState = nextState
+				prevBlock = block
+			}
+		}
+		if ctx.Err() != nil {
+			return
+		}
+
+		ch <- true
+		return
+	}()
+
+	select {
+	case v := <-ch:
+		switch v.(type) {
+		case error:
+			err, _ := v.(error)
+			return false, err
+
+		case bool:
+			ok, _ := v.(bool)
+			if !ok {
+				return false, nil
+			}
+
+			return true, nil
+
+		default:
+			log.Printf("[miner] received unknown message of type %T\n%v", v, v)
+			return false, errors.New("received message of unknown type")
+
+		}
+
+	case <-ctx.Done():
+		return false, ctx.Err()
+	}
 }
 
 func buildNextStateFromPrevState(p2pSvc p2p.Interface, prevState []byte, prevBlock *statechain.Block, tx *statechain.Transaction) (*statechain.Block, *statechain.Diff, []byte, error) {
@@ -674,7 +850,7 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, prevState []byte, prevBlo
 			return nil, nil, nil, err
 		}
 
-		log.Printf("[miner] container new state: %s", string(nextState))
+		//log.Printf("[miner] container new state: %s", string(nextState))
 		nextStateFile, err := ioutil.TempFile("", fmt.Sprintf("%s/%v/state.txt", prevBlock.Props().ImageHash, ts))
 		if err != nil {
 			return nil, nil, nil, err
@@ -732,111 +908,207 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, prevState []byte, prevBlo
 	return nil, nil, nil, errors.New("tx doesn't affect state")
 }
 
-func fetchCurrentState(p2pSvc p2p.Interface, block *statechain.Block) ([]byte, error) {
-	if block == nil {
-		return nil, errors.New("nil block")
-	}
-	if block.Props().BlockHash == nil {
-		return nil, errors.New("nil block hash")
-	}
+func fetchCurrentState(ctx context.Context, p2pSvc p2p.Interface, block *statechain.Block) ([]byte, error) {
+	ch := make(chan interface{})
 
-	var (
-		diffs []*statechain.Diff
-	)
+	go func() {
+		if block == nil {
+			ch <- errors.New("nil block")
 
-	// gather the diffs
-	diffCID, err := p2p.GetCIDByHash(block.Props().StatePrevDiffHash)
-	if err != nil {
-		return nil, err
-	}
-	diff, err := p2pSvc.GetStatechainDiff(diffCID)
-	if err != nil {
-		return nil, err
-	}
-	// note: prepend
-	diffs = append([]*statechain.Diff{diff}, diffs...)
+			return
+		}
+		if block.Props().BlockHash == nil {
+			ch <- errors.New("nil block hash")
 
-	head := block
-	imageHash := block.Props().ImageHash
-	for head.Props().BlockNumber != mainchain.GenesisBlock.Props().BlockNumber {
-		prevStateCID, err := p2p.GetCIDByHash(head.Props().PrevBlockHash)
-		if err != nil {
-			return nil, err
+			return
+		}
+		if ctx.Err() != nil {
+			return
 		}
 
-		prevStateBlock, err := p2pSvc.GetStatechainBlock(prevStateCID)
-		if err != nil {
-			return nil, err
-		}
-		head = prevStateBlock
+		var (
+			diffs []*statechain.Diff
+		)
 
-		diffCID, err := p2p.GetCIDByHash(prevStateBlock.Props().StatePrevDiffHash)
+		// gather the diffs
+		diffCID, err := p2p.GetCIDByHash(block.Props().StatePrevDiffHash)
 		if err != nil {
-			return nil, err
+			log.Printf("[miner] err getting diff cid by hash\n%v", err)
+			ch <- err
+
+			return
 		}
 		diff, err := p2pSvc.GetStatechainDiff(diffCID)
 		if err != nil {
-			return nil, err
+			log.Printf("[miner] err getting diff by cid\n%v", err)
+			ch <- err
+
+			return
 		}
 		// note: prepend
 		diffs = append([]*statechain.Diff{diff}, diffs...)
-	}
 
-	// apply the diffs to get the current state
-	// TODO: get the genesis state of the block
-	genesisState := ""
-	ts := time.Now().Unix()
-	tmpStateFile, err := ioutil.TempFile("", fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
-	if err != nil {
-		return nil, err
-	}
-	defer os.Remove(tmpStateFile.Name()) // clean up
+		head := block
+		imageHash := block.Props().ImageHash
+		for head.Props().BlockNumber != mainchain.GenesisBlock.Props().BlockNumber {
+			if ctx.Err() != nil {
+				return
+			}
 
-	if _, err := tmpStateFile.Write([]byte(genesisState)); err != nil {
-		return nil, err
-	}
-	if err := tmpStateFile.Close(); err != nil {
-		return nil, err
-	}
+			prevStateCID, err := p2p.GetCIDByHash(head.Props().PrevBlockHash)
+			if err != nil {
+				log.Printf("[miner] err getting statechain cid by hash\n%v", err)
+				ch <- err
 
-	outPatchFile, err := ioutil.TempFile("", fmt.Sprintf("%s/%v/combined.txt", imageHash, ts))
-	if err != nil {
-		return nil, err
-	}
-	defer os.Remove(outPatchFile.Name()) // clean up
-	if err := outPatchFile.Close(); err != nil {
-		return nil, err
-	}
+				return
+			}
 
-	for i, diff := range diffs {
-		tmpPatchFile, err := ioutil.TempFile("", fmt.Sprintf("%s/%v/patch.%d.txt", imageHash, ts, i))
+			prevStateBlock, err := p2pSvc.GetStatechainBlock(prevStateCID)
+			if err != nil {
+				log.Printf("[miner] err getting state chain block by cid\n%v", err)
+				ch <- err
+
+				return
+			}
+			head = prevStateBlock
+
+			diffCID, err := p2p.GetCIDByHash(prevStateBlock.Props().StatePrevDiffHash)
+			if err != nil {
+				log.Printf("[miner] err getting diffCID by hash\n%v", err)
+				ch <- err
+
+				return
+			}
+			diff, err := p2pSvc.GetStatechainDiff(diffCID)
+			if err != nil {
+				log.Printf("[miner] err gitting diff by cid\n%v", err)
+				ch <- err
+
+				return
+			}
+			// note: prepend
+			diffs = append([]*statechain.Diff{diff}, diffs...)
+		}
+
+		// apply the diffs to get the current state
+		// TODO: get the genesis state of the block?
+		genesisState := ""
+		ts := time.Now().Unix()
+		tmpStateFile, err := ioutil.TempFile("", fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
 		if err != nil {
-			return nil, err
-		}
-		defer os.Remove(tmpPatchFile.Name()) // clean up
+			log.Printf("[miner] err creating state file\n%v", err)
+			ch <- err
 
-		if _, err := tmpPatchFile.Write([]byte(diff.Props().Data)); err != nil {
-			return nil, err
+			return
 		}
-		if err := tmpPatchFile.Close(); err != nil {
-			return nil, err
+		defer os.Remove(tmpStateFile.Name()) // clean up
+
+		if _, err := tmpStateFile.Write([]byte(genesisState)); err != nil {
+			log.Printf("[miner] err writing to state file\n%v", err)
+			ch <- err
+
+			return
+		}
+		if err := tmpStateFile.Close(); err != nil {
+			log.Printf("[miner] err closing state file\n%v", err)
+			ch <- err
+
+			return
 		}
 
-		if err := diffing.CombineDiff(outPatchFile.Name(), tmpPatchFile.Name(), outPatchFile.Name()); err != nil {
-			return nil, err
+		outPatchFile, err := ioutil.TempFile("", fmt.Sprintf("%s/%v/combined.txt", imageHash, ts))
+		if err != nil {
+			log.Printf("[miner] err creating combined patch file\n%v", err)
+			ch <- err
+
+			return
 		}
+		defer os.Remove(outPatchFile.Name()) // clean up
+		if err := outPatchFile.Close(); err != nil {
+			log.Printf("[miner] err closing patch file\n%v", err)
+			ch <- err
+
+			return
+		}
+
+		for i, diff := range diffs {
+			if ctx.Err() != nil {
+				return
+			}
+
+			tmpPatchFile, err := ioutil.TempFile("", fmt.Sprintf("%s/%v/patch.%d.txt", imageHash, ts, i))
+			if err != nil {
+				log.Printf("[miner] err writing tmp patch file\n%v", err)
+				ch <- err
+
+				return
+			}
+			defer os.Remove(tmpPatchFile.Name()) // clean up
+
+			if _, err := tmpPatchFile.Write([]byte(diff.Props().Data)); err != nil {
+				log.Printf("[miner] err writing diff to patch file\n%v", err)
+				ch <- err
+
+				return
+			}
+			if err := tmpPatchFile.Close(); err != nil {
+				log.Printf("[miner] err closing patch file\n%v", err)
+				ch <- err
+
+				return
+			}
+
+			if err := diffing.CombineDiff(outPatchFile.Name(), tmpPatchFile.Name(), outPatchFile.Name()); err != nil {
+				log.Printf("[miner] err combining diff files\n%v", err)
+				ch <- err
+
+				return
+			}
+		}
+
+		// now apply the combined patch file to the state
+		if err := diffing.Patch(outPatchFile.Name(), false, true); err != nil {
+			log.Printf("[miner] err diffing patch file\n%v", err)
+			ch <- err
+
+			return
+		}
+		state, err := ioutil.ReadFile(tmpStateFile.Name())
+		if err != nil {
+			log.Printf("[miner] err reading state file\n%v", err)
+			ch <- err
+
+			return
+		}
+		if ctx.Err() != nil {
+			return
+		}
+
+		ch <- []byte(state)
+		return
+	}()
+
+	select {
+	case v := <-ch:
+		switch v.(type) {
+		case error:
+			err, _ := v.(error)
+			return nil, err
+
+		case []byte:
+			bytes, _ := v.([]byte)
+
+			return bytes, nil
+
+		default:
+			log.Printf("[miner] received unknown message of type %T\n%v", v, v)
+			return nil, errors.New("received message of unknown type")
+
+		}
+
+	case <-ctx.Done():
+		return nil, ctx.Err()
 	}
-
-	// now apply the combined patch file to the state
-	if err := diffing.Patch(outPatchFile.Name(), false, true); err != nil {
-		return nil, err
-	}
-	state, err := ioutil.ReadFile(tmpStateFile.Name())
-	if err != nil {
-		return nil, err
-	}
-
-	return []byte(state), nil
 }
 
 // BuildNextState ...
@@ -950,7 +1222,6 @@ func BuildNextState(p2pSvc p2p.Interface, block *statechain.Block, tx *statechai
 		return nil, nil, err
 	}
 
-	log.Printf("[miner] state\n%s", string(state))
 	headStateFileName := tmpStateFile.Name()
 	runningBlockNumber, err := hexutil.DecodeUint64(block.Props().BlockNumber)
 	if err != nil {
@@ -995,7 +1266,7 @@ func BuildNextState(p2pSvc p2p.Interface, block *statechain.Block, tx *statechai
 			return nil, nil, err
 		}
 
-		log.Printf("[miner] container new state: %s", string(nextState))
+		//log.Printf("[miner] container new state: %s", string(nextState))
 
 		nextStateFile, err := ioutil.TempFile("", fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
 		if err != nil {
@@ -1051,7 +1322,7 @@ func BuildNextState(p2pSvc p2p.Interface, block *statechain.Block, tx *statechai
 }
 
 // VerifyMerkleTreeFromMinedBlock ...
-func VerifyMerkleTreeFromMinedBlock(isValid *bool, minedBlock *MinedBlock) (bool, error) {
+func VerifyMerkleTreeFromMinedBlock(ctx context.Context, minedBlock *MinedBlock) (bool, error) {
 	if minedBlock.NextBlock == nil {
 		return false, nil
 	}
@@ -1061,9 +1332,6 @@ func VerifyMerkleTreeFromMinedBlock(isValid *bool, minedBlock *MinedBlock) (bool
 	if minedBlock.MerkleTreesMap == nil {
 		return false, nil
 	}
-	if isValid == nil || *isValid == false {
-		return false, errors.New("received nil or false isValid")
-	}
 
 	tree, ok := minedBlock.MerkleTreesMap[minedBlock.NextBlock.Props().StateBlocksMerkleHash]
 	if !ok || tree == nil {
@@ -1071,9 +1339,6 @@ func VerifyMerkleTreeFromMinedBlock(isValid *bool, minedBlock *MinedBlock) (bool
 	}
 	if tree.Props().MerkleTreeRootHash == nil {
 		return false, nil
-	}
-	if isValid == nil || *isValid == false {
-		return false, errors.New("received nil or false isValid")
 	}
 
 	tmpTree, err := merkle.New(&merkle.TreeProps{
@@ -1095,10 +1360,11 @@ func VerifyMerkleTreeFromMinedBlock(isValid *bool, minedBlock *MinedBlock) (bool
 		return false, nil
 	}
 
-	if isValid == nil || *isValid == false {
-		return false, errors.New("received nil or false isValid")
-	}
 	for _, hash := range tmpTree.Props().Hashes {
+		if ctx.Err() != nil {
+			return false, ctx.Err()
+		}
+
 		statechainBlock, ok := minedBlock.StatechainBlocksMap[hash]
 		if !ok || statechainBlock == nil {
 			return false, nil

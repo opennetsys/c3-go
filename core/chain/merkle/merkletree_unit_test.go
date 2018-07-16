@@ -30,6 +30,8 @@ var (
 )
 
 func TestSerializeDeserialize(t *testing.T) {
+	t.Parallel()
+
 	t1, err := New(props1)
 	if err != nil {
 		t.Error(err)
@@ -73,6 +75,8 @@ func TestSerializeDeserialize(t *testing.T) {
 }
 
 func TestSerializeDeserializeString(t *testing.T) {
+	t.Parallel()
+
 	t1, err := New(props1)
 	if err != nil {
 		t.Error(err)

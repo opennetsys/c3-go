@@ -1,6 +1,7 @@
 package miner
 
 import (
+	"context"
 	"errors"
 	"sync"
 
@@ -26,9 +27,8 @@ var (
 )
 
 // Props is passed to the new function
-// TODO: replace IsValid with a context
 type Props struct {
-	IsValid             *bool // TODO: implement better fix than this isValid var
+	Context             context.Context
 	PreviousBlock       *mainchain.Block
 	Difficulty          uint64
 	Channel             chan interface{}

@@ -1,6 +1,7 @@
 package node
 
 import (
+	"context"
 	"errors"
 
 	log "github.com/sirupsen/logrus"
@@ -32,16 +33,6 @@ func New(props *Props) (*Service, error) {
 	}, nil
 }
 
-func (s *Service) setProps(props Props) error {
-	if props.Store == nil || props.Pubsub == nil || props.P2P == nil {
-		return errors.New("p2p node, store, and pubsub are required")
-	}
-
-	s.props = props
-
-	return nil
-}
-
 func (s *Service) spawnNextBlockMiner(prevBlock *mainchain.Block) error {
 	pendingTransactions, err := s.props.Store.GatherPendingTransactions()
 	if err != nil {
@@ -54,10 +45,10 @@ func (s *Service) spawnNextBlockMiner(prevBlock *mainchain.Block) error {
 
 	log.Printf("[node] pending tx count: %v", len(pendingTransactions))
 
-	isValid := true
 	ch := make(chan interface{})
+	ctx, cancel := context.WithCancel(context.Background())
 	minerSvc, err := miner.New(&miner.Props{
-		IsValid:             &isValid,
+		Context:             ctx,
 		PreviousBlock:       prevBlock,
 		Difficulty:          config.BlockDifficulty, // TODO: need to get this from the network
 		Channel:             ch,
@@ -68,25 +59,22 @@ func (s *Service) spawnNextBlockMiner(prevBlock *mainchain.Block) error {
 	})
 	if err != nil {
 		log.Printf("[node] err building miner\n%v", err)
+		cancel()
+
 		return err
 	}
 
 	if err := minerSvc.SpawnMiner(); err != nil {
 		log.Printf("[node] err spawning miner\n%v", err)
+		cancel()
+
 		return err
 	}
 
-	return s.spawnMinerListener(ch, &isValid)
+	return s.spawnMinerListener(cancel, ch)
 }
 
-func (s *Service) spawnMinerListener(minerChan chan interface{}, isValid *bool) error {
-	if isValid == nil {
-		return errors.New("nil IsValid")
-	}
-	if *isValid == false {
-		return errors.New("is valid is false")
-	}
-
+func (s *Service) spawnMinerListener(cancel context.CancelFunc, minerChan chan interface{}) error {
 	go func() {
 		select {
 		case v := <-minerChan:
@@ -95,10 +83,16 @@ func (s *Service) spawnMinerListener(minerChan chan interface{}, isValid *bool) 
 				case error:
 					err, _ := v.(error)
 					log.Printf("[node] received an error from the miner\n%v", err)
+
+					// just to be safe
+					cancel()
+
 					return
 
 				case *miner.MinedBlock:
 					log.Println("[node] block mined")
+					// just to be safe
+					cancel()
 
 					// note: no matter what happens, mine the next block...
 					defer func() {
@@ -187,13 +181,18 @@ func (s *Service) spawnMinerListener(minerChan chan interface{}, isValid *bool) 
 
 				default:
 					log.Printf("[node] received message of unknown type from the miner\ntype %T\n%v", v, v)
+					// just to be safe
+					cancel()
+
 					return
 				}
 			}
 		case <-s.props.CancelMinersChannel:
 			{
 				// TODO: check if any of the transactions or state image hashes we're mining were included in the new block. If not, we can largely continue
-				*isValid = false
+				// with an updated prev bloch hash, and number, etc.
+				cancel()
+
 				return
 			}
 		}
@@ -357,10 +356,10 @@ func (s *Service) handleReceiptOfMinedBlock(minedBlock *miner.MinedBlock) {
 	// TODO: handle this (and generally all of these) err(ors) better?
 	//  1) try again?
 	//  2) ping the network to see if other nodes have accepted?
-	// TODO: implement context.Context rather than a pointer to a bool
-	isValid := true
-	// TODO: add method to verify mined block
-	ok, err := miner.VerifyMinedBlock(s.props.P2P, &isValid, minedBlock)
+	// note: timeout should be a cli flag
+	ctx, cancel := context.WithTimeout(context.Background(), config.MinedBlockVerificationTimeout)
+	defer cancel()
+	ok, err := miner.VerifyMinedBlock(ctx, s.props.P2P, minedBlock)
 	if err != nil {
 		log.Printf("[node] received err while verifying mined block\nblock: %v\nerr: %v", *minedBlock.NextBlock, err)
 		return
