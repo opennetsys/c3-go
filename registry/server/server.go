@@ -3,10 +3,11 @@ package server
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	c3config "github.com/c3systems/c3/config"
 	"github.com/c3systems/c3/registry/util"
@@ -113,7 +114,7 @@ func Run() error {
 	}
 
 	port := listener.Addr().(*net.TCPAddr).Port
-	log.Println("PORT", port)
+	log.Printf("[registry] port %v", port)
 
 	return http.Serve(listener, nil)
 }

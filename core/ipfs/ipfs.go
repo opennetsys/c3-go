@@ -2,10 +2,11 @@ package ipfs
 
 import (
 	"errors"
-	"log"
 	"os/exec"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	api "github.com/ipfs/go-ipfs-api"
 )
@@ -19,12 +20,12 @@ type Client struct {
 func NewClient() *Client {
 	err := RunDaemon()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("[ipfs] %s", err)
 	}
 
 	url, err := getIpfsAPIURL()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("[ipfs] %s", err)
 	}
 
 	client := api.NewShell(url)
@@ -54,7 +55,7 @@ func RunDaemon() error {
 	ready := make(chan bool)
 	go func() {
 		if err = spawnIpfsDaemon(ready); err != nil {
-			log.Println(err)
+			log.Printf("[ipfs] %s", err)
 		}
 	}()
 
@@ -70,7 +71,7 @@ func RunDaemon() error {
 func spawnIpfsDaemon(ready chan bool) error {
 	out, err := exec.Command("pgrep", "ipfs").Output()
 	if err != nil || strings.TrimSpace(string(out)) == "" {
-		log.Println("IPFS is not running. Starting...")
+		log.Println("[ipfs] IPFS is not running. Starting...")
 
 		go func() {
 			// TODO: detect when running by watching log output
@@ -81,13 +82,13 @@ func spawnIpfsDaemon(ready chan bool) error {
 		err := exec.Command("ipfs", "daemon").Run()
 		if err != nil {
 			ready <- false
-			log.Println(err)
+			log.Printf("[ipfs] %s", err)
 			return errors.New("failed to start IPFS")
 		}
 	}
 
 	ready <- true
-	log.Println("IPFS is running...")
+	log.Println("[ipfs] IPFS is running...")
 	return nil
 }
 

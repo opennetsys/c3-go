@@ -12,7 +12,7 @@ import (
 func TestNewKeyPair(t *testing.T) {
 	priv, pub, err := NewKeyPair()
 	if err != nil {
-		t.Fatalf("received non nil err\n%v", err)
+		t.Errorf("received non nil err\n%v", err)
 	}
 	if priv == nil {
 		t.Error("received nil private key")
@@ -25,7 +25,7 @@ func TestNewKeyPair(t *testing.T) {
 func TestNewPrivateKey(t *testing.T) {
 	priv, err := NewPrivateKey()
 	if err != nil {
-		t.Fatalf("received non nil err\n%v", err)
+		t.Errorf("received non nil err\n%v", err)
 	}
 	if priv == nil {
 		t.Error("received nil private key")
@@ -35,22 +35,22 @@ func TestNewPrivateKey(t *testing.T) {
 func TestGetPublicKey(t *testing.T) {
 	priv, pub, err := NewKeyPair()
 	if err != nil {
-		t.Fatalf("received non nil err generating key pair\n%v", err)
+		t.Errorf("received non nil err generating key pair\n%v", err)
 	}
 	if err != nil {
-		t.Fatalf("received non nil err\n%v", err)
+		t.Errorf("received non nil err\n%v", err)
 	}
 	if priv == nil {
-		t.Fatal("received nil private key")
+		t.Errorf("received nil private key")
 	}
 	if pub == nil {
-		t.Fatal("received nil public key")
+		t.Errorf("received nil public key")
 	}
 
 	expectedIfc := priv.Public()
 	expectedPub, ok := expectedIfc.(*ecdsa.PublicKey)
 	if !ok {
-		t.Fatal("could not generate expected public key")
+		t.Errorf("could not generate expected public key")
 	}
 
 	if !reflect.DeepEqual(*expectedPub, *pub) {
@@ -67,11 +67,11 @@ func TestSignAndVerify(t *testing.T) {
 
 	priv, pub, err := NewKeyPair()
 	if err != nil {
-		t.Fatalf("received non nil err generating key pair\n%v", err)
+		t.Errorf("received non nil err generating key pair\n%v", err)
 	}
 
 	if priv == nil || pub == nil {
-		t.Fatalf("received nil priv or pub key\n%v\n%v", priv, pub)
+		t.Errorf("received nil priv or pub key\n%v\n%v", priv, pub)
 	}
 
 	// note: is there a better way to test signing and verifying?
@@ -105,11 +105,11 @@ func TestEncryptAndDecrypt(t *testing.T) {
 
 	priv, pub, err := NewKeyPair()
 	if err != nil {
-		t.Fatalf("received non nil err generating key pair\n%v", err)
+		t.Errorf("received non nil err generating key pair\n%v", err)
 	}
 
 	if priv == nil || pub == nil {
-		t.Fatalf("received nil priv or pub key\n%v\n%v", priv, pub)
+		t.Errorf("received nil priv or pub key\n%v\n%v", priv, pub)
 	}
 
 	// note: is there a better way to test encrypting and decrypting?
@@ -139,23 +139,23 @@ func TestEncryptAndDecrypt(t *testing.T) {
 func TestSerializeAndDeserializePrivateKey(t *testing.T) {
 	priv, err := NewPrivateKey()
 	if err != nil {
-		t.Fatalf("received non nil err\n%v", err)
+		t.Errorf("received non nil err\n%v", err)
 	}
 	if priv == nil {
-		t.Fatal("priv is nil")
+		t.Error("priv is nil")
 	}
 
 	privBytes, err := SerializePrivateKey(priv)
 	if err != nil {
-		t.Fatalf("received non nil err\n%v", err)
+		t.Errorf("received non nil err\n%v", err)
 	}
 
 	priv2, err := DeserializePrivateKey(privBytes)
 	if err != nil {
-		t.Fatalf("received non nil err\n%v", err)
+		t.Errorf("received non nil err\n%v", err)
 	}
 	if priv2 == nil {
-		t.Fatal("priv2 is nil")
+		t.Error("priv2 is nil")
 	}
 
 	if !reflect.DeepEqual(*priv, *priv2) {
@@ -166,23 +166,23 @@ func TestSerializeAndDeserializePrivateKey(t *testing.T) {
 func TestSerializeAndDeserializePublicKey(t *testing.T) {
 	_, pub, err := NewKeyPair()
 	if err != nil {
-		t.Fatalf("received non nil err generating key pair\n%v", err)
+		t.Errorf("received non nil err generating key pair\n%v", err)
 	}
 	if pub == nil {
-		t.Fatal("pub is nil")
+		t.Error("pub is nil")
 	}
 
 	pubBytes, err := SerializePublicKey(pub)
 	if err != nil {
-		t.Fatalf("received non nil err serializing\n%v", err)
+		t.Errorf("received non nil err serializing\n%v", err)
 	}
 
 	pub2, err := DeserializePublicKey(pubBytes)
 	if err != nil {
-		t.Fatalf("received non nil err deserializing\n%v", err)
+		t.Errorf("received non nil err deserializing\n%v", err)
 	}
 	if pub2 == nil {
-		t.Fatal("priv2 is nil")
+		t.Error("priv2 is nil")
 	}
 
 	if !reflect.DeepEqual(*pub, *pub2) {
@@ -193,19 +193,19 @@ func TestSerializeAndDeserializePublicKey(t *testing.T) {
 func TestReadWritePrivateKeyToPEM(t *testing.T) {
 	priv, err := NewPrivateKey()
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 
 	password := "password"
 	fileName := "priv.test.pem"
 	if err := WritePrivateKeyToPemFile(priv, &password, fileName); err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 	defer os.Remove(fileName)
 
 	priv2, err := ReadPrivateKeyFromPem(fileName, &password)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 
 	if !reflect.DeepEqual(priv, priv2) {
@@ -216,19 +216,19 @@ func TestReadWritePrivateKeyToPEM(t *testing.T) {
 func TestReadWritePublicKeyToPEM(t *testing.T) {
 	_, pub, err := NewKeyPair()
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 
 	password := "password"
 	fileName := "pub.test.pem"
 	if err := WritePublicKeyToPemFile(pub, &password, fileName); err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 	defer os.Remove(fileName)
 
 	pub2, err := ReadPublicKeyFromPem(fileName, &password)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 
 	if !reflect.DeepEqual(pub, pub2) {
@@ -239,19 +239,19 @@ func TestReadWritePublicKeyToPEM(t *testing.T) {
 func TestReadWritePairsToPEM(t *testing.T) {
 	priv, pub, err := NewKeyPair()
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 
 	password := "password"
 	fileName := "keys.pem"
 	if err := WriteKeyPairToPem(priv, pub, &password, fileName); err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 	defer os.Remove(fileName)
 
 	priv2, pub2, err := ReadKeyPairFromPem(fileName, &password)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 
 	if !reflect.DeepEqual(pub, pub2) || !reflect.DeepEqual(priv, priv2) {
@@ -267,7 +267,7 @@ func TestDecodeAddress(t *testing.T) {
 
 	addr, err := EncodeAddress(pub)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 
 	newPub, err := DecodeAddress(addr)
@@ -280,24 +280,24 @@ func TestDecodeAddress(t *testing.T) {
 func TestEncodeAndDecodeAddress(t *testing.T) {
 	_, pub, err := NewKeyPair()
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 	if pub == nil {
-		t.Fatal("nil pub key")
+		t.Error("nil pub key")
 	}
 
 	addr, err := EncodeAddress(pub)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 	t.Logf("addr %s", addr)
 
 	pub1, err := DecodeAddress(addr)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 	if pub1 == nil {
-		t.Fatal("pub1 is nil")
+		t.Error("pub1 is nil")
 	}
 
 	if !reflect.DeepEqual(pub, pub1) {

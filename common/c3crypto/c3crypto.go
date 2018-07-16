@@ -9,9 +9,10 @@ import (
 	"encoding/pem"
 	"errors"
 	"io/ioutil"
-	"log"
 	"math/big"
 	"os"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/c3systems/c3/common/hexutil"
 	"github.com/obscuren/ecies"
@@ -268,7 +269,7 @@ func WritePrivateKeyToPemFile(priv *ecdsa.PrivateKey, password *string, fileName
 
 	f, err := os.Create(fileName)
 	if err != nil {
-		log.Println("err creating file")
+		log.Printf("[c3crypto] err creating file %s", err)
 		return err
 	}
 	defer f.Close()

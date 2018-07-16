@@ -8,7 +8,7 @@ import (
 	"testing"
 	"unicode"
 
-	"github.com/prometheus/common/log"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -119,7 +119,7 @@ func TestProps(t *testing.T) {
 
 	for idx, block := range blocks {
 		if block == nil {
-			t.Fatalf("test %d failed; expected non-nil block", idx+1)
+			t.Errorf("test %d failed; expected non-nil block", idx+1)
 		}
 
 		if !reflect.DeepEqual(block.Props(), expecteds[idx]) {
@@ -144,12 +144,12 @@ func TestSerialize(t *testing.T) {
 
 	for idx, block := range blocks {
 		if block == nil {
-			t.Fatalf("test %d failed; expected non-nil block", idx+1)
+			t.Errorf("test %d failed; expected non-nil block", idx+1)
 		}
 
 		actual, err := block.Serialize()
 		if err != nil {
-			t.Fatalf("test %d failed; err serializing block: %v", idx+1, err)
+			t.Errorf("test %d failed; err serializing block: %v", idx+1, err)
 		}
 		t.Log(actual)
 
@@ -182,7 +182,7 @@ func TestDeserialize(t *testing.T) {
 	for idx, expected := range expecteds {
 		var actual Block
 		if err := actual.Deserialize([]byte(inputs[idx])); err != nil {
-			t.Fatalf("test %d failed; err parsing from bytes: %v", idx+1, err)
+			t.Errorf("test %d failed; err parsing from bytes: %v", idx+1, err)
 		}
 
 		if expected.props.StateBlocksMerkleHash != actual.props.StateBlocksMerkleHash ||
@@ -222,12 +222,12 @@ func TestHash(t *testing.T) {
 
 	for idx, block := range blocks {
 		if block == nil {
-			t.Fatalf("test %d failed; expected non-nil block", idx+1)
+			t.Errorf("test %d failed; expected non-nil block", idx+1)
 		}
 
 		actual, err := block.CalculateHash()
 		if err != nil {
-			t.Fatalf("test %d failed; err serializing block: %v", idx+1, err)
+			t.Errorf("test %d failed; err serializing block: %v", idx+1, err)
 		}
 
 		if !reflect.DeepEqual(expecteds[idx], actual) {
@@ -240,7 +240,7 @@ func TestHash(t *testing.T) {
 func TestGenesisBlockHash(t *testing.T) {
 	hash, err := GenesisBlock.CalculateHash()
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 
 	if hash != GenesisBlockHash {
@@ -260,12 +260,12 @@ func TestSerializeDeserialize(t *testing.T) {
 	for idx, in := range inputs {
 		bytes, err := in.Serialize()
 		if err != nil {
-			t.Fatalf("test %d failed\nerr serializing: %v", idx+1, err)
+			t.Errorf("test %d failed\nerr serializing: %v", idx+1, err)
 		}
 
 		tmpBlock := new(Block)
 		if err := tmpBlock.Deserialize(bytes); err != nil {
-			t.Fatalf("test %d failed\nerr deserializing: %v", idx+1, err)
+			t.Errorf("test %d failed\nerr deserializing: %v", idx+1, err)
 		}
 
 		if !reflect.DeepEqual(in, tmpBlock) {
@@ -289,12 +289,12 @@ func TestSerializeDeserializeString(t *testing.T) {
 	for idx, in := range inputs {
 		str, err := in.SerializeString()
 		if err != nil {
-			t.Fatalf("test %d failed\nerr serializing: %v", idx+1, err)
+			t.Errorf("test %d failed\nerr serializing: %v", idx+1, err)
 		}
 
 		tmpBlock := new(Block)
 		if err := tmpBlock.DeserializeString(str); err != nil {
-			t.Fatalf("test %d failed\nerr deserializing: %v", idx+1, err)
+			t.Errorf("test %d failed\nerr deserializing: %v", idx+1, err)
 		}
 
 		if !reflect.DeepEqual(in, tmpBlock) {
@@ -325,15 +325,15 @@ func TestSerializeDeserializeSig(t *testing.T) {
 
 	//bytes, err := coder.Serialize(bSig)
 	//if err != nil {
-	//t.Fatal(err)
+	//t.Error(err)
 	//}
 
 	//sig := new(BlockSig)
 	//if err := coder.Deserialize(bytes, &sig); err != nil {
-	//t.Fatal(err)
+	//t.Error(err)
 	//}
 	//if sig == nil {
-	//t.Fatal("nil sig")
+	//t.Error("nil sig")
 	//}
 
 	//if !reflect.DeepEqual(*sig, bSig) {

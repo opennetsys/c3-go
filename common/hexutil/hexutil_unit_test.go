@@ -388,7 +388,7 @@ func TestEncodeStringDecodeString(t *testing.T) {
 
 		out, err := DecodeString(enc)
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 
 		if in != out {
@@ -404,7 +404,7 @@ func TestEncodeDecodeBigInt(t *testing.T) {
 
 	b1, err := DecodeBigInt(b1Str)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 
 	if b.String() != b1.String() {

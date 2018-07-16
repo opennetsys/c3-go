@@ -5,8 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/c3systems/c3/common/stringutil"
 	c3config "github.com/c3systems/c3/config"
@@ -50,13 +51,13 @@ func NewC3() *C3 {
 
 	err := c3.setInitialState()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("[c3] %s", err)
 	}
 
 	go func() {
 		err = c3.listen()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("[c3] %s", err)
 		}
 	}()
 
@@ -82,11 +83,11 @@ func (c3 *C3) RegisterMethod(methodName string, types []string, ifn interface{})
 				return errors.New("not ok")
 			}
 
-			log.Printf("executed method %s with args: %s %s", methodName, key, value)
+			log.Printf("[c3] executed method %s with args: %s %s", methodName, key, value)
 			err := v(key, value)
 			if err != nil {
-				log.Println("method failed", err)
-				log.Fatal(err)
+				log.Printf("[c3] method failed %s", err)
+				log.Fatalf("[c3] %s", err)
 			}
 		}
 		return nil
@@ -120,11 +121,11 @@ func (s *State) Set(key, value string) error {
 		return err
 	}
 
-	log.Println("marshed state", string(b))
+	log.Printf("[c3] marshed state %s", string(b))
 
 	f, err := os.OpenFile(c3config.TempContainerStateFilePath, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
-		log.Println("failed to store file")
+		log.Println("[c3] failed to store file")
 		return err
 	}
 
@@ -145,11 +146,11 @@ func (c3 *C3) setInitialState() error {
 	if _, err := os.Stat(c3.statefile); err == nil {
 		src, err := ioutil.ReadFile(c3.statefile)
 		if err != nil {
-			log.Println("fail to read", err)
+			log.Printf("[c3] fail to read %s", err)
 			return err
 		}
 
-		log.Println("json data", string(src))
+		log.Printf("[c3] json data %s", string(src))
 
 		if len(src) == 0 {
 			return nil
@@ -157,17 +158,17 @@ func (c3 *C3) setInitialState() error {
 
 		b, err := stringutil.CompactJSON(src)
 		if err != nil {
-			log.Println("failed to compact", err)
+			log.Printf("[c3] failed to compact %s", err)
 			return err
 		}
 
 		err = json.Unmarshal(b, &c3.state.state)
 		if err != nil {
-			log.Println("fail to unmarshal", err)
+			log.Printf("[c3] fail to unmarshal %s", err)
 			return err
 		}
 	} else {
-		log.Println("state file not found")
+		log.Println("[c3] state file not found")
 	}
 
 	return nil
@@ -177,7 +178,7 @@ func (c3 *C3) setInitialState() error {
 func (c3 *C3) Process(payload []byte) error {
 	var ifcs []interface{}
 	if err := json.Unmarshal(payload, &ifcs); err != nil {
-		log.Println(err)
+		log.Printf("[c3] %s", err)
 		return err
 	}
 

@@ -2,8 +2,9 @@ package cmd
 
 import (
 	"errors"
-	"log"
 	"os"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/c3systems/c3/config"
 	"github.com/c3systems/c3/node"
@@ -63,7 +64,7 @@ For more info visit: https://github.com/c3systems/c3,
 				return err
 			}
 
-			log.Println(hash)
+			log.Printf("[cli] %s", hash)
 			return nil
 		},
 	}

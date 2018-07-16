@@ -1,7 +1,6 @@
 package p2p
 
 import (
-	"log"
 	"reflect"
 	"testing"
 
@@ -31,18 +30,18 @@ func TestBasicBlock(t *testing.T) {
 
 	c, err := GetMainchainBlockCID(block)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
-	log.Printf("cid: %s", c.String())
+	t.Logf("cid: %s", c.String())
 
 	bytes, err := block.Serialize()
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 
 	basicIPFSBlock, err := bfmt.NewBlockWithCid(bytes, c)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 	t.Logf("basic cid: %s", basicIPFSBlock.Cid().String())
 }
@@ -69,40 +68,40 @@ func TestLocalPutAndFetchMainchainBlock(t *testing.T) {
 
 	c, err := GetMainchainBlockCID(block)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
-	log.Printf("cid: %s", c.String())
+	t.Logf("cid: %s", c.String())
 
 	bytes, err := block.Serialize()
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 
 	basicIPFSBlock, err := bfmt.NewBlockWithCid(bytes, c)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 
 	if err := blocks.Put(basicIPFSBlock); err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 
 	has, err := blocks.Has(c)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 	if !has {
-		t.Fatal("block store does not have our key!")
+		t.Error("block store does not have our key!")
 	}
 
 	data, err := blocks.Get(c)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 
 	received := new(mainchain.Block)
 	if err := received.Deserialize(data.RawData()); err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 
 	if !reflect.DeepEqual(*block, received) {

@@ -26,15 +26,15 @@ func TestSerializeDeserializeDiff(t *testing.T) {
 	for idx, input := range inputs {
 		bytes, err := input.Serialize()
 		if err != nil {
-			t.Fatalf("test %d failed serialization\n%v", idx+1, err)
+			t.Errorf("test %d failed serialization\n%v", idx+1, err)
 		}
 
 		d := new(Diff)
 		if err := d.Deserialize(bytes); err != nil {
-			t.Fatalf("test %d failed deserialization\n%v", idx+1, err)
+			t.Errorf("test %d failed deserialization\n%v", idx+1, err)
 		}
 		if d == nil {
-			t.Fatalf("test %d failed\nnil diff", idx+1)
+			t.Errorf("test %d failed\nnil diff", idx+1)
 		}
 
 		if input.props.Data != d.props.Data {
@@ -56,15 +56,15 @@ func TestSerializeDeserializeStringDiff(t *testing.T) {
 	for idx, input := range inputs {
 		str, err := input.SerializeString()
 		if err != nil {
-			t.Fatalf("test %d failed serialization\n%v", idx+1, err)
+			t.Errorf("test %d failed serialization\n%v", idx+1, err)
 		}
 
 		d := new(Diff)
 		if err := d.DeserializeString(str); err != nil {
-			t.Fatalf("test %d failed deserialization\n%v", idx+1, err)
+			t.Errorf("test %d failed deserialization\n%v", idx+1, err)
 		}
 		if d == nil {
-			t.Fatalf("test %d failed\nnil diff", idx+1)
+			t.Errorf("test %d failed\nnil diff", idx+1)
 		}
 
 		if input.props.Data != d.props.Data {

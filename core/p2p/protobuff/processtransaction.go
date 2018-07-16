@@ -5,7 +5,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/c3systems/c3/core/chain/mainchain/miner"
 	"github.com/c3systems/c3/core/chain/statechain"
@@ -57,22 +58,22 @@ func (p *ProcessTransaction) onProcessTransactionRequest(s inet.Stream) {
 	decoder := protobufCodec.Multicodec(nil).Decoder(bufio.NewReader(s))
 	err := decoder.Decode(data)
 	if err != nil {
-		log.Println(err)
+		log.Printf("[p2p] %s", err)
 		return
 	}
 
-	// log.Printf("%s: Received process transaction request from %s. Message: %s", s.Conn().LocalPeer(), s.Conn().RemotePeer(), data.Message)
+	// log.Printf("[p2p] %s: Received process transaction request from %s. Message: %s", s.Conn().LocalPeer(), s.Conn().RemotePeer(), data.Message)
 	valid := p.node.authenticateMessage(data, data.MessageData)
 
 	if !valid {
-		log.Println("Failed to authenticate message")
+		log.Println("[p2p] failed to authenticate message")
 		return
 	}
 
 	resp := &pb.ProcessTransactionResponse{
 		MessageData: p.node.NewMessageData(data.MessageData.Id, false),
 	}
-	// log.Printf("%s: Sending process transaction response to %s. Message id: %s...", s.Conn().LocalPeer(), s.Conn().RemotePeer(), data.MessageData.Id)
+	// log.Printf("[p2p] %s: Sending process transaction response to %s. Message id: %s...", s.Conn().LocalPeer(), s.Conn().RemotePeer(), data.MessageData.Id)
 	// interpret the tx
 	tx := new(statechain.Transaction)
 	if err := tx.Deserialize(data.TxBytes); err != nil {
@@ -129,7 +130,7 @@ func (p *ProcessTransaction) sendResp(resp *pb.ProcessTransactionResponse, s ine
 	// sign the data
 	signature, err := p.node.signProtoMessage(resp)
 	if err != nil {
-		log.Printf("failed to sign response\n%v", err)
+		log.Printf("[p2p] failed to sign response\n%v", err)
 		return
 	}
 
@@ -138,14 +139,14 @@ func (p *ProcessTransaction) sendResp(resp *pb.ProcessTransactionResponse, s ine
 
 	s, respErr := p.node.NewStream(context.Background(), s.Conn().RemotePeer(), processTransactionResponse)
 	if respErr != nil {
-		log.Println(respErr)
+		log.Printf("[p2p] %s", respErr)
 		return
 	}
 
 	ok := p.node.sendProtoMessage(resp, s)
 
 	if ok {
-		log.Printf("%s: process transaction response to %s sent.", s.Conn().LocalPeer().String(), s.Conn().RemotePeer().String())
+		log.Printf("[p2p] %s: process transaction response to %s sent.", s.Conn().LocalPeer().String(), s.Conn().RemotePeer().String())
 	}
 }
 
@@ -154,7 +155,7 @@ func (p *ProcessTransaction) onProcessTransactionResponse(s inet.Stream) {
 	data := &pb.ProcessTransactionResponse{}
 	decoder := protobufCodec.Multicodec(nil).Decoder(bufio.NewReader(s))
 	if err := decoder.Decode(data); err != nil {
-		log.Printf("err decoding process transaction response\n%v", err)
+		log.Printf("[p2p] err decoding process transaction response\n%v", err)
 		return
 	}
 
@@ -164,7 +165,7 @@ func (p *ProcessTransaction) onProcessTransactionResponse(s inet.Stream) {
 		// remove request from map as we have processed it here
 		delete(p.requests, data.MessageData.Id)
 	} else {
-		log.Println("Failed to locate request data object for response")
+		log.Println("[p2p] failed to locate request data object for response")
 		return
 	}
 
@@ -181,7 +182,7 @@ func (p *ProcessTransaction) onProcessTransactionResponse(s inet.Stream) {
 
 //  SendTransaction ...
 func (p *ProcessTransaction) SendTransaction(peerID peer.ID, resp chan interface{}) error {
-	// log.Printf("%s: Sending process transaction to: %s....", e.node.ID(), peerID)
+	// log.Printf("[p2p] %s: Sending process transaction to: %s....", e.node.ID(), peerID)
 
 	// create message data
 	id, err := uuid.NewV4()
@@ -195,7 +196,7 @@ func (p *ProcessTransaction) SendTransaction(peerID peer.ID, resp chan interface
 
 	signature, err := p.node.signProtoMessage(req)
 	if err != nil {
-		// log.Println("failed to sign message")
+		// log.Println("[p2p] failed to sign message")
 		return err
 	}
 
@@ -204,7 +205,7 @@ func (p *ProcessTransaction) SendTransaction(peerID peer.ID, resp chan interface
 
 	s, err := p.node.NewStream(context.Background(), peerID, headBlockRequest)
 	if err != nil {
-		// log.Println(err)
+		// log.Printf("[p2p] %s", err)
 		return err
 	}
 
@@ -219,6 +220,6 @@ func (p *ProcessTransaction) SendTransaction(peerID peer.ID, resp chan interface
 		resp: resp,
 		req:  req,
 	}
-	// log.Printf("%s: process transaction to: %s was sent. Message Id: %s, Message: %s", e.node.ID(), peerID, req.MessageData.Id, req.Message)
+	// log.Printf("[p2p] %s: process transaction to: %s was sent. Message Id: %s, Message: %s", e.node.ID(), peerID, req.MessageData.Id, req.Message)
 	return nil
 }

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -14,6 +13,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/c3systems/c3/common/network"
 	"github.com/c3systems/c3/common/stringutil"
@@ -44,7 +45,7 @@ func NewSandbox(config *Config) *Sandbox {
 	if dockerLocalRegistryHost == "" {
 		localIP, err := network.LocalIP()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("[server] %s", err)
 		}
 
 		dockerLocalRegistryHost = localIP.String()
@@ -90,7 +91,7 @@ func (s *Sandbox) Play(config *PlayConfig) ([]byte, error) {
 		}
 	}
 
-	log.Printf("running docker image %s", dockerImageID)
+	log.Printf("[server] running docker image %s", dockerImageID)
 
 	hp, err := network.GetFreePort()
 	if err != nil {
@@ -179,7 +180,7 @@ func (s *Sandbox) Play(config *PlayConfig) ([]byte, error) {
 
 		return nil, errors.New("timedout")
 	case <-done:
-		log.Println("reading new state...")
+		log.Println("[server] reading new state...")
 		cmd := []string{"bash", "-c", "cat " + c3config.TempContainerStateFilePath}
 		resp, err := s.docker.ContainerExec(containerID, cmd)
 		if err != nil {
@@ -191,7 +192,7 @@ func (s *Sandbox) Play(config *PlayConfig) ([]byte, error) {
 			return nil, err
 		}
 
-		log.Println("done")
+		log.Println("[server] done")
 		close(timedout)
 		close(errEvent)
 		timer.Stop()
@@ -222,7 +223,7 @@ func parseNewState(reader io.Reader) ([]byte, error) {
 		return nil, err
 	}
 
-	log.Println("new state json", string(src))
+	log.Printf("[server] new state json %s", string(src))
 
 	b, err := stringutil.CompactJSON(src)
 	if err != nil {
@@ -234,12 +235,12 @@ func parseNewState(reader io.Reader) ([]byte, error) {
 		return nil, err
 	}
 
-	log.Println("new state", state)
+	log.Printf("[server] new state %s", state)
 	return b, nil
 }
 
 func (s *Sandbox) sendMessage(msg []byte, port string) error {
-	log.Printf("sending message %s", msg)
+	log.Printf("[server] sending message %s", msg)
 	// TODO: communicate over IPC
 	host := fmt.Sprintf("localhost:%s", port)
 	conn, err := net.Dial("tcp", host)
@@ -247,7 +248,7 @@ func (s *Sandbox) sendMessage(msg []byte, port string) error {
 		return err
 	}
 	defer conn.Close()
-	log.Printf("writing to %s", host)
+	log.Printf("[server] writing to %s", host)
 	conn.Write(msg)
 	conn.Write([]byte("\n"))
 	return nil
@@ -267,7 +268,7 @@ func (s *Sandbox) cleanup() {
 	for cid := range s.runningContainers {
 		err := s.docker.StopContainer(cid)
 		if err != nil {
-			log.Println("error", err)
+			log.Printf("[server] error %s", err)
 		}
 	}
 }

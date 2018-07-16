@@ -3,8 +3,9 @@ package protobuff
 import (
 	"bufio"
 	"errors"
-	"log"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/statechain"
@@ -63,7 +64,7 @@ func (n *Node) authenticateMessage(message proto.Message, data *pb.MessageData) 
 	// marshall data without the signature to protobufs3 binary format
 	bin, err := proto.Marshal(message)
 	if err != nil {
-		log.Println(err, "failed to marshal pb message")
+		log.Printf("[p2p] failed to marshal pb message %s", err)
 		return false
 	}
 
@@ -73,7 +74,7 @@ func (n *Node) authenticateMessage(message proto.Message, data *pb.MessageData) 
 	// restore peer id binary format from base58 encoded node id data
 	peerID, err := peer.IDB58Decode(data.NodeId)
 	if err != nil {
-		log.Println(err, "Failed to decode node id from base58")
+		log.Printf("[p2p] failed to decode node id from base58 %s", err)
 		return false
 	}
 
@@ -106,7 +107,7 @@ func (n *Node) signData(data []byte) ([]byte, error) {
 func (n *Node) verifyData(data []byte, signature []byte, peerID peer.ID, pubKeyData []byte) bool {
 	key, err := crypto.UnmarshalPublicKey(pubKeyData)
 	if err != nil {
-		log.Println(err, "Failed to extract key from message key data")
+		log.Printf("[p2p] failed to extract key from message key data %s", err)
 		return false
 	}
 
@@ -114,19 +115,19 @@ func (n *Node) verifyData(data []byte, signature []byte, peerID peer.ID, pubKeyD
 	idFromKey, err := peer.IDFromPublicKey(key)
 
 	if err != nil {
-		log.Println(err, "Failed to extract peer id from public key")
+		log.Printf("[p2p] failed to extract peer id from public key %s", err)
 		return false
 	}
 
 	// verify that message author node id matches the provided node public key
 	if idFromKey != peerID {
-		log.Println(err, "Node id and provided public key mismatch")
+		log.Printf("[p2p] node id and provided public key mismatch %s")
 		return false
 	}
 
 	res, err := key.Verify(data, signature)
 	if err != nil {
-		log.Println(err, "Error authenticating data")
+		log.Printf("[p2p] error authenticating data %s", err)
 		return false
 	}
 
@@ -160,7 +161,7 @@ func (n *Node) sendProtoMessage(data proto.Message, s inet.Stream) bool {
 	enc := protobufCodec.Multicodec(nil).Encoder(writer)
 	err := enc.Encode(data)
 	if err != nil {
-		log.Println(err)
+		log.Printf("[p2p] %s", err)
 		return false
 	}
 	writer.Flush()

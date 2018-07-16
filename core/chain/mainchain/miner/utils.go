@@ -5,10 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"sort"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/c3systems/c3/common/c3crypto"
 	"github.com/c3systems/c3/common/hashing"
@@ -142,7 +143,7 @@ func VerifyStatechainBlock(p2pSvc p2p.Interface, isValid *bool, block *statechai
 	// 2. verify the block hash
 	tmpHash, err := block.CalculateHash()
 	if err != nil {
-		log.Printf("err calculating block hash\n%v", err)
+		log.Printf("[miner] err calculating block hash\n%v", err)
 		return false, err
 	}
 	// note: checked nil BlockHash, above
@@ -157,7 +158,7 @@ func VerifyStatechainBlock(p2pSvc p2p.Interface, isValid *bool, block *statechai
 	}
 	txCid, err := p2p.GetCIDByHash(block.Props().TxHash)
 	if err != nil {
-		log.Printf("err getting cid for tx\n%v", err)
+		log.Printf("[miner] err getting cid for tx\n%v", err)
 		return false, err
 	}
 
@@ -168,7 +169,7 @@ func VerifyStatechainBlock(p2pSvc p2p.Interface, isValid *bool, block *statechai
 
 	ok, err := VerifyTransaction(tx)
 	if err != nil {
-		log.Printf("err verifying tx\n%v", err)
+		log.Printf("[miner] err verifying tx\n%v", err)
 		return false, err
 	}
 	if !ok {
@@ -210,7 +211,7 @@ func VerifyMainchainBlock(p2pSvc p2p.Interface, isValid *bool, block *mainchain.
 
 	ok, err := CheckBlockHashAgainstDifficulty(block)
 	if err != nil {
-		log.Printf("err checking block hash against difficulty\n%v", err)
+		log.Printf("[miner] err checking block hash against difficulty\n%v", err)
 		return false, err
 	}
 	if !ok {
@@ -223,7 +224,7 @@ func VerifyMainchainBlock(p2pSvc p2p.Interface, isValid *bool, block *mainchain.
 	}
 	tmpHash, err := block.CalculateHash()
 	if err != nil {
-		log.Printf("err calculating tmpHash\n%v", err)
+		log.Printf("[miner] err calculating tmpHash\n%v", err)
 		return false, err
 	}
 	// note: already checked for nil hash
@@ -237,26 +238,26 @@ func VerifyMainchainBlock(p2pSvc p2p.Interface, isValid *bool, block *mainchain.
 	}
 	pub, err := c3crypto.DecodeAddress(block.Props().MinerAddress)
 	if err != nil {
-		log.Printf("err decoding miner addr\n%v", err)
+		log.Printf("[miner] err decoding miner addr\n%v", err)
 		return false, err
 	}
 
 	// note: checked for nil sig, above
 	sigR, err := hexutil.DecodeBigInt(block.Props().MinerSig.R)
 	if err != nil {
-		log.Printf("err decoding miner sig r\n%v", err)
+		log.Printf("[miner] err decoding miner sig r\n%v", err)
 		return false, err
 	}
 	sigS, err := hexutil.DecodeBigInt(block.Props().MinerSig.S)
 	if err != nil {
-		log.Printf("err decoding miner sig s\n%v", err)
+		log.Printf("[miner] err decoding miner sig s\n%v", err)
 		return false, err
 	}
 
 	// note: nil blockhash was checked, above
 	ok, err = c3crypto.Verify(pub, []byte(*block.Props().BlockHash), sigR, sigS)
 	if err != nil {
-		log.Printf("err verifying\n%v", err)
+		log.Printf("[miner] err verifying\n%v", err)
 		return false, err
 	}
 	if !ok {
@@ -284,19 +285,19 @@ func VerifyMainchainBlock(p2pSvc p2p.Interface, isValid *bool, block *mainchain.
 
 		stateblockCid, err := p2p.GetCIDByHash(stateblockHash)
 		if err != nil {
-			log.Printf("err getting cid\n%v", err)
+			log.Printf("[miner] err getting cid\n%v", err)
 			return false, err
 		}
 
 		stateblock, err := p2pSvc.GetStatechainBlock(stateblockCid)
 		if err != nil {
-			log.Printf("err getting statechain block\n%v", err)
+			log.Printf("[miner] err getting statechain block\n%v", err)
 			return false, err
 		}
 
 		ok, err := VerifyStatechainBlock(p2pSvc, isValid, stateblock)
 		if err != nil {
-			log.Printf("err verifying statechain block\n%v", err)
+			log.Printf("[miner] err verifying statechain block\n%v", err)
 			return false, err
 		}
 		if !ok {
@@ -310,49 +311,49 @@ func VerifyMainchainBlock(p2pSvc p2p.Interface, isValid *bool, block *mainchain.
 // VerifyMinedBlock ...
 func VerifyMinedBlock(p2pSvc p2p.Interface, isValid *bool, minedBlock *MinedBlock) (bool, error) {
 	if minedBlock == nil {
-		log.Println("mined block is nil")
+		log.Println("[miner] mined block is nil")
 		return false, nil
 	}
 	if minedBlock.NextBlock == nil {
-		log.Println("next block is nil")
+		log.Println("[miner] next block is nil")
 		return false, nil
 	}
 	if minedBlock.PreviousBlock == nil {
-		log.Println("mined block is nil")
+		log.Println("[miner] mined block is nil")
 		return false, nil
 	}
 	if minedBlock.NextBlock.Props().BlockHash == nil {
-		log.Println("next block blockhash is nil")
+		log.Println("[miner] next block blockhash is nil")
 		return false, nil
 	}
 	if minedBlock.PreviousBlock.Props().BlockHash == nil {
-		log.Println("prev block block hash is nil")
+		log.Println("[miner] prev block block hash is nil")
 		return false, nil
 	}
 	// note checked for nil pointer, above
 	if *minedBlock.PreviousBlock.Props().BlockHash != minedBlock.NextBlock.Props().PrevBlockHash {
-		log.Println("prev block block hash != next block block hash")
+		log.Println("[miner] prev block block hash != next block block hash")
 		return false, nil
 	}
 	if isValid == nil {
 		return false, errors.New("IsValid is nil")
 	}
 	if mainchain.ImageHash != minedBlock.NextBlock.Props().ImageHash {
-		log.Println("mainchain imagehash != nextblock image hash")
+		log.Println("[miner] mainchain imagehash != nextblock image hash")
 		return false, nil
 	}
 	if minedBlock.NextBlock.Props().MinerSig == nil {
-		log.Println("next block miner sig is nil")
+		log.Println("[miner] next block miner sig is nil")
 		return false, nil
 	}
 
 	ok, err := CheckBlockHashAgainstDifficulty(minedBlock.NextBlock)
 	if err != nil {
-		log.Printf("err checking block hash against difficulty\n%v", err)
+		log.Printf("[miner] err checking block hash against difficulty\n%v", err)
 		return false, err
 	}
 	if !ok {
-		log.Println("block hash did not checkout against difficulty")
+		log.Println("[miner] block hash did not checkout against difficulty")
 		return false, nil
 	}
 
@@ -362,12 +363,12 @@ func VerifyMinedBlock(p2pSvc p2p.Interface, isValid *bool, minedBlock *MinedBloc
 	}
 	tmpHash, err := minedBlock.NextBlock.CalculateHash()
 	if err != nil {
-		log.Printf("err calculating hash\n%v", err)
+		log.Printf("[miner] err calculating hash\n%v", err)
 		return false, err
 	}
 	// note: already checked for nil hash
 	if *minedBlock.NextBlock.Props().BlockHash != tmpHash {
-		log.Printf("next block hash != calced hash\n%s\n%s", *minedBlock.NextBlock.Props().BlockHash, tmpHash)
+		log.Printf("[miner] next block hash != calced hash\n%s\n%s", *minedBlock.NextBlock.Props().BlockHash, tmpHash)
 		return false, nil
 	}
 
@@ -377,47 +378,47 @@ func VerifyMinedBlock(p2pSvc p2p.Interface, isValid *bool, minedBlock *MinedBloc
 	}
 	pub, err := c3crypto.DecodeAddress(minedBlock.NextBlock.Props().MinerAddress)
 	if err != nil {
-		log.Printf("err decoding addr\n%v", err)
+		log.Printf("[miner] err decoding addr\n%v", err)
 		return false, err
 	}
 
 	// note: checked for nil sig, above
 	sigR, err := hexutil.DecodeBigInt(minedBlock.NextBlock.Props().MinerSig.R)
 	if err != nil {
-		log.Printf("err decoding r\n%v", err)
+		log.Printf("[miner] err decoding r\n%v", err)
 		return false, err
 	}
 	sigS, err := hexutil.DecodeBigInt(minedBlock.NextBlock.Props().MinerSig.S)
 	if err != nil {
-		log.Printf("err decoding s\n%v", err)
+		log.Printf("[miner] err decoding s\n%v", err)
 		return false, err
 	}
 
 	// note: nil blockhash was checked, above
 	ok, err = c3crypto.Verify(pub, []byte(*minedBlock.NextBlock.Props().BlockHash), sigR, sigS)
 	if err != nil {
-		log.Printf("err verifying miner sig\n%v", err)
+		log.Printf("[miner] err verifying miner sig\n%v", err)
 		return false, err
 	}
 	if !ok {
-		log.Println("block hash did not checkout agains sig")
+		log.Println("[miner] block hash did not checkout agains sig")
 		return false, nil
 	}
 
 	// BlockNumber must be +1 prev block number
 	blockNumber, err := hexutil.DecodeUint64(minedBlock.NextBlock.Props().BlockNumber)
 	if err != nil {
-		log.Printf("err decoding block #\n%v", err)
+		log.Printf("[miner] err decoding block #\n%v", err)
 		return false, err
 	}
 	prevNumber, err := hexutil.DecodeUint64(minedBlock.PreviousBlock.Props().BlockNumber)
 	if err != nil {
-		log.Printf("err decoding prev block #\n%v", err)
+		log.Printf("[miner] err decoding prev block #\n%v", err)
 		return false, err
 	}
 
 	if prevNumber+1 != blockNumber {
-		log.Println("prevBlockNumber +1 != nextBlockNumber")
+		log.Println("[miner] prevBlockNumber +1 != nextBlockNumber")
 		return false, nil
 	}
 
@@ -428,11 +429,11 @@ func VerifyMinedBlock(p2pSvc p2p.Interface, isValid *bool, minedBlock *MinedBloc
 // note: this function also checks the merkle tree. That check is not required to be performed, separately.
 func VerifyStateBlocksFromMinedBlock(p2pSvc p2p.Interface, isValid *bool, minedBlock *MinedBlock) (bool, error) {
 	if minedBlock.NextBlock == nil {
-		log.Println("nil next block")
+		log.Println("[miner] nil next block")
 		return false, nil
 	}
 	if len(minedBlock.StatechainBlocksMap) != len(minedBlock.TransactionsMap) {
-		log.Println("len state blocks map != len tx map")
+		log.Println("[miner] len state blocks map != len tx map")
 		return false, nil
 	}
 	// note: ok to have nil map?
@@ -441,7 +442,7 @@ func VerifyStateBlocksFromMinedBlock(p2pSvc p2p.Interface, isValid *bool, minedB
 	//return false, nil
 	//}
 	if minedBlock.MerkleTreesMap == nil {
-		log.Println("nil merkle trees map")
+		log.Println("[miner] nil merkle trees map")
 		return false, nil
 	}
 	if isValid == nil || *isValid == false {
@@ -464,7 +465,7 @@ func VerifyStateBlocksFromMinedBlock(p2pSvc p2p.Interface, isValid *bool, minedB
 	// first, group them by image hash
 	groupedBlocks, err := groupStateBlocksByImageHash(minedBlock.StatechainBlocksMap)
 	if err != nil {
-		log.Printf("err grouping state blocks\n%v", err)
+		log.Printf("[miner] err grouping state blocks\n%v", err)
 		return false, err
 	}
 
@@ -476,7 +477,7 @@ func VerifyStateBlocksFromMinedBlock(p2pSvc p2p.Interface, isValid *bool, minedB
 		// then, order them by block number
 		orderedBlocks, err := orderStatechainBlocks(blocks)
 		if err != nil {
-			log.Printf("err ordering state blocks\n%v", err)
+			log.Printf("[miner] err ordering state blocks\n%v", err)
 			return false, err
 		}
 
@@ -486,13 +487,13 @@ func VerifyStateBlocksFromMinedBlock(p2pSvc p2p.Interface, isValid *bool, minedB
 		prevBlockHash := orderedBlocks[0].Props().PrevBlockHash
 		prevBlockCID, err := p2p.GetCIDByHash(prevBlockHash)
 		if err != nil {
-			log.Printf("err getting cid by has\n%v", err)
+			log.Printf("[miner] err getting cid by has\n%v", err)
 			return false, err
 		}
 		// TODO: check that this is the actual prev block on the blockchain
 		prevBlock, err := p2pSvc.GetStatechainBlock(prevBlockCID)
 		if err != nil {
-			log.Printf("err getting state block\n%v", err)
+			log.Printf("[miner] err getting state block\n%v", err)
 			return false, err
 		}
 		if prevBlock == nil {
@@ -508,7 +509,7 @@ func VerifyStateBlocksFromMinedBlock(p2pSvc p2p.Interface, isValid *bool, minedB
 
 		prevState, err := fetchCurrentState(p2pSvc, prevBlock)
 		if err != nil {
-			log.Printf("err fetching current state\n%v", err)
+			log.Printf("[miner] err fetching current state\n%v", err)
 			return false, err
 		}
 		prevStateHash := hashing.HashToHexString([]byte(prevState))
@@ -525,12 +526,12 @@ func VerifyStateBlocksFromMinedBlock(p2pSvc p2p.Interface, isValid *bool, minedB
 			// 2b. Block #'s must be sequential
 			prevBlockNumber, err := hexutil.DecodeUint64(prevBlock.Props().BlockNumber)
 			if err != nil {
-				log.Printf("err decoding prev block # 2b\n%v", err)
+				log.Printf("[miner] err decoding prev block # 2b\n%v", err)
 				return false, err
 			}
 			blockNumber, err := hexutil.DecodeUint64(block.Props().BlockNumber)
 			if err != nil {
-				log.Printf("err decoding block # 2b\n %v", err)
+				log.Printf("[miner] err decoding block # 2b\n %v", err)
 				return false, err
 			}
 			if prevBlockNumber+1 != blockNumber {
@@ -540,7 +541,7 @@ func VerifyStateBlocksFromMinedBlock(p2pSvc p2p.Interface, isValid *bool, minedB
 			// 2c. verify the block hash
 			tmpHash, err := block.CalculateHash()
 			if err != nil {
-				log.Printf("err calculating block hash 2c\n%v", err)
+				log.Printf("[miner] err calculating block hash 2c\n%v", err)
 				return false, err
 			}
 			// note: checked nil BlockHash, above
@@ -557,7 +558,7 @@ func VerifyStateBlocksFromMinedBlock(p2pSvc p2p.Interface, isValid *bool, minedB
 
 			ok, err = VerifyTransaction(tx)
 			if err != nil {
-				log.Printf("err verifying tx 2d\n %v", err)
+				log.Printf("[miner] err verifying tx 2d\n %v", err)
 				return false, err
 			}
 			if !ok {
@@ -567,7 +568,7 @@ func VerifyStateBlocksFromMinedBlock(p2pSvc p2p.Interface, isValid *bool, minedB
 			// TODO: run the tx through the container
 			nextStateBlock, nextDiff, nextState, err := buildNextStateFromPrevState(p2pSvc, prevState, block, tx)
 			if err != nil {
-				log.Printf("err building next state from prev state\n %v", err)
+				log.Printf("[miner] err building next state from prev state\n %v", err)
 				return false, err
 			}
 			if nextStateBlock == nil {
@@ -673,7 +674,7 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, prevState []byte, prevBlo
 			return nil, nil, nil, err
 		}
 
-		log.Printf("container new state: %s", string(nextState))
+		log.Printf("[miner] container new state: %s", string(nextState))
 		nextStateFile, err := ioutil.TempFile("", fmt.Sprintf("%s/%v/state.txt", prevBlock.Props().ImageHash, ts))
 		if err != nil {
 			return nil, nil, nil, err
@@ -949,7 +950,7 @@ func BuildNextState(p2pSvc p2p.Interface, block *statechain.Block, tx *statechai
 		return nil, nil, err
 	}
 
-	log.Printf("state\n%s", string(state))
+	log.Printf("[miner] state\n%s", string(state))
 	headStateFileName := tmpStateFile.Name()
 	runningBlockNumber, err := hexutil.DecodeUint64(block.Props().BlockNumber)
 	if err != nil {
@@ -994,7 +995,7 @@ func BuildNextState(p2pSvc p2p.Interface, block *statechain.Block, tx *statechai
 			return nil, nil, err
 		}
 
-		log.Printf("container new state: %s", string(nextState))
+		log.Printf("[miner] container new state: %s", string(nextState))
 
 		nextStateFile, err := ioutil.TempFile("", fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
 		if err != nil {

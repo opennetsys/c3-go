@@ -1,7 +1,6 @@
 package node
 
 import (
-	"log"
 	"os"
 	"testing"
 	"time"
@@ -18,13 +17,13 @@ func TestBroadcast(t *testing.T) {
 	dockerclient := docker.NewClient()
 	err := dockerclient.LoadImageByFilepath("./test_data/go_example_image.tar")
 	if err != nil {
-		log.Fatal(err)
+		t.Error(err)
 	}
 
 	registry := registry.NewRegistry(&registry.Config{})
 	imageHash, err := registry.PushImageByID("goexample")
 	if err != nil {
-		log.Fatal(err)
+		t.Error(err)
 	}
 
 	privPEM := "./test_data/priv.pem"
@@ -46,7 +45,7 @@ func TestBroadcast(t *testing.T) {
 			})
 
 			if err != nil {
-				log.Fatal(err)
+				t.Error(err)
 			}
 		}()
 

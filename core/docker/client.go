@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -43,7 +44,7 @@ func newClient() *Client {
 		}
 		tlsc, err := tlsconfig.Client(options)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("[docker] %s", err)
 		}
 
 		httpclient.Transport = &http.Transport{
@@ -55,19 +56,19 @@ func newClient() *Client {
 	version := os.Getenv("DOCKER_VERSION")
 
 	if host == "" {
-		log.Fatal("DOCKER_HOST is required")
+		log.Fatal("[docker] DOCKER_HOST is required")
 	}
 
 	if version == "" {
 		version = dockerVersionFromCLI()
 		if version == "" {
-			log.Fatal("DOCKER_VERSION is required")
+			log.Fatal("[docker] DOCKER_VERSION is required")
 		}
 	}
 
 	cl, err := client.NewClient(host, version, httpclient, nil)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("[docker] %s", err)
 	}
 
 	return &Client{
@@ -79,7 +80,7 @@ func newClient() *Client {
 func newEnvClient() *Client {
 	cl, err := client.NewEnvClient()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("[docker] %s", err)
 	}
 
 	return &Client{
@@ -206,20 +207,20 @@ func (s *Client) RunContainer(imageID string, cmd []string, config *RunContainer
 		return "", err
 	}
 
-	log.Printf("running container %s", resp.ID)
+	log.Printf("[docker] running container %s", resp.ID)
 
 	return resp.ID, nil
 }
 
 // StopContainer ...
 func (s *Client) StopContainer(containerID string) error {
-	log.Printf("stopping container %s", containerID)
+	log.Printf("[docker] stopping container %s", containerID)
 	err := s.client.ContainerStop(context.Background(), containerID, nil)
 	if err != nil {
 		return err
 	}
 
-	log.Println("container stopped")
+	log.Println("[docker] container stopped")
 	return nil
 }
 
@@ -240,7 +241,7 @@ func (s *Client) ContainerExec(containerID string, cmd []string) (io.Reader, err
 		Cmd:          cmd,
 	})
 
-	log.Println("exec ID", id.ID)
+	log.Printf("[docker] exec ID %s", id.ID)
 	if err != nil {
 		return nil, err
 	}

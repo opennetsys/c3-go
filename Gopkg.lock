@@ -25,21 +25,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/alecthomas/template"
-  packages = [
-    ".",
-    "parse"
-  ]
-  revision = "a0175ee3bccc567396460bf5acd36800cb10c49c"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/alecthomas/units"
-  packages = ["."]
-  revision = "2efee857e7cfd4f3d0138cc3cbb1b4966962b93a"
-
-[[projects]]
-  branch = "master"
   name = "github.com/btcsuite/btcd"
   packages = ["btcec"]
   revision = "86fed781132ac890ee03e906e4ecd5d6fa180c64"
@@ -128,20 +113,6 @@
   packages = ["."]
   revision = "47565b4f722fb6ceae66b95f853feed578a4a51c"
   version = "v0.3.3"
-
-[[projects]]
-  name = "github.com/ethereum/go-ethereum"
-  packages = [
-    "common",
-    "common/hexutil",
-    "common/math",
-    "crypto",
-    "crypto/secp256k1",
-    "crypto/sha3",
-    "rlp"
-  ]
-  revision = "37685930d953bcbe023f9bc65b135a8d8b8f1488"
-  version = "v1.8.12"
 
 [[projects]]
   name = "github.com/fd/go-nat"
@@ -769,12 +740,6 @@
   version = "v0.8.0"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/prometheus/common"
-  packages = ["log"]
-  revision = "7600349dcfe1abd18d72d3a1770870d9800a7801"
-
-[[projects]]
   name = "github.com/rlmcpherson/s3gof3r"
   packages = ["."]
   revision = "31603a0dc94aefb822bfe2ceea75a6be6013b445"
@@ -921,9 +886,7 @@
   packages = [
     "cpu",
     "unix",
-    "windows",
-    "windows/registry",
-    "windows/svc/eventlog"
+    "windows"
   ]
   revision = "7138fd3d9dc8335c567ca206f4333fb75eb05d56"
 
@@ -951,15 +914,9 @@
   revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
   version = "v0.3.0"
 
-[[projects]]
-  name = "gopkg.in/alecthomas/kingpin.v2"
-  packages = ["."]
-  revision = "947dcec5ba9c011838740e680966fd7087a71d0d"
-  version = "v2.2.6"
-
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f4545e5e68c51b8682ce833c6e624d747c4997081c90fe1f7e2162f5d432638d"
+  inputs-digest = "612ef15cdc89e54babe47ae5b3c859a9d59e364adfc4635e70f68b698111b9a2"
   solver-name = "gps-cdcl"
   solver-version = 1

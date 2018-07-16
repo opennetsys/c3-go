@@ -17,7 +17,7 @@ func TestNew(t *testing.T) {
 		Port: Port,
 	})
 	if server == nil {
-		t.FailNow()
+		t.Error("expected instance")
 	}
 }
 

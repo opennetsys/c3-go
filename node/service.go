@@ -2,7 +2,8 @@ package node
 
 import (
 	"errors"
-	"log"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/c3systems/c3/common/c3crypto"
 	"github.com/c3systems/c3/common/hexutil"
@@ -155,7 +156,7 @@ func (s *Service) spawnMinerListener(minerChan chan interface{}, isValid *bool) 
 					}
 
 					nextProps := minedBlock.NextBlock.Props()
-					nextProps.MinerSig = &mainchain.BlockSig{
+					nextProps.MinerSig = &mainchain.MinerSig{
 						R: hexutil.EncodeBigInt(sigR),
 						S: hexutil.EncodeBigInt(sigS),
 					}

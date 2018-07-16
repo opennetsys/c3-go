@@ -17,7 +17,7 @@ func TestNew(t *testing.T) {
 	t.Parallel()
 	client := NewClient()
 	if client == nil {
-		t.FailNow()
+		t.Error("expected instance")
 	}
 }
 
@@ -143,6 +143,6 @@ func TestDockerVersionFromCLI(t *testing.T) {
 	t.Parallel()
 	version := dockerVersionFromCLI()
 	if version == "" {
-		t.FailNow()
+		t.Error("expected version to not be empty")
 	}
 }

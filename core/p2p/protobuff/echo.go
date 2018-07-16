@@ -5,7 +5,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+
+	log "github.com/sirupsen/logrus"
 
 	inet "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
@@ -49,11 +50,11 @@ func (e *Echo) onEchoRequest(s inet.Stream) {
 	decoder := protobufCodec.Multicodec(nil).Decoder(bufio.NewReader(s))
 	err := decoder.Decode(data)
 	if err != nil {
-		log.Println(err)
+		log.Printf("[p2p] %s", err)
 		return
 	}
 
-	log.Printf("%s: Received echo request from %s. Message: %s", s.Conn().LocalPeer(), s.Conn().RemotePeer(), data.Message)
+	log.Printf("[p2p] %s: Received echo request from %s. Message: %s", s.Conn().LocalPeer(), s.Conn().RemotePeer(), data.Message)
 
 	valid := e.node.authenticateMessage(data, data.MessageData)
 
@@ -62,7 +63,7 @@ func (e *Echo) onEchoRequest(s inet.Stream) {
 		return
 	}
 
-	log.Printf("%s: Sending echo response to %s. Message id: %s...", s.Conn().LocalPeer(), s.Conn().RemotePeer(), data.MessageData.Id)
+	log.Printf("[p2p] %s: Sending echo response to %s. Message id: %s...", s.Conn().LocalPeer(), s.Conn().RemotePeer(), data.MessageData.Id)
 
 	// send response to the request using the message string he provided
 
@@ -73,7 +74,7 @@ func (e *Echo) onEchoRequest(s inet.Stream) {
 	// sign the data
 	signature, err := e.node.signProtoMessage(resp)
 	if err != nil {
-		log.Println("failed to sign response")
+		log.Println("[p2p] failed to sign response")
 		return
 	}
 
@@ -82,14 +83,14 @@ func (e *Echo) onEchoRequest(s inet.Stream) {
 
 	s, respErr := e.node.NewStream(context.Background(), s.Conn().RemotePeer(), echoResponse)
 	if respErr != nil {
-		log.Println(respErr)
+		log.Printf("[p2p] %s", respErr)
 		return
 	}
 
 	ok := e.node.sendProtoMessage(resp, s)
 
 	if ok {
-		log.Printf("%s: Echo response to %s sent.", s.Conn().LocalPeer().String(), s.Conn().RemotePeer().String())
+		log.Printf("[p2p] %s: Echo response to %s sent.", s.Conn().LocalPeer().String(), s.Conn().RemotePeer().String())
 	}
 }
 
@@ -98,7 +99,7 @@ func (e *Echo) onEchoResponse(s inet.Stream) {
 	data := &pb.EchoResponse{}
 	decoder := protobufCodec.Multicodec(nil).Decoder(bufio.NewReader(s))
 	if err := decoder.Decode(data); err != nil {
-		log.Printf("err decoding echo response\n%v", err)
+		log.Printf("[p2p] err decoding echo response\n%v", err)
 		return
 	}
 
@@ -108,7 +109,7 @@ func (e *Echo) onEchoResponse(s inet.Stream) {
 		// remove request from map as we have processed it here
 		delete(e.requests, data.MessageData.Id)
 	} else {
-		log.Println("Failed to locate request data boject for response")
+		log.Println("[p2p] failed to locate request data boject for response")
 		return
 	}
 
@@ -125,7 +126,7 @@ func (e *Echo) onEchoResponse(s inet.Stream) {
 
 // SendEcho ...
 func (e *Echo) SendEcho(peerID peer.ID, resp chan interface{}) error {
-	// log.Printf("%s: Sending echo to: %s....", e.node.ID(), peerID)
+	// log.Printf("[p2p] %s: Sending echo to: %s....", e.node.ID(), peerID)
 
 	// create message data
 	id, err := uuid.NewV4()
@@ -140,7 +141,7 @@ func (e *Echo) SendEcho(peerID peer.ID, resp chan interface{}) error {
 
 	signature, err := e.node.signProtoMessage(req)
 	if err != nil {
-		// log.Println("failed to sign message")
+		// log.Println("[p2p] failed to sign message")
 		return err
 	}
 
@@ -149,7 +150,7 @@ func (e *Echo) SendEcho(peerID peer.ID, resp chan interface{}) error {
 
 	s, err := e.node.NewStream(context.Background(), peerID, echoRequest)
 	if err != nil {
-		// log.Println(err)
+		// log.Printf("[p2p] %s", err)
 		return err
 	}
 
@@ -164,6 +165,6 @@ func (e *Echo) SendEcho(peerID peer.ID, resp chan interface{}) error {
 		resp: resp,
 		req:  req,
 	}
-	// log.Printf("%s: Echo to: %s was sent. Message Id: %s, Message: %s", e.node.ID(), peerID, req.MessageData.Id, req.Message)
+	// log.Printf("[p2p] %s: Echo to: %s was sent. Message Id: %s, Message: %s", e.node.ID(), peerID, req.MessageData.Id, req.Message)
 	return nil
 }

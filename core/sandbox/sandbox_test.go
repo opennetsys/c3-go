@@ -20,7 +20,7 @@ func TestNew(t *testing.T) {
 	t.Parallel()
 	sb := NewSandbox(&Config{})
 	if sb == nil {
-		t.FailNow()
+		t.Error("expected instance")
 	}
 }
 

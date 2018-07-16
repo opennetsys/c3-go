@@ -3,8 +3,9 @@ package stringutil
 import (
 	"bytes"
 	"encoding/json"
-	"log"
 	"regexp"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // CompactJSON ...
@@ -17,7 +18,7 @@ func CompactJSON(src []byte) ([]byte, error) {
 	s = re.ReplaceAllString(s, "$1")
 
 	if err := json.Compact(b, []byte(s)); err != nil {
-		log.Println("fail to compact", err)
+		log.Printf("[util] fail to compact %s", err)
 		return nil, err
 	}
 

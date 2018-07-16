@@ -43,15 +43,15 @@ func TestSerializeDeserializeTransaction(t *testing.T) {
 	for idx, input := range inputs {
 		bytes, err := input.Serialize()
 		if err != nil {
-			t.Fatalf("test %d failed serialization\n%v", idx+1, err)
+			t.Errorf("test %d failed serialization\n%v", idx+1, err)
 		}
 
 		tx := new(Transaction)
 		if err := tx.Deserialize(bytes); err != nil {
-			t.Fatalf("test %d failed deserialization\n%v", idx+1, err)
+			t.Errorf("test %d failed deserialization\n%v", idx+1, err)
 		}
 		if tx == nil {
-			t.Fatalf("test %d failed\nnil tx", idx+1)
+			t.Errorf("test %d failed\nnil tx", idx+1)
 		}
 
 		if input.props.ImageHash != tx.props.ImageHash || input.props.Method != tx.props.Method || input.props.From != tx.props.From {
@@ -77,15 +77,15 @@ func TestSerializeDeserializeStringTransaction(t *testing.T) {
 	for idx, input := range inputs {
 		str, err := input.SerializeString()
 		if err != nil {
-			t.Fatalf("test %d failed serialization\n%v", idx+1, err)
+			t.Errorf("test %d failed serialization\n%v", idx+1, err)
 		}
 
 		tx := new(Transaction)
 		if err := tx.DeserializeString(str); err != nil {
-			t.Fatalf("test %d failed deserialization\n%v", idx+1, err)
+			t.Errorf("test %d failed deserialization\n%v", idx+1, err)
 		}
 		if tx == nil {
-			t.Fatalf("test %d failed\nnil tx", idx+1)
+			t.Errorf("test %d failed\nnil tx", idx+1)
 		}
 
 		if input.props.ImageHash != tx.props.ImageHash || input.props.Method != tx.props.Method || input.props.From != tx.props.From {

@@ -32,11 +32,11 @@ var (
 func TestSerializeDeserialize(t *testing.T) {
 	t1, err := New(props1)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 	t2, err := New(props2)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 
 	inputs := []*Tree{
@@ -47,15 +47,15 @@ func TestSerializeDeserialize(t *testing.T) {
 	for idx, input := range inputs {
 		bytes, err := input.Serialize()
 		if err != nil {
-			t.Fatalf("test %d failed serialization\n%v", idx+1, err)
+			t.Errorf("test %d failed serialization\n%v", idx+1, err)
 		}
 
 		tr := new(Tree)
 		if err := tr.Deserialize(bytes); err != nil {
-			t.Fatalf("test %d failed deserialization\n%v", idx+1, err)
+			t.Errorf("test %d failed deserialization\n%v", idx+1, err)
 		}
 		if tr == nil {
-			t.Fatalf("test %d failed\nnil tree", idx+1)
+			t.Errorf("test %d failed\nnil tree", idx+1)
 		}
 
 		if input.props.Kind != tr.props.Kind {
@@ -75,11 +75,11 @@ func TestSerializeDeserialize(t *testing.T) {
 func TestSerializeDeserializeString(t *testing.T) {
 	t1, err := New(props1)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 	t2, err := New(props2)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 
 	inputs := []*Tree{
@@ -90,15 +90,15 @@ func TestSerializeDeserializeString(t *testing.T) {
 	for idx, input := range inputs {
 		str, err := input.SerializeString()
 		if err != nil {
-			t.Fatalf("test %d failed serialization\n%v", idx+1, err)
+			t.Errorf("test %d failed serialization\n%v", idx+1, err)
 		}
 
 		tr := new(Tree)
 		if err := tr.DeserializeString(str); err != nil {
-			t.Fatalf("test %d failed deserialization\n%v", idx+1, err)
+			t.Errorf("test %d failed deserialization\n%v", idx+1, err)
 		}
 		if tr == nil {
-			t.Fatalf("test %d failed\nnil t", idx+1)
+			t.Errorf("test %d failed\nnil t", idx+1)
 		}
 
 		if input.props.Kind != tr.props.Kind {

@@ -11,11 +11,12 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/c3systems/c3/common/network"
 	c3config "github.com/c3systems/c3/config"
@@ -45,7 +46,7 @@ func NewRegistry(config *Config) *Registry {
 		if dockerLocalRegistryHost == "" {
 			localIP, err := network.LocalIP()
 			if err != nil {
-				log.Fatal(err)
+				log.Fatalf("[registry] %s", err)
 			}
 
 			dockerLocalRegistryHost = localIP.String()
@@ -78,7 +79,7 @@ func (registry *Registry) PushImage(reader io.Reader) (string, error) {
 		return "", err
 	}
 
-	log.Println("temp:", tmp)
+	log.Printf("[registry] temp: %s", tmp)
 
 	if err := untar(reader, tmp); err != nil {
 		return "", err
@@ -94,8 +95,8 @@ func (registry *Registry) PushImage(reader io.Reader) (string, error) {
 		return "", err
 	}
 
-	log.Printf("\nuploaded to /ipfs/%s\n", imageIpfsHash)
-	log.Printf("docker image %s\n", util.DockerizeHash(imageIpfsHash))
+	log.Printf("\n[registry] uploaded to /ipfs/%s\n", imageIpfsHash)
+	log.Printf("[registry] docker image %s\n", util.DockerizeHash(imageIpfsHash))
 
 	return imageIpfsHash, nil
 }
@@ -123,7 +124,7 @@ func (registry *Registry) PullImage(ipfsHash string) (string, error) {
 
 	dockerImageID := fmt.Sprintf("%s:%v/%s", registry.dockerLocalRegistryHost, c3config.DockerRegistryPort, util.DockerizeHash(ipfsHash))
 
-	log.Printf("attempting to pull %s", dockerImageID)
+	log.Printf("[registry] attempting to pull %s", dockerImageID)
 
 	err := client.PullImage(dockerImageID)
 	if err != nil {
@@ -149,7 +150,7 @@ func ipfsPrep(tmp string) (string, error) {
 	}
 
 	workdir := root
-	log.Println("preparing image in:", workdir)
+	log.Printf("[registry] preparing image in: %s", workdir)
 	name := "default"
 
 	// read human readable name of image
@@ -193,7 +194,7 @@ func ipfsPrep(tmp string) (string, error) {
 	}
 
 	configDest := fmt.Sprintf("%s/blobs/sha256:%s", workdir, string(configFile[:len(configFile)-5]))
-	log.Println("\ndist:", configDest)
+	log.Printf("\n[registry] dist: %s", configDest)
 	mkdir(configDest)
 	if err := copyFile(tmp+"/"+configFile, configDest+"/"+configFile); err != nil {
 		return "", err
@@ -344,7 +345,7 @@ func prepareV2Manifest(mf map[string]interface{}, tmp, blobDir string) (map[stri
 }
 
 func compressLayer(path, blobDir string) (int64, string, error) {
-	log.Printf("compressing layer: %s", path)
+	log.Printf("[registry] compressing layer: %s", path)
 	tmp := blobDir + "/layer.tmp.tgz"
 
 	err := gzipFile(path, tmp)

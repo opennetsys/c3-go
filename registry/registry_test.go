@@ -2,7 +2,6 @@ package registry
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"testing"
 
@@ -38,7 +37,7 @@ func TestPushImageByID(t *testing.T) {
 	client := docker.NewClient()
 	err := client.LoadImageByFilepath("./test_data/hello-world.tar")
 	if err != nil {
-		log.Fatal(err)
+		t.Error(err)
 	}
 
 	registry := NewRegistry(&Config{})
@@ -68,13 +67,13 @@ func TestPullImage(t *testing.T) {
 	client := docker.NewClient()
 	err := client.LoadImageByFilepath("./test_data/hello-world.tar")
 	if err != nil {
-		log.Fatal(err)
+		t.Error(err)
 	}
 
 	registry := NewRegistry(&Config{})
 	ipfsHash, err := registry.PushImageByID("hello-world")
 	if err != nil {
-		log.Fatal(err)
+		t.Error(err)
 	}
 
 	_, err = registry.PullImage(ipfsHash)

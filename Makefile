@@ -20,9 +20,9 @@ deps:
 	&& rm rpc.pb.go && rm rpc.proto \
 	&& wget https://github.com/c3systems/go-libp2p-pubsub/raw/master/pb/rpc.pb.go \
 	&& wget https://github.com/c3systems/go-libp2p-pubsub/raw/master/pb/rpc.proto)
-	$(MAKE) deps/copy/ethereum/crypto
 	git clone https://github.com/gxed/pubsub.git vendor/github.com/gxed/pubsub && \
 	rm -rf vendor/github.com/gxed/pubsub/.git
+	$(MAKE) deps/copy/ethereum/crypto
 
 .PHONY: gxundo
 gxundo:

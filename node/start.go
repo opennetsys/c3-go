@@ -5,8 +5,9 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"log"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/c3systems/c3/common/c3crypto"
 	"github.com/c3systems/c3/core/chain/mainchain"
@@ -104,7 +105,7 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 	}
 
 	for i, addr := range newNode.Addrs() {
-		log.Printf("%d: %s/ipfs/%s\n", i, addr, newNode.ID().Pretty())
+		log.Printf("[node] %d: %s/ipfs/%s\n", i, addr, newNode.ID().Pretty())
 	}
 
 	if cfg.Peer != "" {
@@ -122,7 +123,7 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 		log.Println("[node] PIN INFO", pinfo)
 
 		if err := newNode.Connect(ctx, *pinfo); err != nil {
-			log.Printf("bootstrapping a peer failed\n%v", err)
+			log.Printf("[node] bootstrapping a peer failed\n%v", err)
 		}
 
 		newNode.Peerstore().AddAddrs(pinfo.ID, pinfo.Addrs, peerstore.PermanentAddrTTL)
@@ -198,13 +199,13 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 	if err := n.spawnNextBlockMiner(nextBlock); err != nil {
 		return fmt.Errorf("err starting miner\n%v", err)
 	}
-	log.Printf("Node %s started", newNode.ID().Pretty())
+	log.Printf("[node] node %s started", newNode.ID().Pretty())
 
 	for {
 		switch v := <-n.props.SubscriberChannel; v.(type) {
 		case error:
 			err, _ := v.(error)
-			log.Println("[node] received an error on the channel", err)
+			log.Printf("[node] received an error on the channel %s", err)
 
 		case *miner.MinedBlock:
 			log.Print("[node] received mined block")
