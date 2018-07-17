@@ -17,3 +17,6 @@ $ protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf --
 Mgoogle/protobuf/any.proto=github.com/gogo/protobuf/types:. \
 models.proto
 ```
+
+## Types
+In addition to protocol buffers, bytes arrays a prepended with a single byte that represents the serialization method used to create the bytes.

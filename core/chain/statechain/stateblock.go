@@ -30,8 +30,12 @@ func (b Block) Props() BlockProps {
 // Serialize ...
 func (b *Block) Serialize() ([]byte, error) {
 	tmp := BuildCoderFromBlock(b)
+	bytes, err := tmp.Marshal()
+	if err != nil {
+		return nil, err
+	}
 
-	return tmp.Marshal()
+	return coder.AppendCode(bytes), nil
 }
 
 // Deserialize ...
@@ -43,7 +47,12 @@ func (b *Block) Deserialize(data []byte) error {
 		return errors.New("nil block")
 	}
 
-	props, err := BuildBlockPropsFromBytes(data)
+	_, bytes, err := coder.StripCode(data)
+	if err != nil {
+		return err
+	}
+
+	props, err := BuildBlockPropsFromBytes(bytes)
 	if err != nil {
 		return err
 	}

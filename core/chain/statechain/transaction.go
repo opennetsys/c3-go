@@ -35,7 +35,12 @@ func (tx *Transaction) Serialize() ([]byte, error) {
 		return nil, err
 	}
 
-	return tmp.Marshal()
+	bytes, err := tmp.Marshal()
+	if err != nil {
+		return nil, err
+	}
+
+	return coder.AppendCode(bytes), nil
 }
 
 // Deserialize ...
@@ -47,7 +52,12 @@ func (tx *Transaction) Deserialize(data []byte) error {
 		return errors.New("nil tx")
 	}
 
-	props, err := BuildTransactionPropsFromBytes(data)
+	_, bytes, err := coder.StripCode(data)
+	if err != nil {
+		return err
+	}
+
+	props, err := BuildTransactionPropsFromBytes(bytes)
 	if err != nil {
 		return err
 	}

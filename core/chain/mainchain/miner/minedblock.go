@@ -17,7 +17,12 @@ func (m *MinedBlock) Serialize() ([]byte, error) {
 		return nil, err
 	}
 
-	return tmp.Marshal()
+	bytes, err := tmp.Marshal()
+	if err != nil {
+		return nil, err
+	}
+
+	return coder.AppendCode(bytes), nil
 }
 
 // Deserialize ...
@@ -29,7 +34,12 @@ func (m *MinedBlock) Deserialize(data []byte) error {
 		return errors.New("nil block")
 	}
 
-	b, err := BuildBlockFromBytes(data)
+	_, bytes, err := coder.StripCode(data)
+	if err != nil {
+		return err
+	}
+
+	b, err := BuildBlockFromBytes(bytes)
 	if err != nil {
 		return err
 	}
