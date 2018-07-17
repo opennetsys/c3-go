@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/c3systems/c3/common/c3crypto"
@@ -1460,4 +1461,32 @@ func groupStateBlocksByImageHash(stateBlocksMap map[string]*statechain.Block) (m
 	}
 
 	return ret, nil
+}
+
+func cleanupFiles(fileNames []string) {
+	for idx := range fileNames {
+		if err := os.Remove(fileNames[idx]); err != nil {
+			log.Printf("[miner] err cleaning up file %s", fileNames[idx])
+		}
+	}
+}
+
+func makeTempFile(filename string) (*os.File, error) {
+	paths := strings.Split(filename, "/")
+	prefix := strings.Join(paths[:len(paths)-1], "_") // does not like slashes for some reason
+	filename = strings.Join(paths[len(paths)-1:len(paths)], "")
+
+	tmpdir, err := ioutil.TempDir("/tmp", prefix)
+	if err != nil {
+		return nil, err
+	}
+
+	filepath := fmt.Sprintf("%s/%s", tmpdir, filename)
+
+	f, err := os.OpenFile(filepath, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		return nil, err
+	}
+
+	return f, nil
 }
