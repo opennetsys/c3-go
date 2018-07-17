@@ -11,8 +11,7 @@ import (
 )
 
 const (
-	mhCode = mh.SHA2_512
-	//mhCode = mh.SHA2_256
+	mhCode = mh.SHA2_256
 )
 
 var (
