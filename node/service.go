@@ -281,7 +281,7 @@ func (s *Service) BroadcastMinedBlock(minedBlock *miner.MinedBlock) error {
 		return errors.New("cannot broadcast nil block")
 	}
 
-	log.Println("[node] broadcasting the block")
+	log.Printf("[node] broadcasting the block %s", minedBlock.NextBlock.Props().BlockNumber)
 	data, err := minedBlock.Serialize()
 	if err != nil {
 		return err

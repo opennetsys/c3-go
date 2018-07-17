@@ -303,11 +303,13 @@ func (s Service) bootstrapNextBlock() (*mainchain.Block, error) {
 
 func (s Service) isGenesisTransaction(imageHash string, transactions []*statechain.Transaction) (bool, error) {
 	for _, tx := range transactions {
+		log.Printf("[miner] state block tx method %s", tx.Props().Method)
 		if tx.Props().Method == methodTypes.Deploy {
 			prevStateBlock, err := s.props.P2P.FetchMostRecentStateBlock(imageHash, s.props.PreviousBlock)
 			if err != nil {
-				log.Printf("[miner] error fetching most recent state block for image hash %s %s", imageHash, err)
-				return false, err
+				// NOTE: we don't want to error out
+				//log.Printf("[miner] error fetching most recent state block for image hash %s %s", imageHash, err)
+				//return false, err
 			}
 			if prevStateBlock != nil {
 				log.Printf("[miner] prev state block exists image hash %s", imageHash)
@@ -337,9 +339,11 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 	// TODO: move genesis tx at the top of the list
 	isGenesisTx, err := s.isGenesisTransaction(imageHash, transactions)
 	if err != nil {
+		log.Printf("[miner] error determining if tx is genesis for image hash %s; error: %s", imageHash, err)
 		return err
 	}
 	if isGenesisTx {
+		log.Printf("[miner] is genesis tx for image hash %s", imageHash)
 		// TODO: process other transactions as well
 		tx := transactions[0]
 		return s.buildGenesisStateBlock(imageHash, tx)

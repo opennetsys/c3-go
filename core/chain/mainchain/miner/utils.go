@@ -337,6 +337,7 @@ func VerifyMinedBlock(p2pSvc p2p.Interface, isValid *bool, minedBlock *MinedBloc
 		return false, nil
 	}
 	if isValid == nil {
+		log.Println("[miner] is valid is nil")
 		return false, errors.New("IsValid is nil")
 	}
 	if mainchain.ImageHash != minedBlock.NextBlock.Props().ImageHash {
@@ -360,6 +361,7 @@ func VerifyMinedBlock(p2pSvc p2p.Interface, isValid *bool, minedBlock *MinedBloc
 
 	// hash must verify
 	if isValid == nil || *isValid == false {
+		log.Println("[miner] recieved nil or false isValid")
 		return false, errors.New("received nil or false isValid")
 	}
 	tmpHash, err := minedBlock.NextBlock.CalculateHash()
@@ -375,6 +377,7 @@ func VerifyMinedBlock(p2pSvc p2p.Interface, isValid *bool, minedBlock *MinedBloc
 
 	// the sig must verify
 	if isValid == nil || *isValid == false {
+		log.Println("[miner] recieved nil or false isValid")
 		return false, errors.New("received nil or false isValid")
 	}
 	pub, err := c3crypto.DecodeAddress(minedBlock.NextBlock.Props().MinerAddress)
@@ -1048,26 +1051,36 @@ func BuildNextState(p2pSvc p2p.Interface, block *statechain.Block, tx *statechai
 // VerifyMerkleTreeFromMinedBlock ...
 func VerifyMerkleTreeFromMinedBlock(isValid *bool, minedBlock *MinedBlock) (bool, error) {
 	if minedBlock.NextBlock == nil {
+		log.Printf("[miner] verify mined block error - block data is nil")
 		return false, nil
 	}
-	if minedBlock.StatechainBlocksMap == nil {
-		return false, nil
-	}
+	/*
+		// note: mined block with no tx will have nil state chain blocks map
+		if minedBlock.StatechainBlocksMap == nil {
+			log.Printf("[miner] verify mined block error - state chain blocks is nil")
+			return false, nil
+		}
+	*/
 	if minedBlock.MerkleTreesMap == nil {
+		log.Printf("[miner] verify mined block error - merkle tree map is nil")
 		return false, nil
 	}
 	if isValid == nil || *isValid == false {
+		log.Printf("[miner] verify mined block error - isValid is nil or false")
 		return false, errors.New("received nil or false isValid")
 	}
 
 	tree, ok := minedBlock.MerkleTreesMap[minedBlock.NextBlock.Props().StateBlocksMerkleHash]
 	if !ok || tree == nil {
+		log.Printf("[miner] verify mined block error - merkle trees map %s is not ok or nil", minedBlock.NextBlock.Props().StateBlocksMerkleHash)
 		return false, nil
 	}
 	if tree.Props().MerkleTreeRootHash == nil {
+		log.Println("[miner] verify mined block error - merkle tree root hash is nil")
 		return false, nil
 	}
 	if isValid == nil || *isValid == false {
+		log.Println("[miner] verify mined block error - isValid is nil or false")
 		return false, errors.New("received nil or false isValid")
 	}
 
@@ -1076,34 +1089,42 @@ func VerifyMerkleTreeFromMinedBlock(isValid *bool, minedBlock *MinedBlock) (bool
 		Kind:   merkle.StatechainBlocksKindStr,
 	})
 	if err != nil {
+		log.Printf("[miner] verify mined block error - new merkle tree error: %s", err)
 		return false, err
 	}
 	if err := tmpTree.SetHash(); err != nil {
+		log.Printf("[miner] verify mined block error - set hash error: %s", err)
 		return false, err
 	}
 
 	if *tmpTree.Props().MerkleTreeRootHash != *tree.Props().MerkleTreeRootHash {
+		log.Printf("[miner] verify mined block error - merkle tree root hash doesn't match; %s", *tmpTree.Props().MerkleTreeRootHash)
 		return false, nil
 	}
 
 	if len(tmpTree.Props().Hashes) != len(minedBlock.StatechainBlocksMap) {
+		log.Printf("[miner] verify mined block error - tree hashes length doesn't match; %v", len(tmpTree.Props().Hashes))
 		return false, nil
 	}
 
 	if isValid == nil || *isValid == false {
+		log.Println("[miner] verify mined block error - isValid is nil or false")
 		return false, errors.New("received nil or false isValid")
 	}
 	for _, hash := range tmpTree.Props().Hashes {
 		statechainBlock, ok := minedBlock.StatechainBlocksMap[hash]
 		if !ok || statechainBlock == nil {
+			log.Println("[miner] verify mined block error - state chain block from map is nil or not ok")
 			return false, nil
 		}
 
 		tmpHash, err := statechainBlock.CalculateHash()
 		if err != nil {
+			log.Printf("[miner] verify mined block error - state chain calculate hash error: %s", err)
 			return false, err
 		}
 		if hash != tmpHash {
+			log.Printf("[miner] verify mined block error - hash does not match %s", tmpHash)
 			return false, nil
 		}
 	}
@@ -1158,18 +1179,24 @@ func orderStatechainBlocks(blocks []*statechain.Block) ([]*statechain.Block, err
 
 // the return is a map with keys on the image hash
 func groupStateBlocksByImageHash(stateBlocksMap map[string]*statechain.Block) (map[string][]*statechain.Block, error) {
-	if stateBlocksMap == nil {
-		return nil, errors.New("nil stateblocks map")
-	}
+	/*
+		// note: mined block with no transactions will have nil state block map
+		if stateBlocksMap == nil {
+			log.Printf("[miner] state blocks map is nil")
+			return nil, errors.New("nil stateblocks map")
+		}
+	*/
 
 	ret := make(map[string][]*statechain.Block)
 
-	for _, block := range stateBlocksMap {
-		if block == nil {
-			return nil, errors.New("nil block")
-		}
+	if stateBlocksMap != nil {
+		for _, block := range stateBlocksMap {
+			if block == nil {
+				return nil, errors.New("nil block")
+			}
 
-		ret[block.Props().ImageHash] = append(ret[block.Props().ImageHash], block)
+			ret[block.Props().ImageHash] = append(ret[block.Props().ImageHash], block)
+		}
 	}
 
 	return ret, nil

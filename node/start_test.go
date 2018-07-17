@@ -7,28 +7,29 @@ import (
 
 	"github.com/c3systems/c3/common/c3crypto"
 	"github.com/c3systems/c3/core/chain/statechain"
-	"github.com/c3systems/c3/core/docker"
 	methodTypes "github.com/c3systems/c3/core/types/methods"
 	nodetypes "github.com/c3systems/c3/node/types"
-	"github.com/c3systems/c3/registry"
 	"github.com/davecgh/go-spew/spew"
 )
 
 func TestBroadcast(t *testing.T) {
-	dockerclient := docker.NewClient()
-	err := dockerclient.LoadImageByFilepath("./test_data/go_example_image.tar")
-	if err != nil {
-		t.Error(err)
-	}
+	/*
+		dockerclient := docker.NewClient()
+		err := dockerclient.LoadImageByFilepath("./test_data/go_example_image.tar")
+		if err != nil {
+			t.Error(err)
+		}
 
-	registry := registry.NewRegistry(&registry.Config{})
-	imageHash, err := registry.PushImageByID("goexample")
-	if err != nil {
-		t.Error(err)
-	}
+		registry := registry.NewRegistry(&registry.Config{})
+		imageHash, err := registry.PushImageByID("goexample")
+		if err != nil {
+			t.Error(err)
+		}
+	*/
+	imageHash := "QmQpXfKvirguQaMG7khqvLrqWcxEzh2qVApfC1Ts7QyFK7"
 
 	privPEM := "./test_data/priv.pem"
-	nodeURI := "/ip4/0.0.0.0/tcp/9006"
+	nodeURI := "/ip4/0.0.0.0/tcp/9004"
 	peer := os.Getenv("PEER")
 	dataDir := "~/.c3"
 	n := new(Service)
@@ -71,7 +72,7 @@ func TestBroadcast(t *testing.T) {
 		t.Error(err)
 	}
 
-	tx := statechain.NewTransaction(&statechain.TransactionProps{
+	tx1 := statechain.NewTransaction(&statechain.TransactionProps{
 		ImageHash: imageHash,
 		Method:    methodTypes.Deploy,
 		Payload:   []byte(`{"hello": "world"}`),
@@ -84,6 +85,9 @@ func TestBroadcast(t *testing.T) {
 		Payload:   []byte(`[""setItem", "foo", "bar"]`),
 		From:      encodedPub,
 	})
+
+	tx := tx1
+	_ = tx1
 	_ = tx2
 
 	err = tx.SetHash()
