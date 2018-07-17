@@ -204,6 +204,14 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 		return fmt.Errorf("err starting protobuff node\n%v", err)
 	}
 
+	c, err := p2pSvc.SetMainchainBlock(&mainchain.GenesisBlock)
+	if err != nil {
+		log.Printf("[miner] error setting mainchain genesis block; error %s", err)
+		return err
+	}
+
+	log.Printf("[miner] set mainchain genesis block with cid %s", c)
+
 	nextBlock := &mainchain.GenesisBlock
 	peers := newNode.Peerstore().Peers()
 	if len(peers) > 1 {
