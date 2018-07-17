@@ -18,7 +18,7 @@ func (hook ContextHook) Levels() []logrus.Level {
 
 // Fire ...
 func (hook ContextHook) Fire(entry *logrus.Entry) error {
-	if pc, file, line, ok := runtime.Caller(8); ok {
+	if pc, file, line, ok := runtime.Caller(10); ok {
 		funcName := runtime.FuncForPC(pc).Name()
 
 		entry.Data["source"] = fmt.Sprintf("%s:%v:%s", path.Base(file), line, path.Base(funcName))
