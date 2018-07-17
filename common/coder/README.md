@@ -11,6 +11,13 @@ First, [install protobuffs](https://github.com/golang/protobuf). Then:
 $ go get github.com/gogo/protobuf/protoc-gen-gogofast
 ```
 
+## Usage
+```bash
+$ protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf --gogofast_out=\
+Mgoogle/protobuf/any.proto=github.com/gogo/protobuf/types:. \
+models.proto
+```
+
 ## Types
 In addition to protocol buffers, bytes arrays are prepended with a single byte that acts as meta data about the bytes array; specifically the serialization method used to create the bytes.
 
