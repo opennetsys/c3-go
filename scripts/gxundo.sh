@@ -13,6 +13,7 @@ normal="$(tput sgr0)"
 
 # function to install `jq`
 install_jq() {
+  # note: this assumes debian/ubuntu
   if [[ "$OSTYPE" == "linux-gnu" ]]; then
       sudo apt-get install jq
   elif [[ "$OSTYPE" == "darwin"* ]]; then

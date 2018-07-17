@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -26,13 +27,16 @@ import (
 	floodsub "github.com/libp2p/go-floodsub"
 	lCrypt "github.com/libp2p/go-libp2p-crypto"
 	host "github.com/libp2p/go-libp2p-host"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
 	net "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
 	peerstore "github.com/libp2p/go-libp2p-peerstore"
 	secio "github.com/libp2p/go-libp2p-secio"
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	tptu "github.com/libp2p/go-libp2p-transport-upgrader"
+	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
+	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	tcp "github.com/libp2p/go-tcp-transport"
 	ma "github.com/multiformats/go-multiaddr"
 	msmux "github.com/whyrusleeping/go-smux-multistream"
@@ -40,6 +44,23 @@ import (
 )
 
 var h host.Host
+
+// DiscoveryNotifee ...
+type DiscoveryNotifee struct {
+	h host.Host
+}
+
+// HandlePeerFound ...
+func (n *DiscoveryNotifee) HandlePeerFound(pi peerstore.PeerInfo) {
+	n.h.Peerstore().AddAddrs(pi.ID, pi.Addrs, peerstore.PermanentAddrTTL)
+	if err := n.h.Connect(context.Background(), pi); err != nil {
+		log.Printf("[node] found peer %s\nerr connecting %v", pi.Addrs, err)
+
+		return
+	}
+
+	log.Printf("[node] found peer %s\nadded to peerstore and connected", pi.Addrs)
+}
 
 // Start ...
 // note: start is called from cobra
@@ -101,8 +122,24 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 	if err := swarmNet.AddListenAddr(listen); err != nil {
 		return fmt.Errorf("err adding swam listen addr\n%v", err)
 	}
-	newNode := bhost.New(swarmNet)
+	bNode := bhost.New(swarmNet)
+
+	dhtSvc, err := dht.New(ctx, bNode)
+	if err != nil {
+		return fmt.Errorf("err building dht svc\n%v", err)
+	}
+	if err := dhtSvc.Bootstrap(ctx); err != nil {
+		return fmt.Errorf("err bootstrapping dht\n%v", err)
+	}
+
+	newNode := rhost.Wrap(bNode, dhtSvc)
 	h = newNode
+
+	discoverySvc, err := discovery.NewMdnsService(ctx, newNode, time.Second, "c3")
+	if err != nil {
+		return fmt.Errorf("err starting discovery service\n%v", err)
+	}
+	discoverySvc.RegisterNotifee(&DiscoveryNotifee{newNode})
 
 	pubsub, err := floodsub.NewFloodSub(ctx, newNode)
 	if err != nil {
@@ -152,6 +189,7 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 	p2pSvc, err := p2p.New(&p2p.Props{
 		BlockStore: blocks,
 		Host:       newNode,
+		Router:     dhtSvc,
 	})
 	if err != nil {
 		return fmt.Errorf("err starting ipfs p2p network\n%v", err)
