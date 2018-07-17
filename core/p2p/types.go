@@ -6,6 +6,7 @@ import (
 	bstore "github.com/ipfs/go-ipfs-blockstore"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	host "github.com/libp2p/go-libp2p-host"
+	routing "github.com/libp2p/go-libp2p-routing"
 	mh "github.com/multiformats/go-multihash"
 )
 
@@ -22,6 +23,7 @@ var (
 type Props struct {
 	BlockStore bstore.Blockstore // note: https://github.com/ipfs/go-ipfs/blob/master/docs/datastores.md
 	Host       host.Host
+	Router     routing.ContentRouting
 }
 
 // Service ...

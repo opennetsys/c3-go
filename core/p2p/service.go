@@ -12,7 +12,6 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	cid "github.com/ipfs/go-cid"
-	nonerouting "github.com/ipfs/go-ipfs-routing/none"
 	bserv "github.com/ipfs/go-ipfs/blockservice"
 	"github.com/ipfs/go-ipfs/exchange/bitswap"
 	"github.com/ipfs/go-ipfs/exchange/bitswap/network"
@@ -27,19 +26,12 @@ func New(props *Props) (*Service, error) {
 			err = errors.New("props cannot be nil")
 			return
 		}
-		if props.Host == nil || props.BlockStore == nil {
-			err = errors.New("host and blockstore are required")
+		if props.Host == nil || props.BlockStore == nil || props.Router == nil {
+			err = errors.New("host, blockstore and router are required")
 			return
 		}
 
-		// TODO: research if this is what we want...
-		nr, err1 := nonerouting.ConstructNilRouting(nil, nil, nil, nil)
-		if err1 != nil {
-			err = err1
-			return
-		}
-
-		bsnet := network.NewFromIpfsHost(props.Host, nr)
+		bsnet := network.NewFromIpfsHost(props.Host, props.Router)
 		bswap := bitswap.New(context.Background(), bsnet, props.BlockStore)
 
 		// Bitswap only fetches blocks from other nodes, to fetch blocks from
