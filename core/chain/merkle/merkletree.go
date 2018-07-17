@@ -93,8 +93,12 @@ func (t *Tree) Props() TreeProps {
 // Serialize ...
 func (t *Tree) Serialize() ([]byte, error) {
 	tmp := BuildCoderFromTree(t)
+	bytes, err := tmp.Marshal()
+	if err != nil {
+		return nil, err
+	}
 
-	return tmp.Marshal()
+	return coder.AppendCode(bytes), nil
 }
 
 // Deserialize ...
@@ -106,7 +110,12 @@ func (t *Tree) Deserialize(data []byte) error {
 		return errors.New("nil tree")
 	}
 
-	props, err := BuildTreePropsFromBytes(data)
+	_, bytes, err := coder.StripCode(data)
+	if err != nil {
+		return err
+	}
+
+	props, err := BuildTreePropsFromBytes(bytes)
 	if err != nil {
 		return err
 	}

@@ -6,14 +6,13 @@ import (
 	"errors"
 	"fmt"
 
-	log "github.com/sirupsen/logrus"
+	pb "github.com/c3systems/c3/core/p2p/protobuff/pb"
 
 	inet "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
-
-	pb "github.com/c3systems/c3/core/p2p/protobuff/pb"
 	protobufCodec "github.com/multiformats/go-multicodec/protobuf"
 	uuid "github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 // pattern: /protocol-name/request-or-response-message/version

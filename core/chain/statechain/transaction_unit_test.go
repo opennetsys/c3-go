@@ -28,7 +28,7 @@ var (
 		TxHash:    &txHash,
 		ImageHash: "0x1",
 		Method:    "0x2",
-		Payload:   payload,
+		Payload:   []byte(payload),
 		From:      "0x3",
 		Sig:       sig,
 	}

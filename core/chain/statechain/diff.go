@@ -29,8 +29,12 @@ func (d Diff) Props() DiffProps {
 // Serialize ...
 func (d *Diff) Serialize() ([]byte, error) {
 	tmp := BuildCoderFromDiff(d)
+	bytes, err := tmp.Marshal()
+	if err != nil {
+		return nil, err
+	}
 
-	return tmp.Marshal()
+	return coder.AppendCode(bytes), nil
 }
 
 // Deserialize ...
@@ -42,7 +46,12 @@ func (d *Diff) Deserialize(data []byte) error {
 		return errors.New("nil diff")
 	}
 
-	props, err := BuildDiffPropsFromBytes(data)
+	_, bytes, err := coder.StripCode(data)
+	if err != nil {
+		return err
+	}
+
+	props, err := BuildDiffPropsFromBytes(bytes)
 	if err != nil {
 		return err
 	}

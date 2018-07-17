@@ -5,11 +5,11 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 
 	"github.com/c3systems/c3/common/c3crypto"
+	"github.com/c3systems/c3/config"
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/mainchain/miner"
 	"github.com/c3systems/c3/core/chain/statechain"
@@ -25,6 +25,8 @@ import (
 	csms "github.com/libp2p/go-conn-security-multistream"
 	floodsub "github.com/libp2p/go-floodsub"
 	lCrypt "github.com/libp2p/go-libp2p-crypto"
+	host "github.com/libp2p/go-libp2p-host"
+	net "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
 	peerstore "github.com/libp2p/go-libp2p-peerstore"
 	secio "github.com/libp2p/go-libp2p-secio"
@@ -36,6 +38,8 @@ import (
 	msmux "github.com/whyrusleeping/go-smux-multistream"
 	yamux "github.com/whyrusleeping/go-smux-yamux"
 )
+
+var h host.Host
 
 // Start ...
 // note: start is called from cobra
@@ -98,6 +102,7 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 		return fmt.Errorf("err adding swam listen addr\n%v", err)
 	}
 	newNode := bhost.New(swarmNet)
+	h = newNode
 
 	pubsub, err := floodsub.NewFloodSub(ctx, newNode)
 	if err != nil {
@@ -127,7 +132,6 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 		}
 
 		newNode.Peerstore().AddAddrs(pinfo.ID, pinfo.Addrs, peerstore.PermanentAddrTTL)
-		// newNode.Peerstore().Peers()
 	}
 
 	// TODO: add cli flags for different types
@@ -165,6 +169,9 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 	nextBlock := &mainchain.GenesisBlock
 	peers := newNode.Peerstore().Peers()
 	if len(peers) > 1 {
+		if err := sendEcho(newNode.ID(), peers, pBuff); err != nil {
+			return fmt.Errorf("err echoing peer\n%v", err)
+		}
 		if err := fetchHeadBlock(newNode.ID(), nextBlock, peers, pBuff); err != nil {
 			return fmt.Errorf("err fetching headblock\n%v", err)
 		}
@@ -173,6 +180,11 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 	if err := memPool.SetHeadBlock(nextBlock); err != nil {
 		return fmt.Errorf("err setting head block\n%v", err)
 	}
+
+	nb := &net.NotifyBundle{
+		ConnectedF: onConn,
+	}
+	newNode.Network().Notify(nb)
 
 	n.props = Props{
 		Context:             ctx,
@@ -242,7 +254,7 @@ func genUpgrader(n *swarm.Swarm) *tptu.Upgrader {
 
 func fetchHeadBlock(self peer.ID, headBlock *mainchain.Block, peers []peer.ID, pBuff protobuff.Interface) error {
 	// TODO: pass contexts to pBuff functions
-	ctx1, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx1, cancel := context.WithTimeout(context.Background(), config.IPFSTimeout)
 	defer cancel()
 	ch := make(chan interface{})
 
@@ -288,4 +300,73 @@ func fetchHeadBlock(self peer.ID, headBlock *mainchain.Block, peers []peer.ID, p
 		return errors.New("fetching headblock from peer timedout")
 
 	}
+}
+
+func sendEcho(self peer.ID, peers []peer.ID, pBuff protobuff.Interface) error {
+	ctx1, cancel := context.WithTimeout(context.Background(), config.IPFSTimeout)
+	defer cancel()
+	ch := make(chan interface{})
+
+	var peer peer.ID
+	for _, peerID := range peers {
+		if peerID != self {
+			peer = peerID
+			break
+		}
+	}
+
+	if err := pBuff.SendEcho(peer, ch); err != nil {
+		return err
+	}
+
+	select {
+	case v := <-ch:
+		switch v.(type) {
+		case error:
+			err, _ := v.(error)
+			return err
+
+		case *pb.EchoResponse:
+			eb, _ := v.(*pb.EchoResponse)
+			log.Printf("[node] received echo response\n%v", eb)
+
+			return nil
+
+		default:
+			return fmt.Errorf("received unknown type %T\n%v", v, v)
+
+		}
+
+	case <-ctx1.Done():
+		return errors.New("echo timedout")
+
+	}
+}
+
+func onConn(network net.Network, conn net.Conn) {
+	log.Printf("[node] peer did connect\nid %v peerAddr %v", conn.RemotePeer().Pretty(), conn.RemoteMultiaddr())
+
+	addAddr(conn)
+}
+
+func addAddr(conn net.Conn) {
+	for _, peer := range h.Peerstore().Peers() {
+		if conn.RemotePeer() == peer {
+			// note: we already have info on this peer
+			log.Println("[node] already have peer in our peerstore")
+			return
+		}
+	}
+
+	// note: we don't have this peer's info
+	h.Peerstore().AddAddr(conn.RemotePeer(), conn.RemoteMultiaddr(), peerstore.PermanentAddrTTL)
+	log.Printf("[node] added %s to our peerstore", conn.RemoteMultiaddr())
+
+	if _, err := h.Network().DialPeer(context.Background(), conn.RemotePeer()); err != nil {
+		log.Printf("[node] err connecting to a peer\n%v", err)
+
+		return
+	}
+
+	log.Printf("[node] connected to %s", conn.RemoteMultiaddr())
 }

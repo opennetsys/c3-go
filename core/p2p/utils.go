@@ -3,8 +3,8 @@ package p2p
 import (
 	"context"
 	"errors"
-	"time"
 
+	"github.com/c3systems/c3/config"
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/merkle"
 	"github.com/c3systems/c3/core/chain/statechain"
@@ -126,7 +126,7 @@ func GetMerkleTreeCID(tree *merkle.Tree) (*cid.Cid, error) {
 //return nil, errors.New("arguments cannot be nil")
 //}
 
-//ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+//ctx, cancel := context.WithTimeout(context.Background(), config.IPFSTimeout)
 //defer cancel()
 
 //data, err := bs.GetBlock(ctx, c)
@@ -148,7 +148,7 @@ func FetchMainchainBlock(bs bserv.BlockService, c *cid.Cid) (*mainchain.Block, e
 		return nil, errors.New("arguments cannot be nil")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	ctx, cancel := context.WithTimeout(context.Background(), config.IPFSTimeout)
 	defer cancel()
 
 	log.Printf("[p2p] ipfs get main chain block %s", c.String())
@@ -172,7 +172,7 @@ func FetchStateChainBlock(bs bserv.BlockService, c *cid.Cid) (*statechain.Block,
 		return nil, errors.New("arguments cannot be nil")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	ctx, cancel := context.WithTimeout(context.Background(), config.IPFSTimeout)
 	defer cancel()
 
 	log.Printf("[p2p] ipfs get state chain block %s", c.String())
@@ -196,7 +196,7 @@ func FetchStateChainTransaction(bs bserv.BlockService, c *cid.Cid) (*statechain.
 		return nil, errors.New("arguments cannot be nil")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	ctx, cancel := context.WithTimeout(context.Background(), config.IPFSTimeout)
 	defer cancel()
 
 	log.Printf("[p2p] ipfs get state chain transaction %s", c.String())
@@ -220,7 +220,7 @@ func FetchStateChainDiff(bs bserv.BlockService, c *cid.Cid) (*statechain.Diff, e
 		return nil, errors.New("arguments cannot be nil")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	ctx, cancel := context.WithTimeout(context.Background(), config.IPFSTimeout)
 	defer cancel()
 
 	log.Printf("[p2p] ipfs get state chain diff %s", c.String())
@@ -244,7 +244,7 @@ func FetchMerkleTree(bs bserv.BlockService, c *cid.Cid) (*merkle.Tree, error) {
 		return nil, errors.New("arguments cannot be nil")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	ctx, cancel := context.WithTimeout(context.Background(), config.IPFSTimeout)
 	defer cancel()
 
 	log.Printf("[p2p] ipfs get merkle tree %s", c.String())

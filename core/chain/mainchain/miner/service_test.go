@@ -1,6 +1,7 @@
 package miner
 
 import (
+	"context"
 	"testing"
 
 	"github.com/c3systems/c3/common/c3crypto"
@@ -39,8 +40,9 @@ func TestBuildGenesisStateBlock(t *testing.T) {
 	}
 
 	txs := []*statechain.Transaction{tx}
+	ctx := context.TODO()
 	mnr, err := New(&Props{
-		IsValid:             nil,
+		Context:             ctx,
 		PreviousBlock:       nil,
 		Difficulty:          uint64(5),
 		Channel:             make(chan interface{}),

@@ -180,7 +180,7 @@ func (p *ProcessTransaction) onProcessTransactionResponse(s inet.Stream) {
 	reqW.resp <- data
 }
 
-//  SendTransaction ...
+// SendTransaction ...
 func (p *ProcessTransaction) SendTransaction(peerID peer.ID, resp chan interface{}) error {
 	// log.Printf("[p2p] %s: Sending process transaction to: %s....", e.node.ID(), peerID)
 
