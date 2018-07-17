@@ -25,6 +25,8 @@ import (
 	csms "github.com/libp2p/go-conn-security-multistream"
 	floodsub "github.com/libp2p/go-floodsub"
 	lCrypt "github.com/libp2p/go-libp2p-crypto"
+	host "github.com/libp2p/go-libp2p-host"
+	net "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
 	peerstore "github.com/libp2p/go-libp2p-peerstore"
 	secio "github.com/libp2p/go-libp2p-secio"
@@ -36,6 +38,8 @@ import (
 	msmux "github.com/whyrusleeping/go-smux-multistream"
 	yamux "github.com/whyrusleeping/go-smux-yamux"
 )
+
+var h host.Host
 
 // Start ...
 // note: start is called from cobra
@@ -98,6 +102,7 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 		return fmt.Errorf("err adding swam listen addr\n%v", err)
 	}
 	newNode := bhost.New(swarmNet)
+	h = newNode
 
 	pubsub, err := floodsub.NewFloodSub(ctx, newNode)
 	if err != nil {
@@ -175,6 +180,11 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 	if err := memPool.SetHeadBlock(nextBlock); err != nil {
 		return fmt.Errorf("err setting head block\n%v", err)
 	}
+
+	nb := &net.NotifyBundle{
+		ConnectedF: onConn,
+	}
+	newNode.Network().Notify(nb)
 
 	n.props = Props{
 		Context:             ctx,
@@ -331,4 +341,32 @@ func sendEcho(self peer.ID, peers []peer.ID, pBuff protobuff.Interface) error {
 		return errors.New("echo timedout")
 
 	}
+}
+
+func onConn(network net.Network, conn net.Conn) {
+	log.Printf("[node] peer did connect\nid %v peerAddr %v", conn.RemotePeer().Pretty(), conn.RemoteMultiaddr())
+
+	addAddr(conn)
+}
+
+func addAddr(conn net.Conn) {
+	for _, peer := range h.Peerstore().Peers() {
+		if conn.RemotePeer() == peer {
+			// note: we already have info on this peer
+			log.Println("[node] already have peer in our peerstore")
+			return
+		}
+	}
+
+	// note: we don't have this peer's info
+	h.Peerstore().AddAddr(conn.RemotePeer(), conn.RemoteMultiaddr(), peerstore.PermanentAddrTTL)
+	log.Printf("[node] added %s to our peerstore", conn.RemoteMultiaddr())
+
+	if _, err := h.Network().DialPeer(context.Background(), conn.RemotePeer()); err != nil {
+		log.Printf("[node] err connecting to a peer\n%v", err)
+
+		return
+	}
+
+	log.Printf("[node] connected to %s", conn.RemoteMultiaddr())
 }

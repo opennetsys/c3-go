@@ -30,7 +30,7 @@ const DockerRegistryPort = 5000
 const IPFSGateway = "http://127.0.0.1:9001"
 
 // BlockDifficulty ...
-const BlockDifficulty = 5
+const BlockDifficulty = 6
 
 // MinedBlockVerificationTimeout ...
 const MinedBlockVerificationTimeout = 10 * time.Minute

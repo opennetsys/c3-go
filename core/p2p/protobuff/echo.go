@@ -10,8 +10,6 @@ import (
 
 	inet "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
-	peerstore "github.com/libp2p/go-libp2p-peerstore"
-	ma "github.com/multiformats/go-multiaddr"
 	protobufCodec "github.com/multiformats/go-multicodec/protobuf"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
@@ -81,35 +79,6 @@ func (e *Echo) onEchoRequest(s inet.Stream) {
 
 	// add the signature to the message
 	resp.MessageData.Sign = string(signature)
-
-	// add this peer to our peerstore
-	go func(peerAddr ma.Multiaddr) {
-		pinfo, err := peerstore.InfoFromP2pAddr(peerAddr)
-		if err != nil {
-			log.Printf("[p2p] err getting info from peerstore\n%v", err)
-
-			return
-		}
-
-		for _, peer := range e.node.Host.Peerstore().Peers() {
-			if pinfo.ID == peer {
-				// note: we already have info on this peer
-				return
-			}
-		}
-
-		// note: we don't have this peer's info
-		e.node.Host.Peerstore().AddAddrs(pinfo.ID, pinfo.Addrs, peerstore.PermanentAddrTTL)
-		log.Printf("[p2p] received echo from %s and added them to our peerstore", pinfo.Addrs)
-
-		if err := e.node.Host.Connect(context.Background(), *pinfo); err != nil {
-			log.Printf("[p2p] err connecting to a peer\n%v", err)
-
-			return
-		}
-
-		log.Printf("[p2p] connected to %s", pinfo.Addrs)
-	}(s.Conn().RemoteMultiaddr())
 
 	s, respErr := e.node.NewStream(context.Background(), s.Conn().RemotePeer(), echoResponse)
 	if respErr != nil {
