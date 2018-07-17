@@ -19,13 +19,9 @@ func TestBasicBlock(t *testing.T) {
 		BlockTime:             "0",
 		ImageHash:             "fakeImageHash",
 		StateBlocksMerkleHash: "fakeMerkle",
-		StateBlockHashes: []*string{
-			&hash,
-			&hash,
-		},
-		PrevBlockHash: "fakePrevHash",
-		Nonce:         "fakeNonce",
-		Difficulty:    "fakeDifficulty",
+		PrevBlockHash:         "fakePrevHash",
+		Nonce:                 "fakeNonce",
+		Difficulty:            "fakeDifficulty",
 	})
 
 	c, err := GetMainchainBlockCID(block)
@@ -57,13 +53,9 @@ func TestLocalPutAndFetchMainchainBlock(t *testing.T) {
 		BlockTime:             "0",
 		ImageHash:             "fakeImageHash",
 		StateBlocksMerkleHash: "fakeMerkle",
-		StateBlockHashes: []*string{
-			&hash,
-			&hash,
-		},
-		PrevBlockHash: "fakePrevHash",
-		Nonce:         "fakeNonce",
-		Difficulty:    "fakeDifficulty",
+		PrevBlockHash:         "fakePrevHash",
+		Nonce:                 "fakeNonce",
+		Difficulty:            "fakeDifficulty",
 	})
 
 	c, err := GetMainchainBlockCID(block)

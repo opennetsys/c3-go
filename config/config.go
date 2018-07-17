@@ -34,3 +34,6 @@ const BlockDifficulty = 5
 
 // MinedBlockVerificationTimeout ...
 const MinedBlockVerificationTimeout = 10 * time.Minute
+
+// IPFSTimeout ...
+const IPFSTimeout = 20 * time.Second
