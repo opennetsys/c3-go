@@ -13,6 +13,8 @@ import (
 )
 
 func TestBroadcast(t *testing.T) {
+	imageHash := "QmQpXfKvirguQaMG7khqvLrqWcxEzh2qVApfC1Ts7QyFK7"
+
 	/*
 		dockerclient := docker.NewClient()
 		err := dockerclient.LoadImageByFilepath("./test_data/go_example_image.tar")
@@ -26,7 +28,6 @@ func TestBroadcast(t *testing.T) {
 			t.Error(err)
 		}
 	*/
-	imageHash := "QmQpXfKvirguQaMG7khqvLrqWcxEzh2qVApfC1Ts7QyFK7"
 
 	privPEM := "./test_data/priv.pem"
 	nodeURI := "/ip4/0.0.0.0/tcp/9004"
@@ -86,7 +87,7 @@ func TestBroadcast(t *testing.T) {
 		From:      encodedPub,
 	})
 
-	tx := tx1
+	tx := tx2
 	_ = tx1
 	_ = tx2
 

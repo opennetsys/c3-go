@@ -8,6 +8,7 @@ import (
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/merkle"
 	"github.com/c3systems/c3/core/chain/statechain"
+	log "github.com/sirupsen/logrus"
 
 	bfmt "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
@@ -150,6 +151,8 @@ func FetchMainchainBlock(bs bserv.BlockService, c *cid.Cid) (*mainchain.Block, e
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
+	log.Printf("[p2p] ipfs get main chain block %s", c.String())
+
 	data, err := bs.GetBlock(ctx, c)
 	if err != nil {
 		return nil, err
@@ -171,6 +174,8 @@ func FetchStateChainBlock(bs bserv.BlockService, c *cid.Cid) (*statechain.Block,
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
+
+	log.Printf("[p2p] ipfs get state chain block %s", c.String())
 
 	data, err := bs.GetBlock(ctx, c)
 	if err != nil {
@@ -194,6 +199,8 @@ func FetchStateChainTransaction(bs bserv.BlockService, c *cid.Cid) (*statechain.
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
+	log.Printf("[p2p] ipfs get state chain transaction %s", c.String())
+
 	data, err := bs.GetBlock(ctx, c)
 	if err != nil {
 		return nil, err
@@ -216,6 +223,8 @@ func FetchStateChainDiff(bs bserv.BlockService, c *cid.Cid) (*statechain.Diff, e
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
+	log.Printf("[p2p] ipfs get state chain diff %s", c.String())
+
 	data, err := bs.GetBlock(ctx, c)
 	if err != nil {
 		return nil, err
@@ -237,6 +246,8 @@ func FetchMerkleTree(bs bserv.BlockService, c *cid.Cid) (*merkle.Tree, error) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
+
+	log.Printf("[p2p] ipfs get merkle tree %s", c.String())
 
 	data, err := bs.GetBlock(ctx, c)
 	if err != nil {
@@ -305,6 +316,8 @@ func PutMainchainBlock(bs bserv.BlockService, block *mainchain.Block) (*cid.Cid,
 		return nil, err
 	}
 
+	log.Printf("[p2p] ipfs add main chain block %s", c.String())
+
 	if err := bs.AddBlock(basicIPFSBlock); err != nil {
 		return nil, err
 	}
@@ -332,6 +345,8 @@ func PutStatechainBlock(bs bserv.BlockService, block *statechain.Block) (*cid.Ci
 	if err != nil {
 		return nil, err
 	}
+
+	log.Printf("[p2p] ipfs add state chain block %s", c.String())
 
 	if err := bs.AddBlock(basicIPFSBlock); err != nil {
 		return nil, err
