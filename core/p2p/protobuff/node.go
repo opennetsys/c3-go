@@ -121,7 +121,7 @@ func (n *Node) verifyData(data []byte, signature []byte, peerID peer.ID, pubKeyD
 
 	// verify that message author node id matches the provided node public key
 	if idFromKey != peerID {
-		log.Printf("[p2p] node id and provided public key mismatch %s")
+		log.Print("[p2p] node id and provided public key mismatch")
 		return false
 	}
 
@@ -159,11 +159,17 @@ func (n *Node) NewMessageData(messageID string, gossip bool) *pb.MessageData {
 func (n *Node) sendProtoMessage(data proto.Message, s inet.Stream) bool {
 	writer := bufio.NewWriter(s)
 	enc := protobufCodec.Multicodec(nil).Encoder(writer)
-	err := enc.Encode(data)
-	if err != nil {
-		log.Printf("[p2p] %s", err)
+	if err := enc.Encode(data); err != nil {
+		log.Printf("[p2p] err encoding\n%v", err)
+
 		return false
 	}
-	writer.Flush()
+
+	if err := writer.Flush(); err != nil {
+		log.Printf("[p2p] err flushing writer\n%v", err)
+
+		return false
+	}
+
 	return true
 }
