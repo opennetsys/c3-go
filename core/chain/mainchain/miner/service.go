@@ -115,8 +115,9 @@ func (s Service) buildMainchainBlockAsync() error {
 		wg.Add(1)
 		go func(iHash string, txs []*statechain.Transaction) {
 			defer wg.Done()
-			if s.props.IsValid == nil || *s.props.IsValid == false {
-				err = errors.New("miner is invalid")
+			if s.props.Context.Err() != nil {
+				err = s.props.Context.Err()
+
 				return
 			}
 
@@ -146,8 +147,8 @@ func (s Service) buildMainchainBlock() error {
 
 	// 2. apply txs
 	for imageHash, transactions := range txsMap {
-		if s.props.IsValid == nil || *s.props.IsValid == false {
-			return errors.New("miner is invalid")
+		if s.props.Context.Err() != nil {
+			return s.props.Context.Err()
 		}
 
 		if err := s.buildNextStates(imageHash, transactions); err != nil {
@@ -168,9 +169,8 @@ func (s Service) mineBlock() error {
 	}
 
 	for {
-		if s.props.IsValid == nil || *s.props.IsValid == false {
-			log.Println("[miner] miner is invalid")
-			return errors.New("miner is invalid")
+		if s.props.Context.Err() != nil {
+			return s.props.Context.Err()
 		}
 
 		hash, nonce, err := s.generateHashAndNonce()
@@ -185,15 +185,17 @@ func (s Service) mineBlock() error {
 			return err
 		}
 
-		nextProps := s.minedBlock.NextBlock.Props()
-		nextProps.Nonce = nonce
-		nextBlock := mainchain.New(&nextProps)
-		s.minedBlock.NextBlock = nextBlock
-
 		if check {
+			nextProps := s.minedBlock.NextBlock.Props()
+			nextProps.Nonce = nonce
+			nextBlock := mainchain.New(&nextProps)
+			s.minedBlock.NextBlock = nextBlock
+
 			log.Println("[miner] difficulty checks out")
 			return s.minedBlock.NextBlock.SetHash()
 		}
+
+		// note: else the for loop continues and we try the next hash
 	}
 }
 
@@ -209,6 +211,10 @@ func (s Service) generateMerkle() error {
 
 	log.Printf("[miner] state chain blocks length; %v", len(s.minedBlock.StatechainBlocksMap))
 	for _, statechainBlock := range s.minedBlock.StatechainBlocksMap {
+		if s.props.Context.Err() != nil {
+			return s.props.Context.Err()
+		}
+
 		if statechainBlock == nil {
 			log.Println("[miner] state chain block is nil")
 			return errors.New("nil block")
@@ -223,10 +229,6 @@ func (s Service) generateMerkle() error {
 	}
 
 	tree, err := merkle.BuildFromObjects(list, merkle.StatechainBlocksKindStr)
-	//tree, err := merkle.New(&merkle.TreeProps{
-	//Hashes: hashes,
-	//Kind:   merkle.StatechainBlocksKindStr,
-	//})
 	if err != nil {
 		log.Printf("[miner] error building merkle tree from objects; %s", list)
 		return err
@@ -373,23 +375,24 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 	}
 	// note: prepend
 	diffs = append([]*statechain.Diff{diff}, diffs...)
-	log.Printf("[miner] diffs %v", len(diffs))
 
 	head := prevStateBlock
 	for head.Props().BlockNumber != mainchain.GenesisBlock.Props().BlockNumber {
+		if s.props.Context.Err() != nil {
+			return s.props.Context.Err()
+		}
+
 		prevStateCID, err := p2p.GetCIDByHash(head.Props().PrevBlockHash)
 		if err != nil {
 			log.Printf("[miner] error getting cid by hash for %s for image hash %s", head.Props().PrevBlockHash, imageHash)
 			return err
 		}
-		log.Printf("[miner] got prev state cid for image hash %s", imageHash)
 
 		prevStateBlock, err := s.props.P2P.GetStatechainBlock(prevStateCID)
 		if err != nil {
 			return err
 		}
 		head = prevStateBlock
-		log.Printf("[miner] set head to prev state block for image hash %s", imageHash)
 
 		diffCID, err := p2p.GetCIDByHash(prevStateBlock.Props().StatePrevDiffHash)
 		if err != nil {
@@ -415,7 +418,6 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 		log.Printf("[miner] error creating tmp state file %s", err)
 		return err
 	}
-	log.Printf("[miner] tmp state file %s", tmpStateFile.Name())
 	defer os.Remove(tmpStateFile.Name()) // clean up
 
 	if _, err := tmpStateFile.Write([]byte(genesisState)); err != nil {
@@ -437,12 +439,15 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 	}
 
 	for i, diff := range diffs {
+		if s.props.Context.Err() != nil {
+			return s.props.Context.Err()
+		}
+
 		tmpPatchFile, err := makeTempFile(fmt.Sprintf("%s/%v/patch.%d.txt", imageHash, ts, i))
 		if err != nil {
 			log.Printf("[miner] error creating tmp patch file %s", err)
 			return err
 		}
-		log.Printf("[miner] tmp patch file %s", tmpPatchFile.Name())
 		defer os.Remove(tmpPatchFile.Name()) // clean up
 
 		if _, err := tmpPatchFile.Write([]byte(diff.Props().Data)); err != nil {
@@ -470,7 +475,6 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 		return err
 	}
 
-	log.Printf("[miner] state for image hash %s\nstate: %s", imageHash, string(state))
 	headStateFileName := tmpStateFile.Name()
 	runningBlockNumber, err := hexutil.DecodeUint64(prevStateBlock.Props().BlockNumber)
 	if err != nil {
@@ -480,6 +484,10 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 
 	// apply state to container and start running transactions
 	for i, tx := range transactions {
+		if s.props.Context.Err() != nil {
+			return s.props.Context.Err()
+		}
+
 		if tx == nil {
 			log.Printf("[miner] tx is nil for image hash %s", imageHash)
 			return errors.New("nil tx")
@@ -585,13 +593,13 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 
 	// write to the mined block
 	s.minedBlock.mut.Lock()
+	defer s.minedBlock.mut.Unlock()
 	// note: they should all have same length
 	for i := 0; i < len(newDiffs); i++ {
 		s.minedBlock.DiffsMap[*newDiffs[i].Props().DiffHash] = newDiffs[i]
 		s.minedBlock.TransactionsMap[*newTxs[i].Props().TxHash] = newTxs[i]
 		s.minedBlock.StatechainBlocksMap[*newStatechainBlocks[i].Props().BlockHash] = newStatechainBlocks[i]
 	}
-	s.minedBlock.mut.Unlock()
 
 	return nil
 }

@@ -51,6 +51,8 @@ var (
 )
 
 func TestNew(t *testing.T) {
+	t.Parallel()
+
 	expecteds := []Block{
 		Block{
 			props: p,
@@ -74,6 +76,8 @@ func TestNew(t *testing.T) {
 }
 
 func TestProps(t *testing.T) {
+	t.Parallel()
+
 	expecteds := []BlockProps{
 		p,
 		p1,
@@ -169,6 +173,8 @@ func TestDeserialize(t *testing.T) {
 }
 
 func TestSerializeDeserializeStatechainBlock(t *testing.T) {
+	t.Parallel()
+
 	blocks := []*Block{
 		New(&p),
 		New(&p1),
@@ -195,6 +201,8 @@ func TestSerializeDeserializeStatechainBlock(t *testing.T) {
 }
 
 func TestSerializeDeserializeStringStatechainBlock(t *testing.T) {
+	t.Parallel()
+
 	blocks := []*Block{
 		New(&p),
 		New(&p1),
@@ -223,6 +231,7 @@ func TestSerializeDeserializeStringStatechainBlock(t *testing.T) {
 func TestHash(t *testing.T) {
 	// TODO: fix!
 	t.Skip()
+
 	expecteds := []string{
 		blockHash,
 		blockHash1,

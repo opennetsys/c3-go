@@ -84,7 +84,7 @@ test/check:
 	@pgrep -f docker > /dev/null || echo "Docker daemon is not running"
 
 .PHONY: test
-test: test/check test/sdk test/common test/common test/registry test/core test/cleanup
+test: test/check test/sdk test/common test/registry test/core test/unit test/integration test/e2e test/cleanup
 
 .PHONY: test/cleanup
 test/cleanup:
@@ -92,6 +92,23 @@ test/cleanup:
 	@. scripts/test_cleanup.sh
 
 # /END TEST ALL
+
+# TEST TYPES
+
+.PHONY: test/unit
+test/unit:
+	@go test ./... -tags=unit
+
+.PHONY: test/integration
+test/integration:
+	@go test ./... -tags=integration
+
+.PHONY: test/e2e
+test/e2e:
+	@go test ./... -tags=e2e
+
+
+# /END TEST TYPES
 
 # SDK
 

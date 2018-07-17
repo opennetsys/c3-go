@@ -107,6 +107,8 @@ func TestNew(t *testing.T) {
 }
 
 func TestProps(t *testing.T) {
+	t.Parallel()
+
 	expecteds := []Props{
 		p,
 		p1,
@@ -238,6 +240,8 @@ func TestHash(t *testing.T) {
 }
 
 func TestGenesisBlockHash(t *testing.T) {
+	t.Parallel()
+
 	hash, err := GenesisBlock.CalculateHash()
 	if err != nil {
 		t.Error(err)
@@ -249,6 +253,8 @@ func TestGenesisBlockHash(t *testing.T) {
 }
 
 func TestSerializeDeserialize(t *testing.T) {
+	t.Parallel()
+
 	b := &Block{
 		props: p,
 	}
@@ -278,6 +284,8 @@ func TestSerializeDeserialize(t *testing.T) {
 }
 
 func TestSerializeDeserializeString(t *testing.T) {
+	t.Parallel()
+
 	b := &Block{
 		props: p,
 	}
@@ -307,6 +315,8 @@ func TestSerializeDeserializeString(t *testing.T) {
 }
 
 func TestDeepEqual(t *testing.T) {
+	t.Parallel()
+
 	b := &Block{
 		props: p,
 	}

@@ -18,6 +18,8 @@ var (
 )
 
 func TestSerializeDeserializeDiff(t *testing.T) {
+	t.Parallel()
+
 	inputs := []*Diff{
 		NewDiff(diffProps1),
 		NewDiff(diffProps2),
@@ -48,6 +50,8 @@ func TestSerializeDeserializeDiff(t *testing.T) {
 }
 
 func TestSerializeDeserializeStringDiff(t *testing.T) {
+	t.Parallel()
+
 	inputs := []*Diff{
 		NewDiff(diffProps1),
 		NewDiff(diffProps2),

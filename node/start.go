@@ -174,7 +174,7 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 		return fmt.Errorf("err setting head block\n%v", err)
 	}
 
-	err = n.setProps(Props{
+	n.props = Props{
 		Context:             ctx,
 		SubscriberChannel:   make(chan interface{}),
 		CancelMinersChannel: make(chan struct{}),
@@ -187,9 +187,6 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 			Priv: priv,
 			Pub:  pub,
 		},
-	})
-	if err != nil {
-		return fmt.Errorf("err building the node\n%v", err)
 	}
 
 	if err := n.listenForEvents(); err != nil {
@@ -199,7 +196,7 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 	if err := n.spawnNextBlockMiner(nextBlock); err != nil {
 		return fmt.Errorf("err starting miner\n%v", err)
 	}
-	log.Printf("[node] node %s started", newNode.ID().Pretty())
+	log.Printf("[node] started %s", newNode.ID().Pretty())
 
 	for {
 		switch v := <-n.props.SubscriberChannel; v.(type) {
