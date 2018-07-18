@@ -17,6 +17,10 @@ func CompactJSON(src []byte) ([]byte, error) {
 	re = regexp.MustCompile(`(\]|\})[^]}].*?$`)
 	s = re.ReplaceAllString(s, "$1")
 
+	if s == "" {
+		return []byte(`{}`), nil
+	}
+
 	if err := json.Compact(b, []byte(s)); err != nil {
 		log.Printf("[util] fail to compact %s", err)
 		return nil, err

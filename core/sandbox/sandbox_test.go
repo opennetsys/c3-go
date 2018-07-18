@@ -6,8 +6,9 @@ import (
 )
 
 // Docker file found in /example
-//var imageID = "QmWEXdgvsWs5Kr28W9NtRbru5n4AJ9NDsnFyHHiR23QGpT"
-var imageID = "af03e3c71e98"
+var imageID = "Qmf9XFxbFDGv4yssc7YvAisxxUBU89BFbimAAYgT33ZTAf"
+
+//var imageID = "0192547c385a"
 
 func init() {
 	// Makefile will set this env var

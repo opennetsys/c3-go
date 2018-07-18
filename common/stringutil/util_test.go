@@ -19,6 +19,18 @@ func TestCompactJSON(t *testing.T) {
 			[]byte(`\x00\x01["foo", "bar","hello" ,"world",["sub"]]\x00`),
 			[]byte(`["foo","bar","hello","world",["sub"]]`),
 		},
+		{
+			[]byte(`{}`),
+			[]byte(`{}`),
+		},
+		{
+			[]byte(`[]`),
+			[]byte(`[]`),
+		},
+		{
+			[]byte(``),
+			[]byte(`{}`),
+		},
 	}
 
 	for i, tt := range tests {

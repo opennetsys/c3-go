@@ -14,8 +14,8 @@ import (
 )
 
 func TestBroadcast(t *testing.T) {
-	// imageHash := "Qmf9XFxbFDGv4yssc7YvAisxxUBU89BFbimAAYgT33ZTAf"
-	imageHash := "e8758b300c09"
+	imageHash := "Qmf9XFxbFDGv4yssc7YvAisxxUBU89BFbimAAYgT33ZTAf"
+	//imageHash := "e8758b300c09"
 	/*
 			dockerclient := docker.NewClient()
 			err := dockerclient.LoadImageByFilepath("./test_data/go_example_image.tar")
@@ -77,7 +77,7 @@ func TestBroadcast(t *testing.T) {
 	tx1 := statechain.NewTransaction(&statechain.TransactionProps{
 		ImageHash: imageHash,
 		Method:    methodTypes.Deploy,
-		Payload:   []byte(`{"hello": "world"}`),
+		Payload:   []byte(`{"hello": "world!"}`),
 		From:      encodedPub,
 	})
 
