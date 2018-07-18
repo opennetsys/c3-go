@@ -21,7 +21,7 @@ func Hash(data []byte) [sha512.Size256]byte {
 // HashToHexString ...
 func HashToHexString(data []byte) string {
 	b := Hash(data)
-	return hexutil.EncodeString(string(b[:]))
+	return hexutil.EncodeToString(b[:])
 }
 
 // IsEqual ...

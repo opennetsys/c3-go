@@ -4,6 +4,8 @@ import (
 	"errors"
 	"sync"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/statechain"
 )
@@ -153,12 +155,16 @@ func (s *Service) AddTx(tx *statechain.Transaction) error {
 
 // GatherPendingTransactions ...
 func (s *Service) GatherPendingTransactions() ([]*statechain.Transaction, error) {
+	log.Println("[mempool] gathering pending transactions")
 	s.txPoolMut.mut.Lock()
 	defer s.txPoolMut.mut.Unlock()
 
 	txs := make([]*statechain.Transaction, len(s.txPoolMut.pool), len(s.txPoolMut.pool))
 	idx := 0
+
+	log.Printf("[mempool] tx pool size; %v", len(s.txPoolMut.pool))
 	for _, byteStr := range s.txPoolMut.pool {
+		log.Printf("[mempool] tx pool %s", byteStr)
 		tx := new(statechain.Transaction)
 		if err := tx.DeserializeString(byteStr); err != nil {
 			return nil, err
@@ -236,7 +242,7 @@ func (s *Service) RemovePendingMainchainBlock(blockHash string) error {
 	return nil
 }
 
-// RemovePendingBlocks ...
+// RemovePendingMainchainBlocks ...
 func (s *Service) RemovePendingMainchainBlocks(blockHashes []string) error {
 	s.pendingBlocksMut.mut.Lock()
 	defer s.pendingBlocksMut.mut.Unlock()

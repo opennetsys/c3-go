@@ -12,7 +12,7 @@ import (
 	"github.com/c3systems/c3/common/stringutil"
 	c3config "github.com/c3systems/c3/config"
 	"github.com/c3systems/c3/core/server"
-	"github.com/c3systems/c3/logger"
+	loghooks "github.com/c3systems/c3/logger/hooks"
 )
 
 var (
@@ -239,5 +239,5 @@ func (c3 *C3) listen() error {
 }
 
 func init() {
-	log.AddHook(logger.ContextHook{})
+	log.AddHook(loghooks.ContextHook{})
 }

@@ -7,6 +7,7 @@ import (
 	"math"
 	"math/big"
 	"strconv"
+	"strings"
 	"unsafe"
 )
 
@@ -44,18 +45,23 @@ func EncodeString(str string) string {
 }
 
 // DecodeString ...
-func DecodeString(hexStr string) (string, error) {
+func DecodeString(hexStr string) ([]byte, error) {
 	str, err := StripLeader(hexStr)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	bytes, err := hex.DecodeString(str)
+	b, err := hex.DecodeString(str)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return string(bytes), nil
+	return b, nil
+}
+
+// EncodeToString ...
+func EncodeToString(b []byte) string {
+	return AddLeader(hex.EncodeToString(b))
 }
 
 // EncodeBytes ...
@@ -138,16 +144,7 @@ func DecodeFloat64(hexStr string) (float64, error) {
 
 // StripLeader ...
 func StripLeader(hexStr string) (string, error) {
-	leaderLen := len(Leader)
-	if len(hexStr) < leaderLen {
-		return "", ErrNotHexString
-	}
-
-	if hexStr[:leaderLen] != Leader {
-		return "", ErrNotHexString
-	}
-
-	return hexStr[leaderLen:], nil
+	return strings.TrimPrefix(hexStr, Leader), nil
 }
 
 // AddLeader ...

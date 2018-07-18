@@ -18,6 +18,7 @@ import (
 	"github.com/c3systems/c3/core/p2p/protobuff"
 	pb "github.com/c3systems/c3/core/p2p/protobuff/pb"
 	"github.com/c3systems/c3/core/p2p/store/leveldbstore"
+	loghooks "github.com/c3systems/c3/logger/hooks"
 	"github.com/c3systems/c3/node/store/safemempool"
 	nodetypes "github.com/c3systems/c3/node/types"
 
@@ -137,7 +138,7 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 
 	discoverySvc, err := discovery.NewMdnsService(ctx, newNode, time.Second, "c3")
 	if err != nil {
-		return fmt.Errorf("err starting discovery service\n%v", err)
+		return fmt.Errorf("error starting discovery service\n%v", err)
 	}
 	discoverySvc.RegisterNotifee(&DiscoveryNotifee{newNode})
 
@@ -192,7 +193,7 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 		Router:     dhtSvc,
 	})
 	if err != nil {
-		return fmt.Errorf("err starting ipfs p2p network\n%v", err)
+		return fmt.Errorf("error starting ipfs p2p network\n%v", err)
 	}
 
 	pBuff, err := protobuff.NewNode(&protobuff.Props{
@@ -201,7 +202,7 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 		BroadcastTransactionFN: n.BroadcastTransaction,
 	})
 	if err != nil {
-		return fmt.Errorf("err starting protobuff node\n%v", err)
+		return fmt.Errorf("error starting protobuff node\n%v", err)
 	}
 
 	c, err := p2pSvc.SetMainchainBlock(&mainchain.GenesisBlock)
@@ -249,11 +250,11 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 	}
 
 	if err := n.listenForEvents(); err != nil {
-		return fmt.Errorf("err starting listener\n%v", err)
+		return fmt.Errorf("error starting listener\n%v", err)
 	}
 	// TODO: add a cli flag to determine if the node mines
 	if err := n.spawnNextBlockMiner(nextBlock); err != nil {
-		return fmt.Errorf("err starting miner\n%v", err)
+		return fmt.Errorf("error starting miner in main start method\n%v", err)
 	}
 	log.Printf("[node] started %s", newNode.ID().Pretty())
 
@@ -416,4 +417,8 @@ func addAddr(conn net.Conn) {
 	}
 
 	log.Printf("[node] connected to %s", conn.RemoteMultiaddr())
+}
+
+func init() {
+	log.AddHook(loghooks.ContextHook{})
 }

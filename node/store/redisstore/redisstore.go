@@ -2,6 +2,7 @@ package redisstore
 
 import (
 	"errors"
+	"log"
 
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/statechain"
@@ -167,6 +168,7 @@ func (s Service) AddTx(tx *statechain.Transaction) error {
 
 // GatherPendingTransactions ...
 func (s Service) GatherPendingTransactions() ([]*statechain.Transaction, error) {
+	log.Println("[redismempool] gathering pending transactions")
 	c := s.props.Pool.Get()
 	defer c.Close()
 

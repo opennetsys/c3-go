@@ -3,6 +3,7 @@ package merkle
 import (
 	"encoding/json"
 	"errors"
+	"reflect"
 
 	log "github.com/sirupsen/logrus"
 
@@ -31,7 +32,7 @@ func New(props *TreeProps) (*Tree, error) {
 func BuildFromObjects(chainObjects []merkletree.Content, kind string) (*Tree, error) {
 	if chainObjects == nil || len(chainObjects) == 0 {
 		hashes := []string{}
-		mrRootHash := hexutil.EncodeString("")
+		mrRootHash := "0x0"
 		return &Tree{
 			props: TreeProps{
 				MerkleTreeRootHash: &mrRootHash,
@@ -52,7 +53,11 @@ func BuildFromObjects(chainObjects []merkletree.Content, kind string) (*Tree, er
 		return nil, ErrUnknownKind
 	}
 
+	log.Println("[merkle] building tree")
+
 	for _, chainObject := range chainObjects {
+		log.Printf("[merkle] chain object %v", chainObject)
+
 		if chainObject == nil {
 			log.Println("[merkle] nil chain object")
 			return nil, ErrNilChainObject
@@ -65,7 +70,9 @@ func BuildFromObjects(chainObjects []merkletree.Content, kind string) (*Tree, er
 			log.Printf("[merkle] error calculating hash bytes; %s", err)
 			return nil, err
 		}
-		hashes = append(hashes, string(hash))
+
+		log.Printf("[merkle] appending hash %s", hexutil.EncodeToString(hash))
+		hashes = append(hashes, hexutil.EncodeToString(hash))
 	}
 
 	t, err := merkletree.NewTree(list)
@@ -75,7 +82,7 @@ func BuildFromObjects(chainObjects []merkletree.Content, kind string) (*Tree, er
 	}
 
 	mr := t.MerkleRoot()
-	mrRootHash := hexutil.EncodeString(string(mr))
+	mrRootHash := hexutil.EncodeToString(mr)
 	return &Tree{
 		props: TreeProps{
 			MerkleTreeRootHash: &mrRootHash,
@@ -132,7 +139,7 @@ func (t *Tree) SerializeString() (string, error) {
 		return "", err
 	}
 
-	return hexutil.EncodeString(string(data)), nil
+	return hexutil.EncodeToString(data), nil
 }
 
 // DeserializeString ...
@@ -141,12 +148,12 @@ func (t *Tree) DeserializeString(hexStr string) error {
 		return ErrNilMerkleTree
 	}
 
-	str, err := hexutil.DecodeString(hexStr)
+	b, err := hexutil.DecodeString(hexStr)
 	if err != nil {
 		return err
 	}
 
-	return t.Deserialize([]byte(str))
+	return t.Deserialize(b)
 }
 
 // CalculateHash ...
@@ -200,7 +207,7 @@ func (t *Tree) Equals(other merkletree.Content) (bool, error) {
 		return false, err
 	}
 
-	return string(tHash) == string(oHash), nil
+	return reflect.DeepEqual(tHash, oHash), nil
 }
 
 // SetHash ...

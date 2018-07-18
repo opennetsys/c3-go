@@ -52,12 +52,12 @@ func (m *MinedBlock) Deserialize(data []byte) error {
 
 // SerializeString ...
 func (m *MinedBlock) SerializeString() (string, error) {
-	bytes, err := m.Serialize()
+	b, err := m.Serialize()
 	if err != nil {
 		return "", err
 	}
 
-	return hexutil.EncodeString(string(bytes)), nil
+	return hexutil.EncodeToString(b), nil
 }
 
 // DeserializeString ...
@@ -66,12 +66,12 @@ func (m *MinedBlock) DeserializeString(hexStr string) error {
 		return ErrNilBlock
 	}
 
-	str, err := hexutil.DecodeString(hexStr)
+	b, err := hexutil.DecodeString(hexStr)
 	if err != nil {
 		return err
 	}
 
-	return m.Deserialize([]byte(str))
+	return m.Deserialize(b)
 }
 
 // BuildCoderFromBlock ...

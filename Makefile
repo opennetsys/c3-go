@@ -84,7 +84,10 @@ test/check:
 	@pgrep -f docker > /dev/null || echo "Docker daemon is not running"
 
 .PHONY: test
-test: test/check test/sdk test/common test/registry test/core test/unit test/integration test/e2e test/cleanup
+test: test/check test/sdk test/common test/cleanup
+	# test/unit test/integration test/e2e
+	# test/core
+	# test/registry
 
 .PHONY: test/cleanup
 test/cleanup:
@@ -147,7 +150,9 @@ test/common/c3crypto:
 # CORE
 
 .PHONY: test/core
-test/core: test/core/server test/core/docker test/core/ipfs test/core/sandbox
+test/core: test/core/server test/core/ipfs
+	# test/core/sandbox
+	# test/core/docker
 	# test/core/chain/mainchain/miner
 
 .PHONY: test/core/server

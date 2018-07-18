@@ -3,7 +3,6 @@
 package hexutil
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 	"reflect"
@@ -97,15 +96,11 @@ func TestDecodeString(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		in  string
-		out string
+		out []byte
 	}{
 		{
-			"0x68656c6c6f",
-			"hello",
-		},
-		{
-			"0x313233",
-			"123",
+			"0x1234",
+			[]byte{18, 52},
 		},
 	}
 
@@ -116,8 +111,30 @@ func TestDecodeString(t *testing.T) {
 				t.Error(err)
 			}
 
-			if decoded != tt.out {
+			if !reflect.DeepEqual(decoded, tt.out) {
 				t.Errorf("want %s; got %s", tt.out, decoded)
+			}
+		})
+	}
+}
+
+func TestEncodeToString(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		in  []byte
+		out string
+	}{
+		{
+			[]byte("hello"),
+			"0x68656c6c6f",
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
+			encoded := EncodeToString(tt.in)
+			if encoded != tt.out {
+				t.Errorf("want %s; got %s", tt.out, encoded)
 			}
 		})
 	}
@@ -346,8 +363,8 @@ func TestStripLeader(t *testing.T) {
 		},
 		{
 			"123",
-			"",
-			errors.New("not a hex string"),
+			"123",
+			nil,
 		},
 		{
 			"0x",
@@ -391,7 +408,7 @@ func TestEncodeStringDecodeString(t *testing.T) {
 			t.Error(err)
 		}
 
-		if in != out {
+		if in != string(out) {
 			t.Errorf("test %d failed; expected %s\nreceived %s", idx+1, in, out)
 		}
 	}

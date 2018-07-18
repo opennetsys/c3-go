@@ -397,7 +397,7 @@ func EncodeAddress(pub *ecdsa.PublicKey) (string, error) {
 		return "", err
 	}
 
-	return hexutil.AddLeader(string(hexutil.EncodeBytes(bytes))), nil
+	return hexutil.EncodeToString(bytes), nil
 }
 
 // DecodeAddress [for now] decodes public address hex to ECDSA public key.

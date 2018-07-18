@@ -73,7 +73,7 @@ func (tx *Transaction) SerializeString() (string, error) {
 		return "", err
 	}
 
-	return hexutil.EncodeString(string(data)), nil
+	return hexutil.EncodeToString(data), nil
 }
 
 // DeserializeString ...
@@ -82,22 +82,22 @@ func (tx *Transaction) DeserializeString(hexStr string) error {
 		return ErrNilTx
 	}
 
-	str, err := hexutil.DecodeString(hexStr)
+	b, err := hexutil.DecodeString(hexStr)
 	if err != nil {
 		return err
 	}
 
-	return tx.Deserialize([]byte(str))
+	return tx.Deserialize(b)
 }
 
 // CalculateHash ...
 func (tx *Transaction) CalculateHash() (string, error) {
-	bytes, err := tx.CalculateHashBytes()
+	bts, err := tx.CalculateHashBytes()
 	if err != nil {
 		return "", err
 	}
 
-	return hexutil.EncodeString(string(bytes)), nil
+	return hexutil.EncodeToString(bts), nil
 }
 
 // CalculateHashBytes ...

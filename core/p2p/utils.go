@@ -8,6 +8,7 @@ import (
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/merkle"
 	"github.com/c3systems/c3/core/chain/statechain"
+	colorlog "github.com/c3systems/c3/logger/color"
 	log "github.com/sirupsen/logrus"
 
 	bfmt "github.com/ipfs/go-block-format"
@@ -316,7 +317,7 @@ func PutMainchainBlock(bs bserv.BlockService, block *mainchain.Block) (*cid.Cid,
 		return nil, err
 	}
 
-	log.Printf("[p2p] ipfs add main chain block %s", c.String())
+	colorlog.Yellow("[p2p] ipfs add main chain block %s", c.String())
 
 	if err := bs.AddBlock(basicIPFSBlock); err != nil {
 		return nil, err
@@ -327,6 +328,7 @@ func PutMainchainBlock(bs bserv.BlockService, block *mainchain.Block) (*cid.Cid,
 
 // PutStatechainBlock ...
 func PutStatechainBlock(bs bserv.BlockService, block *statechain.Block) (*cid.Cid, error) {
+	log.Printf("[p2p] saving state chain block number %s", block.Props().BlockNumber)
 	if bs == nil || block == nil {
 		return nil, errors.New("arguments cannot be nil")
 	}
@@ -346,7 +348,7 @@ func PutStatechainBlock(bs bserv.BlockService, block *statechain.Block) (*cid.Ci
 		return nil, err
 	}
 
-	log.Printf("[p2p] ipfs add state chain block %s", c.String())
+	colorlog.Yellow("[p2p] ipfs add state chain block %s", c.String())
 
 	if err := bs.AddBlock(basicIPFSBlock); err != nil {
 		return nil, err

@@ -63,12 +63,12 @@ func (d *Diff) Deserialize(data []byte) error {
 
 // SerializeString ...
 func (d Diff) SerializeString() (string, error) {
-	bytes, err := d.Serialize()
+	bts, err := d.Serialize()
 	if err != nil {
 		return "", err
 	}
 
-	return hexutil.EncodeString(string(bytes)), nil
+	return hexutil.EncodeToString(bts), nil
 }
 
 // DeserializeString ...
@@ -77,22 +77,22 @@ func (d *Diff) DeserializeString(hexStr string) error {
 		return ErrNilDiff
 	}
 
-	str, err := hexutil.DecodeString(hexStr)
+	bts, err := hexutil.DecodeString(hexStr)
 	if err != nil {
 		return err
 	}
 
-	return d.Deserialize([]byte(str))
+	return d.Deserialize(bts)
 }
 
 // CalculateHash ...
 func (d Diff) CalculateHash() (string, error) {
-	bytes, err := d.CalculateHashBytes()
+	bts, err := d.CalculateHashBytes()
 	if err != nil {
 		return "", err
 	}
 
-	return hexutil.EncodeString(string(bytes)), nil
+	return hexutil.EncodeToString(bts), nil
 }
 
 // CalculateHashBytes ...

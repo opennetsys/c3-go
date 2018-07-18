@@ -20,6 +20,6 @@ package hashing
 
 //for idx, in := range inputs {
 //b := Hash(in)
-//log.Printf("test %d; str: %s\nbytes: %v\nhex encoded string: %s\nhex encoded bytes: %s", idx, string(b[:]), b, hexutil.EncodeString(string(b[:])), string(hexutil.EncodeBytes(b[:])))
+//log.Printf("test %d; str: %s\nbytes: %v\nhex encoded string: %s\nhex encoded bytes: %s", idx, string(b[:]), b, hexutil.EncodeToString(b[:]), string(hexutil.EncodeBytes(b[:])))
 //}
 //}

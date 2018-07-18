@@ -37,10 +37,13 @@ func New(props *Props) (*Service, error) {
 func (s *Service) spawnNextBlockMiner(prevBlock *mainchain.Block) error {
 	pendingTransactions, err := s.props.Store.GatherPendingTransactions()
 	if err != nil {
+		log.Printf("[node] error gathering pending transactions; %v", err)
 		return err
 	}
+
 	encMinerAddr, err := c3crypto.EncodeAddress(s.props.Keys.Pub)
 	if err != nil {
+		log.Printf("[node] error encoding miner address; %v", err)
 		return err
 	}
 
@@ -76,6 +79,8 @@ func (s *Service) spawnNextBlockMiner(prevBlock *mainchain.Block) error {
 }
 
 func (s *Service) spawnMinerListener(cancel context.CancelFunc, minerChan chan interface{}) error {
+	log.Println("[node] spawned miner listener")
+
 	go func() {
 		select {
 		case v := <-minerChan:
@@ -106,7 +111,7 @@ func (s *Service) spawnMinerListener(cancel context.CancelFunc, minerChan chan i
 							}
 
 							if err := s.spawnNextBlockMiner(&nextBlock); err != nil {
-								log.Printf("[node] err starting miner\n%v", err)
+								log.Errorf("[node] error starting miner\n%v", err)
 								return
 							}
 						}()
@@ -300,10 +305,12 @@ func (s *Service) BroadcastTransaction(tx *statechain.Transaction) (*nodetypes.S
 
 	data, err := tx.Serialize()
 	if err != nil {
+		log.Printf("[node] error serializing transaction; %v", err)
 		return nil, err
 	}
 
 	if err := s.props.Pubsub.Publish("transactions", data); err != nil {
+		log.Printf("[node] error publishing transaction; %v", err)
 		return nil, err
 	}
 
@@ -327,6 +334,8 @@ func (s *Service) BroadcastTransaction(tx *statechain.Transaction) (*nodetypes.S
 //}
 
 func (s *Service) handleReceiptOfMinedBlock(minedBlock *miner.MinedBlock) {
+	log.Println("[node] handling receipt of mined block")
+
 	if minedBlock == nil {
 		log.Println("[node] received nil block")
 		return
@@ -340,8 +349,8 @@ func (s *Service) handleReceiptOfMinedBlock(minedBlock *miner.MinedBlock) {
 		return
 	}
 
-	log.Printf("[node] received mined block on the channel\n")
-	spew.Dump(minedBlock)
+	colorlog.Yellow("[node] received mined block on the channel\nblock number: %s", minedBlock.NextBlock.Props().BlockNumber)
+	//spew.Dump(minedBlock)
 
 	if err := s.props.Store.SetPendingMainchainBlock(minedBlock.NextBlock); err != nil {
 		log.Printf("[node] err setting pending mainchain block\n%v", err)
@@ -473,7 +482,7 @@ func (s *Service) handleReceiptOfStatechainTransaction(tx *statechain.Transactio
 			return
 		}
 
-		log.Printf("[node] tx added to mempool; tx hash: %s", *tx.Props().TxHash)
+		colorlog.Magenta("[node] tx new added to mempool; tx hash: %s", *tx.Props().TxHash)
 	}
 
 	if err != nil {
@@ -500,49 +509,60 @@ func (s *Service) setMinedBlockData(minedBlock *miner.MinedBlock) error {
 
 	blk := minedBlock.NextBlock.Props()
 
-	colorlog.Green("[node] storing mined block data\nblock number: %s\nblock hash: %s\nstate blocks merkle hash: %s", blk.BlockNumber, *blk.BlockHash, blk.StateBlocksMerkleHash)
+	colorlog.Green("[node] storing mined block data\nblock number: %s\nblock hash: %s\nstate blocks merkle hash: %s\nstate chain blocks: %v\ntransactions: %v", blk.BlockNumber, *blk.BlockHash, blk.StateBlocksMerkleHash, len(minedBlock.StatechainBlocksMap), len(minedBlock.TransactionsMap))
 
 	for _, statechainBlock := range minedBlock.StatechainBlocksMap {
 		if statechainBlock == nil {
+			log.Println("[node] mined block state chain block is nil, continuing")
 			continue
 		}
 
 		if _, err := s.props.P2P.SetStatechainBlock(statechainBlock); err != nil {
+			log.Printf("[node] error setting state chain block; %v", err)
 			return err
 		}
+
+		colorlog.Yellow("[node] state chain block set;\nstate chain block number: %s\nstate chain block hash: %s", statechainBlock.Props().BlockTime, *statechainBlock.Props().BlockHash)
 	}
 
 	for _, transaction := range minedBlock.TransactionsMap {
 		if transaction == nil {
+			log.Println("[node] mined block transaction is nil, continuing")
 			continue
 		}
 
 		if _, err := s.props.P2P.SetStatechainTransaction(transaction); err != nil {
+			log.Printf("[node] error setting state chain transaction; %v", err)
 			return err
 		}
 	}
 
 	for _, diff := range minedBlock.DiffsMap {
 		if diff == nil {
+			log.Println("[node] mined block diff is nil, continuing")
 			continue
 		}
 
 		if _, err := s.props.P2P.SetStatechainDiff(diff); err != nil {
+			log.Printf("[node] error setting state chain diff diff; %v", err)
 			return err
 		}
 	}
 
 	for _, tree := range minedBlock.MerkleTreesMap {
 		if tree == nil {
+			log.Println("[node] mined block merkle tree is nil, continuing")
 			continue
 		}
 
 		if _, err := s.props.P2P.SetMerkleTree(tree); err != nil {
+			log.Printf("[node] error setting main chain merkle tree; %v", err)
 			return err
 		}
 	}
 
 	if _, err := s.props.P2P.SetMainchainBlock(minedBlock.NextBlock); err != nil {
+		log.Printf("[node] error setting main chain block; %v", err)
 		return err
 	}
 
@@ -550,6 +570,7 @@ func (s *Service) setMinedBlockData(minedBlock *miner.MinedBlock) error {
 }
 
 func (s *Service) removeMinedTxs(minedBlock *miner.MinedBlock) error {
+	log.Println("[node] removing mined transactions for block")
 	var txs []string
 	for txHash := range minedBlock.TransactionsMap {
 		txs = append(txs, txHash)

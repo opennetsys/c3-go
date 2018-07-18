@@ -25,7 +25,6 @@ import (
 	loghooks "github.com/c3systems/c3/logger/hooks"
 	"github.com/c3systems/c3/registry/server"
 	"github.com/c3systems/c3/registry/util"
-	"github.com/davecgh/go-spew/spew"
 )
 
 // Registry ...
@@ -206,7 +205,7 @@ func ipfsPrep(tmp string) (string, error) {
 		return "", err
 	}
 
-	spew.Dump(mf)
+	//spew.Dump(mf)
 
 	err = writeJSON(mf, workdir+"/manifests/latest-v2")
 	if err != nil {

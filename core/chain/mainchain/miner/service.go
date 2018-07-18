@@ -19,6 +19,7 @@ import (
 	"github.com/c3systems/c3/core/p2p"
 	"github.com/c3systems/c3/core/sandbox"
 	methodTypes "github.com/c3systems/c3/core/types/methods"
+	colorlog "github.com/c3systems/c3/logger/color"
 	loghooks "github.com/c3systems/c3/logger/hooks"
 	"github.com/c3systems/merkletree"
 )
@@ -121,7 +122,7 @@ func (s Service) buildMainchainBlockAsync() error {
 
 			if err1 := s.buildNextStates(iHash, txs); err1 != nil {
 				// err = err1 note: don't do this, we'll just skip this image hash
-				log.Printf("[miner] err mining state block for hash %s transactions %v: %v", iHash, txs, err1)
+				log.Errorf("[miner] err mining state block for hash %s transactions %v: %v", iHash, txs, err1)
 				return
 			}
 		}(imageHash, transactions)
@@ -150,7 +151,7 @@ func (s Service) buildMainchainBlock() error {
 		}
 
 		if err := s.buildNextStates(imageHash, transactions); err != nil {
-			log.Printf("[miner] err mining state block for hash %s transactions %v: %v", imageHash, transactions, err)
+			log.Errorf("[miner] err mining state block for hash %s transactions %v: %v", imageHash, transactions, err)
 			continue
 		}
 	}
@@ -245,6 +246,7 @@ func (s Service) generateMerkle() error {
 	nextProps.StateBlocksMerkleHash = *tree.Props().MerkleTreeRootHash
 	nextBlock := mainchain.New(&nextProps)
 	s.minedBlock.NextBlock = nextBlock
+	log.Printf("[miner] state blocks merkle hash %s", *tree.Props().MerkleTreeRootHash)
 
 	return nil
 }
@@ -269,7 +271,7 @@ func (s Service) generateNonce() (string, error) {
 		return "", err
 	}
 
-	return hexutil.EncodeString(string(bytes)), nil
+	return hexutil.EncodeToString(bytes), nil
 }
 
 func (s Service) bootstrapNextBlock() (*mainchain.Block, error) {
@@ -306,6 +308,8 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 		diffs          []*statechain.Diff
 		prevStateBlock *statechain.Block
 	)
+
+	colorlog.Cyan("[miner] processing %v transactions for image hash %s", len(transactions), imageHash)
 
 	log.Printf("[miner] build next state state; image hash: %s, tx count: %v", imageHash, len(transactions))
 
@@ -566,7 +570,7 @@ func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBloc
 			return nil, nil, err
 		}
 
-		nextStateHash := hexutil.EncodeBytes(nextState)
+		nextStateHash := hexutil.EncodeToString(nextState)
 		runningBlockNumber++
 		nextStateStruct := statechain.New(&statechain.BlockProps{
 			BlockNumber:       hexutil.EncodeUint64(runningBlockNumber),
@@ -575,7 +579,7 @@ func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBloc
 			TxHash:            *tx.Props().TxHash, // note: checked for nil pointer, above
 			PrevBlockHash:     runningBlockHash,
 			StatePrevDiffHash: *diffStruct.Props().DiffHash, // note: used setHash, above so it would've erred
-			StateCurrentHash:  string(nextStateHash),
+			StateCurrentHash:  nextStateHash,
 		})
 		if err := nextStateStruct.SetHash(); err != nil {
 			return nil, nil, err
