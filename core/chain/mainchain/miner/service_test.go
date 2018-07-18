@@ -1,7 +1,6 @@
 package miner
 
 import (
-	"context"
 	"testing"
 
 	"github.com/c3systems/c3/common/c3crypto"
@@ -40,22 +39,22 @@ func TestBuildGenesisStateBlock(t *testing.T) {
 	}
 
 	txs := []*statechain.Transaction{tx}
-	ctx := context.TODO()
-	mnr, err := New(&Props{
-		Context:             ctx,
-		PreviousBlock:       nil,
-		Difficulty:          uint64(5),
-		Channel:             make(chan interface{}),
-		Async:               true,
-		EncodedMinerAddress: "",
-		PendingTransactions: txs,
-	})
+	// ctx := context.TODO()
+	// mnr, err := New(&Props{
+	// 	Context:             ctx,
+	// 	PreviousBlock:       nil,
+	// 	Difficulty:          uint64(5),
+	// 	Channel:             make(chan interface{}),
+	// 	Async:               true,
+	// 	EncodedMinerAddress: "",
+	// 	PendingTransactions: txs,
+	// })
 
-	if err != nil {
-		t.Error(err)
-	}
+	// if err != nil {
+	// 	t.Error(err)
+	// }
 
-	err = mnr.buildGenesisStateBlock(imageHash, txs[0])
+	_, _, err = buildGenesisStateBlock(imageHash, txs[0])
 	if err != nil {
 		t.Error(err)
 	}

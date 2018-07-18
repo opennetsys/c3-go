@@ -14,8 +14,8 @@ import (
 )
 
 func TestBroadcast(t *testing.T) {
-	imageHash := "Qmf9XFxbFDGv4yssc7YvAisxxUBU89BFbimAAYgT33ZTAf"
-
+	// imageHash := "Qmf9XFxbFDGv4yssc7YvAisxxUBU89BFbimAAYgT33ZTAf"
+	imageHash := "e8758b300c09"
 	/*
 			dockerclient := docker.NewClient()
 			err := dockerclient.LoadImageByFilepath("./test_data/go_example_image.tar")
@@ -88,7 +88,7 @@ func TestBroadcast(t *testing.T) {
 		From:      encodedPub,
 	})
 
-	tx := tx1
+	tx := tx2
 	_ = tx1
 	_ = tx2
 

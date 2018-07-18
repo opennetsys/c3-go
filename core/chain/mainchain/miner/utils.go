@@ -700,7 +700,7 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, prevState []byte, prevBlo
 		return nil, nil, nil, err
 	}
 	defer os.Remove(outPatchFile.Name()) // clean up
-	if err := outPatchFile.Close(); err != nil {
+	if err = outPatchFile.Close(); err != nil {
 		return nil, nil, nil, err
 	}
 	prevStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/prevState.txt", prevBlock.Props().ImageHash, ts))
@@ -755,14 +755,14 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, prevState []byte, prevBlo
 		}
 		defer os.Remove(nextStateFile.Name()) // clean up
 
-		if _, err := nextStateFile.Write(nextState); err != nil {
+		if _, err = nextStateFile.Write(nextState); err != nil {
 			return nil, nil, nil, err
 		}
-		if err := nextStateFile.Close(); err != nil {
+		if err = nextStateFile.Close(); err != nil {
 			return nil, nil, nil, err
 		}
 
-		if err := diffing.Diff(prevStateFileName, nextStateFile.Name(), outPatchFile.Name(), false); err != nil {
+		if err = diffing.Diff(prevStateFileName, nextStateFile.Name(), outPatchFile.Name(), false); err != nil {
 			return nil, nil, nil, err
 		}
 
@@ -775,7 +775,7 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, prevState []byte, prevBlo
 		diffStruct := statechain.NewDiff(&statechain.DiffProps{
 			Data: string(diffData),
 		})
-		if err := diffStruct.SetHash(); err != nil {
+		if err = diffStruct.SetHash(); err != nil {
 			return nil, nil, nil, err
 		}
 
@@ -833,10 +833,10 @@ func buildGenesisStateBlock(imageHash string, tx *statechain.Transaction) (*stat
 		return nil, nil, err
 	}
 	defer os.Remove(nextStateFile.Name()) // clean up
-	if _, err := nextStateFile.Write(nextState); err != nil {
+	if _, err = nextStateFile.Write(nextState); err != nil {
 		return nil, nil, err
 	}
-	if err := nextStateFile.Close(); err != nil {
+	if err = nextStateFile.Close(); err != nil {
 		return nil, nil, err
 	}
 
@@ -845,7 +845,7 @@ func buildGenesisStateBlock(imageHash string, tx *statechain.Transaction) (*stat
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := tmpStateFile.Close(); err != nil {
+	if err = tmpStateFile.Close(); err != nil {
 		return nil, nil, err
 	}
 
@@ -854,11 +854,11 @@ func buildGenesisStateBlock(imageHash string, tx *statechain.Transaction) (*stat
 		return nil, nil, err
 	}
 	defer os.Remove(outPatchFile.Name()) // clean up
-	if err := outPatchFile.Close(); err != nil {
+	if err = outPatchFile.Close(); err != nil {
 		return nil, nil, err
 	}
 
-	if err := diffing.Diff(tmpStateFile.Name(), nextStateFile.Name(), outPatchFile.Name(), false); err != nil {
+	if err = diffing.Diff(tmpStateFile.Name(), nextStateFile.Name(), outPatchFile.Name(), false); err != nil {
 		return nil, nil, err
 	}
 
@@ -1040,13 +1040,14 @@ func generateStateFromDiffs(ctx context.Context, imageHash string, genesisState 
 
 	ts := time.Now().Unix()
 	var fileNames []string
-	defer cleanupFiles(fileNames)
+	defer cleanupFiles(&fileNames)
 
 	tmpStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
 	if err != nil {
 		log.Printf("[miner] error generating tmp state file; %s", err)
 		return nil, err
 	}
+
 	fileNames = append(fileNames, tmpStateFile.Name())
 	if _, err := tmpStateFile.Write(genesisState); err != nil {
 		log.Printf("[miner] error writing to genesis state to tmp state file; %s", err)
@@ -1089,7 +1090,7 @@ func generateStateFromDiffs(ctx context.Context, imageHash string, genesisState 
 func generateCombinedDiffs(ctx context.Context, imageHash string, genesisState []byte, diffs []*statechain.Diff) ([]byte, error) {
 	ts := time.Now().Unix()
 	var fileNames []string
-	defer cleanupFiles(fileNames)
+	defer cleanupFiles(&fileNames)
 
 	tmpStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
 	if err != nil {
@@ -1318,10 +1319,13 @@ func groupStateBlocksByImageHash(stateBlocksMap map[string]*statechain.Block) (m
 	return ret, nil
 }
 
-func cleanupFiles(fileNames []string) {
-	for idx := range fileNames {
-		if err := os.Remove(fileNames[idx]); err != nil {
-			log.Printf("[miner] err cleaning up file %s", fileNames[idx])
+func cleanupFiles(fileNames *[]string) {
+	if fileNames == nil {
+		return
+	}
+	for _, fileName := range *fileNames {
+		if err := os.Remove(fileName); err != nil {
+			log.Printf("[miner] err cleaning up file %s", fileName)
 		}
 	}
 }

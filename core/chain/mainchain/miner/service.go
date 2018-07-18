@@ -450,7 +450,7 @@ func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBloc
 		newStatechainBlocks []*statechain.Block
 		fileNames           []string
 	)
-	defer cleanupFiles(fileNames)
+	defer cleanupFiles(&fileNames)
 
 	ts := time.Now().Unix()
 
@@ -459,10 +459,10 @@ func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBloc
 		return nil, nil, err
 	}
 	fileNames = append(fileNames, tmpStateFile.Name())
-	if _, err := tmpStateFile.Write(state); err != nil {
+	if _, err = tmpStateFile.Write(state); err != nil {
 		return nil, nil, err
 	}
-	if err := tmpStateFile.Close(); err != nil {
+	if err = tmpStateFile.Close(); err != nil {
 		return nil, nil, err
 	}
 
@@ -471,7 +471,7 @@ func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBloc
 		return nil, nil, err
 	}
 	fileNames = append(fileNames, patchFile.Name())
-	if err := patchFile.Close(); err != nil {
+	if err = patchFile.Close(); err != nil {
 		return nil, nil, err
 	}
 
@@ -545,14 +545,14 @@ func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBloc
 		}
 		fileNames = append(fileNames, nextStateFile.Name()) // clean up
 
-		if _, err := nextStateFile.Write(nextState); err != nil {
+		if _, err = nextStateFile.Write(nextState); err != nil {
 			return nil, nil, err
 		}
-		if err := nextStateFile.Close(); err != nil {
+		if err = nextStateFile.Close(); err != nil {
 			return nil, nil, err
 		}
 
-		if err := diffing.Diff(headStateFileName, nextStateFile.Name(), patchFile.Name(), false); err != nil {
+		if err = diffing.Diff(headStateFileName, nextStateFile.Name(), patchFile.Name(), false); err != nil {
 			return nil, nil, err
 		}
 		headStateFileName = nextStateFile.Name()
