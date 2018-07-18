@@ -696,7 +696,7 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, sbSvc sandbox.Interface, 
 	}
 
 	ts := time.Now().Unix()
-	outPatchFile, err := makeTempFile(fmt.Sprintf("%s/%v/combined.txt", prevBlock.Props().ImageHash, ts))
+	outPatchFile, err := makeTempFile(fmt.Sprintf("%s/%v/diff.patch", prevBlock.Props().ImageHash, ts))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -704,7 +704,7 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, sbSvc sandbox.Interface, 
 	if err = outPatchFile.Close(); err != nil {
 		return nil, nil, nil, err
 	}
-	prevStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/prevState.txt", prevBlock.Props().ImageHash, ts))
+	prevStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.txt", prevBlock.Props().ImageHash, ts))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -749,7 +749,7 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, sbSvc sandbox.Interface, 
 		}
 
 		//log.Printf("[miner] container new state: %s", string(nextState))
-		nextStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.txt", prevBlock.Props().ImageHash, ts))
+		nextStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/nextState.txt", prevBlock.Props().ImageHash, ts))
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -830,24 +830,24 @@ func buildGenesisStateBlock(imageHash string, tx *statechain.Transaction) (*stat
 	nextState := tx.Props().Payload
 	log.Printf("[miner] container initial state: %s", string(nextState))
 
-	nextStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
+	stateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
+	if err != nil {
+		return nil, nil, err
+	}
+	defer os.Remove(stateFile.Name()) // clean up
+	if err = stateFile.Close(); err != nil {
+		return nil, nil, err
+	}
+
+	nextStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/nextState.txt", imageHash, ts))
 	if err != nil {
 		return nil, nil, err
 	}
 	defer os.Remove(nextStateFile.Name()) // clean up
+	if _, err = nextStateFile.Write(nextState); err != nil {
+		return nil, nil, err
+	}
 	if err = nextStateFile.Close(); err != nil {
-		return nil, nil, err
-	}
-
-	tmpStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/tmpState.txt", imageHash, ts))
-	if err != nil {
-		return nil, nil, err
-	}
-	defer os.Remove(tmpStateFile.Name()) // clean up
-	if _, err = tmpStateFile.Write(nextState); err != nil {
-		return nil, nil, err
-	}
-	if err = tmpStateFile.Close(); err != nil {
 		return nil, nil, err
 	}
 
@@ -860,9 +860,9 @@ func buildGenesisStateBlock(imageHash string, tx *statechain.Transaction) (*stat
 		return nil, nil, err
 	}
 
-	log.Printf("[miner] diffing the files:\ntmp state: %s\nnext state: %s\nout patch: %s", tmpStateFile.Name(), nextStateFile.Name(), outPatchFile.Name())
+	log.Printf("[miner] diffing the files:\ntmp state: %s\nnext state: %s\nout patch: %s", stateFile.Name(), nextStateFile.Name(), outPatchFile.Name())
 
-	if err = diffing.Diff(tmpStateFile.Name(), nextStateFile.Name(), outPatchFile.Name(), false); err != nil {
+	if err = diffing.Diff(stateFile.Name(), nextStateFile.Name(), outPatchFile.Name(), false); err != nil {
 		return nil, nil, err
 	}
 
