@@ -11,15 +11,15 @@ In the main package directory: `$ mockgen -source=interface.go -destination=mock
 ## Testing
 ```go
 func foo(p2pSvc ptp.Interface) (*statechain.Diff, error) {
-    // foo does stuff, here...
+  // foo does stuff, here...
 }
 
 func TestFoo(t *testing.T) {
-    // 1. mock the p2p service
+  // 1. mock the p2p service
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-    mockP2P := mock_p2p.NewMockInterface(mockCtrl)
+  mockP2P := mock_p2p.NewMockInterface(mockCtrl)
 	mockP2P.
 		EXPECT().
 		GetStatechainDiff(gomock.Any()).
@@ -49,8 +49,8 @@ func TestFoo(t *testing.T) {
 	diffs, err := foo(mockP2P)
 	if err != nil {
 		t.Fatal(err)
-    }
+  }
     
-    // etc...
+  // etc...
 } 
 ```
