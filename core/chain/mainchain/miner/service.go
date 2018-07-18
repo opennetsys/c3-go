@@ -454,7 +454,7 @@ func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBloc
 		return nil, nil, err
 	}
 	fileNames = append(fileNames, patchFile.Name())
-	if err := tmpStateFile.Close(); err != nil {
+	if err := patchFile.Close(); err != nil {
 		return nil, nil, err
 	}
 
