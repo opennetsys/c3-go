@@ -524,7 +524,7 @@ func (s *Service) setMinedBlockData(minedBlock *miner.MinedBlock) error {
 			return err
 		}
 
-		colorlog.Yellow("[node] state chain block set;\nstate chain block number: %s\nstate chain block hash: %s", statechainBlock.Props().BlockTime, *statechainBlock.Props().BlockHash)
+		colorlog.Green("[node] storing state chain block\nstate chain block number: %s\nstate chain block hash: %s\nstate current hash: %s\ntx hash: %s\nprev state block hash: %s\nprev state diff hash: %s", statechainBlock.Props().BlockNumber, *statechainBlock.Props().BlockHash, statechainBlock.Props().StateCurrentHash, statechainBlock.Props().TxHash, statechainBlock.Props().PrevBlockHash, statechainBlock.Props().StatePrevDiffHash)
 	}
 
 	for _, transaction := range minedBlock.TransactionsMap {

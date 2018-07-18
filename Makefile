@@ -123,7 +123,7 @@ test/sdk:
 # COMMON
 
 .PHONY: test/common
-test/common: test/common/network test/common/stringutil test/common/hexutil test/common/c3crypto
+test/common: test/common/network test/common/stringutil test/common/hexutil test/common/hashing test/common/c3crypto
 
 .PHONY: test/common/network
 test/common/network:
@@ -136,6 +136,10 @@ test/common/stringutil:
 .PHONY: test/common/hexutil
 test/common/hexutil:
 	@go test -v common/hexutil/*.go $(ARGS)
+
+.PHONY: test/common/hashing
+test/common/hashing:
+	@go test -v common/hashing/*.go $(ARGS)
 
 .PHONY: test/common/command
 test/common/command:

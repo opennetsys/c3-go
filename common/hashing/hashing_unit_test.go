@@ -2,24 +2,95 @@
 
 package hashing
 
-// TODO: add tests!
+import (
+	"fmt"
+	"testing"
 
-//import (
-//"log"
-//"testing"
+	"github.com/c3systems/c3/common/hexutil"
+)
 
-//"github.com/c3systems/c3/common/hexutil"
-//)
+func TestHash(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		in  []byte
+		out string
+	}{
+		{
+			[]byte("hello world"),
+			"0x0ac561fac838104e3f2e4ad107b4bee3e938bf15f2b15f009ccccd61a913f017",
+		},
+	}
 
-//func TestHash(t *testing.T) {
-//inputs := [][]byte{
-//[]byte("foo"),
-//[]byte("bar"),
-//[]byte("foo bar"),
-//}
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
+			hashBytes := Hash(tt.in)
+			hexed := hexutil.EncodeToString(hashBytes[:])
+			if hexed != tt.out {
+				t.Errorf("want %v; got %v", tt.out, hexed)
+			}
+		})
+	}
+}
 
-//for idx, in := range inputs {
-//b := Hash(in)
-//log.Printf("test %d; str: %s\nbytes: %v\nhex encoded string: %s\nhex encoded bytes: %s", idx, string(b[:]), b, hexutil.EncodeToString(b[:]), string(hexutil.EncodeBytes(b[:])))
-//}
-//}
+func TestHashToHexString(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		in  []byte
+		out string
+	}{
+		{
+			[]byte("hello world"),
+			"0x0ac561fac838104e3f2e4ad107b4bee3e938bf15f2b15f009ccccd61a913f017",
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
+			hash := HashToHexString(tt.in)
+			if hash != tt.out {
+				t.Errorf("want %v; got %v", tt.out, hash)
+			}
+		})
+	}
+}
+
+func TestIsEqual(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		in struct {
+			arg1 string
+			arg2 []byte
+		}
+		out bool
+	}{
+		{
+			struct {
+				arg1 string
+				arg2 []byte
+			}{
+				"0x1234",
+				[]byte("foo"),
+			},
+			false,
+		},
+		{
+			struct {
+				arg1 string
+				arg2 []byte
+			}{
+				"0x0ac561fac838104e3f2e4ad107b4bee3e938bf15f2b15f009ccccd61a913f017",
+				[]byte("hello world"),
+			},
+			true,
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
+			result := IsEqual(tt.in.arg1, tt.in.arg2)
+			if result != tt.out {
+				t.Errorf("want %v; got %v", tt.out, result)
+			}
+		})
+	}
+}

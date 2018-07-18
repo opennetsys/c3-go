@@ -21,6 +21,7 @@ import (
 	"github.com/c3systems/c3/core/p2p"
 	"github.com/c3systems/c3/core/sandbox"
 	methodTypes "github.com/c3systems/c3/core/types/methods"
+	colorlog "github.com/c3systems/c3/logger/color"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -784,7 +785,8 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, sbSvc sandbox.Interface, 
 		}
 		prevBlockNumber++
 
-		nextStateHash := hexutil.EncodeBytes(nextState)
+		nextStateHashBytes := hashing.Hash(nextState)
+		nextStateHash := hexutil.EncodeToString(nextStateHashBytes[:])
 		nextStateStruct := statechain.New(&statechain.BlockProps{
 			BlockNumber:       hexutil.EncodeUint64(prevBlockNumber),
 			BlockTime:         hexutil.EncodeUint64(uint64(ts)),
@@ -792,7 +794,7 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, sbSvc sandbox.Interface, 
 			TxHash:            *tx.Props().TxHash, // note: checked for nil pointer, above
 			PrevBlockHash:     *prevBlock.Props().BlockHash,
 			StatePrevDiffHash: *diffStruct.Props().DiffHash, // note: used setHash, above so it would've erred
-			StateCurrentHash:  string(nextStateHash),
+			StateCurrentHash:  nextStateHash,
 		})
 		if err := nextStateStruct.SetHash(); err != nil {
 			return nil, nil, nil, err
@@ -810,7 +812,6 @@ func buildGenesisStateBlock(imageHash string, tx *statechain.Transaction) (*stat
 	log.Printf("[miner] building genesis state block for image hash %s", imageHash)
 
 	ts := time.Now().Unix()
-
 	if tx.Props().TxHash == nil {
 		log.Printf("[miner] tx hash is nil for %v", tx.Props())
 		return nil, nil, errors.New("nil tx hash")
@@ -857,6 +858,8 @@ func buildGenesisStateBlock(imageHash string, tx *statechain.Transaction) (*stat
 		return nil, nil, err
 	}
 
+	log.Printf("[miner] diffing the files:\ntmp state: %s\nnext state: %s\nout patch: %s", tmpStateFile.Name(), nextStateFile.Name(), outPatchFile.Name())
+
 	if err = diffing.Diff(tmpStateFile.Name(), nextStateFile.Name(), outPatchFile.Name(), false); err != nil {
 		return nil, nil, err
 	}
@@ -867,21 +870,27 @@ func buildGenesisStateBlock(imageHash string, tx *statechain.Transaction) (*stat
 		return nil, nil, err
 	}
 
+	colorlog.Yellow("[miner] diff data from patch file: %s", string(diffData))
+
 	diffStruct := statechain.NewDiff(&statechain.DiffProps{
 		Data: string(diffData),
 	})
 	if err := diffStruct.SetHash(); err != nil {
 		return nil, nil, err
 	}
-	nextStateHash := hexutil.EncodeBytes(nextState)
+
+	nextStateHashBytes := hashing.Hash(nextState)
+	nextStateHash := hexutil.EncodeToString(nextStateHashBytes[:])
+	log.Printf("[miner] state prev diff hash: %s", *diffStruct.Props().DiffHash)
+	log.Printf("[miner] state current hash: %s", nextStateHash)
 	nextStateStruct := statechain.New(&statechain.BlockProps{
 		BlockNumber:       hexutil.EncodeUint64(0),
 		BlockTime:         hexutil.EncodeUint64(uint64(ts)),
 		ImageHash:         imageHash,
 		TxHash:            *tx.Props().TxHash, // note: checked for nil pointer, above
-		PrevBlockHash:     "",
+		PrevBlockHash:     "0x",
 		StatePrevDiffHash: *diffStruct.Props().DiffHash, // note: used setHash, above so it would've erred
-		StateCurrentHash:  string(nextStateHash),
+		StateCurrentHash:  nextStateHash,
 	})
 
 	if err := nextStateStruct.SetHash(); err != nil {
