@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"sync"
 	"time"
 
@@ -302,62 +301,56 @@ func (s Service) bootstrapNextBlock() (*mainchain.Block, error) {
 }
 
 // note: the transactions array are all for the image hash, passed
-func (s Service) isGenesisTransaction(imageHash string, transactions []*statechain.Transaction) (bool, *statechain.Transaction, []*statechain.Transaction, error) {
-	for idx, tx := range transactions {
-		log.Printf("[miner] state block tx method %s", tx.Props().Method)
-		if tx.Props().Method == methodTypes.Deploy {
-			prevStateBlock, err := s.props.P2P.FetchMostRecentStateBlock(imageHash, s.props.PreviousBlock)
-			if err != nil {
-				// note: we don't want to error out; is this true?
-				//log.Printf("[miner] error fetching most recent state block for image hash %s %s", imageHash, err)
-				//return false, err
-				return false, nil, nil, err
-			}
-			if prevStateBlock != nil {
-				log.Printf("[miner] prev state block exists image hash %s", imageHash)
-				return false, nil, nil, errors.New("prev state block exists; can't deploy")
-			}
-
-			return true, tx, append(transactions[:idx], transactions[idx+1:]...), nil
-		}
-	}
-
-	return false, nil, transactions, nil
-}
-
-// note: the transactions array are all for the image hash, passed
 func (s Service) buildNextStates(imageHash string, transactions []*statechain.Transaction) error {
+	var (
+		diffs          []*statechain.Diff
+		prevStateBlock *statechain.Block
+	)
+
 	log.Printf("[miner] build next state state; image hash: %s, tx count: %v", imageHash, len(transactions))
 
-	// tmp hack to make genesis block work
-	isGenesisTx, tx, transactions, err := s.isGenesisTransaction(imageHash, transactions)
+	// note: pops tx from transactions if genesisTransaction
+	isGenesisTx, tx, transactions, err := isGenesisTransaction(s.props.P2P, s.minedBlock.PreviousBlock, imageHash, transactions)
 	if err != nil {
 		log.Printf("[miner] error determining if tx is genesis for image hash %s; error: %s", imageHash, err)
 		return err
 	}
 	if isGenesisTx {
 		log.Printf("[miner] is genesis tx for image hash %s", imageHash)
-		// TODO: process other transactions as well
-		return s.buildGenesisStateBlock(imageHash, tx)
-	}
+		genesisBlock, diff, err := buildGenesisStateBlock(imageHash, tx)
+		if err != nil {
+			return err
+		}
 
-	prevStateBlock, err := s.props.P2P.FetchMostRecentStateBlock(imageHash, s.props.PreviousBlock)
-	if err != nil {
-		log.Printf("[miner] error fetching most recent state block for image hash %s %s", imageHash, err)
-		return err
-	}
+		// write to the mined block
+		s.minedBlock.mut.Lock()
+		s.minedBlock.DiffsMap[*diff.Props().DiffHash] = diff
+		s.minedBlock.TransactionsMap[*tx.Props().TxHash] = tx
+		s.minedBlock.StatechainBlocksMap[*genesisBlock.Props().BlockHash] = genesisBlock
+		s.minedBlock.mut.Unlock()
+		log.Printf("[miner] mined state block for image hash %s", imageHash)
 
-	// gather the diffs
-	diffs, err := s.gatherDiffs(prevStateBlock)
-	if err != nil {
-		log.Printf("[miner] error getting cid by hash for image hash %s\n%v", imageHash, err)
-		return err
+		prevStateBlock = genesisBlock
+		diffs = append(diffs, diff)
+	} else {
+		prevStateBlock, err = s.props.P2P.FetchMostRecentStateBlock(imageHash, s.props.PreviousBlock)
+		if err != nil {
+			log.Printf("[miner] error fetching most recent state block for image hash %s %s", imageHash, err)
+			return err
+		}
+
+		// gather the diffs
+		diffs, err = s.gatherDiffs(prevStateBlock)
+		if err != nil {
+			log.Printf("[miner] error getting cid by hash for image hash %s\n%v", imageHash, err)
+			return err
+		}
+		log.Printf("[miner] total diffs %v", len(diffs))
 	}
-	log.Printf("[miner] total diffs %v", len(diffs))
 
 	// apply the diffs to get the current state
 	genesisState := []byte("")
-	state, err := s.generateStateFromDiffs(imageHash, genesisState, diffs)
+	state, err := generateStateFromDiffs(s.props.Context, imageHash, genesisState, diffs)
 	if err != nil {
 		log.Printf("[miner] error getting state from diffs for image hash %s\n%v", imageHash, err)
 		return err
@@ -427,209 +420,6 @@ func (s *Service) gatherDiffs(block *statechain.Block) ([]*statechain.Diff, erro
 	}
 
 	return diffs, nil
-}
-
-// TODO: improve
-func (s Service) buildGenesisStateBlock(imageHash string, tx *statechain.Transaction) error {
-	log.Printf("[miner] building genesis state block for image hash %s", imageHash)
-
-	ts := time.Now().Unix()
-	var (
-		newDiffs            []*statechain.Diff
-		newTxs              []*statechain.Transaction
-		newStatechainBlocks []*statechain.Block
-	)
-
-	if tx.Props().TxHash == nil {
-		log.Printf("[miner] tx hash is nil for %v", tx.Props())
-		return errors.New("nil tx hash")
-	}
-
-	if tx.Props().TxHash == nil {
-		log.Printf("[miner] tx hash is nil for %v", tx.Props())
-		return errors.New("nil tx hash")
-	}
-
-	log.Printf("[miner] tx method %s", tx.Props().Method)
-
-	// initial state
-	nextState := tx.Props().Payload
-	log.Printf("[miner] container initial state: %s", string(nextState))
-
-	nextStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
-	if err != nil {
-		return err
-	}
-	defer os.Remove(nextStateFile.Name()) // clean up
-
-	tmpStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
-	if err != nil {
-		return err
-	}
-	headStateFileName := tmpStateFile.Name()
-
-	if _, err := nextStateFile.Write(nextState); err != nil {
-		return err
-	}
-	if err := nextStateFile.Close(); err != nil {
-		return err
-	}
-
-	outPatchFile, err := makeTempFile(fmt.Sprintf("%s/%v/combined.txt", imageHash, ts))
-	if err != nil {
-		return err
-	}
-	defer os.Remove(outPatchFile.Name()) // clean up
-	if err := outPatchFile.Close(); err != nil {
-		return err
-	}
-
-	if err := diffing.Diff(headStateFileName, nextStateFile.Name(), outPatchFile.Name(), false); err != nil {
-		return err
-	}
-	headStateFileName = nextStateFile.Name()
-
-	// build the diff struct
-	diffData, err := ioutil.ReadFile(outPatchFile.Name())
-	if err != nil {
-		return err
-	}
-
-	diffStruct := statechain.NewDiff(&statechain.DiffProps{
-		Data: string(diffData),
-	})
-	if err := diffStruct.SetHash(); err != nil {
-		return err
-	}
-	nextStateHash := hexutil.EncodeBytes(nextState)
-	nextStateStruct := statechain.New(&statechain.BlockProps{
-		BlockNumber:       hexutil.EncodeUint64(0),
-		BlockTime:         hexutil.EncodeUint64(uint64(ts)),
-		ImageHash:         imageHash,
-		TxHash:            *tx.Props().TxHash, // note: checked for nil pointer, above
-		PrevBlockHash:     "",
-		StatePrevDiffHash: *diffStruct.Props().DiffHash, // note: used setHash, above so it would've erred
-		StateCurrentHash:  string(nextStateHash),
-	})
-
-	if err := nextStateStruct.SetHash(); err != nil {
-		return err
-	}
-
-	newDiffs = append(newDiffs, diffStruct)
-	newTxs = append(newTxs, tx)
-	newStatechainBlocks = append(newStatechainBlocks, nextStateStruct)
-
-	// write to the mined block
-	s.minedBlock.mut.Lock()
-	// note: they should all have same length
-	for i := 0; i < len(newDiffs); i++ {
-		s.minedBlock.DiffsMap[*newDiffs[i].Props().DiffHash] = newDiffs[i]
-		s.minedBlock.TransactionsMap[*newTxs[i].Props().TxHash] = newTxs[i]
-		s.minedBlock.StatechainBlocksMap[*newStatechainBlocks[i].Props().BlockHash] = newStatechainBlocks[i]
-	}
-	s.minedBlock.mut.Unlock()
-	log.Printf("[miner] mined state block for image hash %s", imageHash)
-
-	return nil
-}
-
-func (s *Service) generateStateFromDiffs(imageHash string, genesisState []byte, diffs []*statechain.Diff) ([]byte, error) {
-	combinedDiff, err := s.generateCombinedDiffs(imageHash, genesisState, diffs)
-	if err != nil {
-		return nil, err
-	}
-
-	ts := time.Now().Unix()
-	var fileNames []string
-	defer cleanupFiles(fileNames)
-
-	tmpStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
-	if err != nil {
-		return nil, err
-	}
-	fileNames = append(fileNames, tmpStateFile.Name())
-	if _, err := tmpStateFile.Write(genesisState); err != nil {
-		return nil, err
-	}
-	if err := tmpStateFile.Close(); err != nil {
-		return nil, err
-	}
-
-	combinedPatchFile, err := makeTempFile(fmt.Sprintf("%s/%v/combined.patch", imageHash, ts))
-	if err != nil {
-		return nil, err
-	}
-	fileNames = append(fileNames, combinedPatchFile.Name())
-	if _, err := combinedPatchFile.Write(combinedDiff); err != nil {
-		return nil, err
-	}
-	if err := combinedPatchFile.Close(); err != nil {
-		return nil, err
-	}
-
-	// now apply the combined patch file to the state
-	if err := diffing.Patch(combinedPatchFile.Name(), false, true); err != nil {
-		return nil, err
-	}
-	state, err := ioutil.ReadFile(tmpStateFile.Name())
-	if err != nil {
-		return nil, err
-	}
-
-	return state, nil
-}
-
-func (s *Service) generateCombinedDiffs(imageHash string, genesisState []byte, diffs []*statechain.Diff) ([]byte, error) {
-	ts := time.Now().Unix()
-	var fileNames []string
-	defer cleanupFiles(fileNames)
-
-	tmpStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
-	if err != nil {
-		return nil, err
-	}
-	fileNames = append(fileNames, tmpStateFile.Name())
-	if _, err := tmpStateFile.Write(genesisState); err != nil {
-		return nil, err
-	}
-	if err := tmpStateFile.Close(); err != nil {
-		return nil, err
-	}
-
-	combinedPatchFile, err := makeTempFile(fmt.Sprintf("%s/%v/combined.patch", imageHash, ts))
-	if err != nil {
-		return nil, err
-	}
-	fileNames = append(fileNames, combinedPatchFile.Name())
-	if err := combinedPatchFile.Close(); err != nil {
-		return nil, err
-	}
-
-	tmpPatchFile, err := makeTempFile(fmt.Sprintf("%s/%v/tmp.patch", imageHash, ts))
-	if err != nil {
-		return nil, err
-	}
-	fileNames = append(fileNames, tmpPatchFile.Name())
-	if err := tmpPatchFile.Close(); err != nil {
-		return nil, err
-	}
-
-	for _, diff := range diffs {
-		if s.props.Context.Err() != nil {
-			return nil, s.props.Context.Err()
-		}
-
-		if err := ioutil.WriteFile(tmpPatchFile.Name(), []byte(diff.Props().Data), os.ModePerm); err != nil {
-			return nil, err
-		}
-
-		if err := diffing.CombineDiff(combinedPatchFile.Name(), tmpPatchFile.Name(), combinedPatchFile.Name()); err != nil {
-			return nil, err
-		}
-	}
-
-	return ioutil.ReadFile(combinedPatchFile.Name())
 }
 
 func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBlock *statechain.Block, imageHash string, state []byte, transactions []*statechain.Transaction) ([]*statechain.Block, []*statechain.Diff, error) {
