@@ -509,30 +509,19 @@ func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBloc
 				return nil, nil, err
 			}
 
-			inputsJSON, err := json.Marshal(struct {
-				Method string   `json:"method"`
-				Params []string `json:"params"`
-			}{
-				Method: parsed[0],
-				Params: parsed[1:],
-			})
-			if err != nil {
-				log.Printf("[miner] error marshalling json for image hash %s", imageHash)
-				return nil, nil, err
-			}
-
 			log.Printf("[miner] invoking method %s for image hash %s", parsed[0], imageHash)
+			log.Printf("[miner] setting docker container initial state to %s", string(state))
 
 			// run container, passing the tx inputs
 			sb := sandbox.NewSandbox(&sandbox.Config{})
 			nextState, err = sb.Play(&sandbox.PlayConfig{
-				ImageID:      tx.Props().ImageHash,
-				Payload:      inputsJSON,
+				ImageID:      imageHash,
+				Payload:      payload,
 				InitialState: state,
 			})
 
 			if err != nil {
-				log.Printf("[miner] error running container for image hash: %s; error: %s", tx.Props().ImageHash, err)
+				log.Printf("[miner] error running container for image hash: %s; error: %s", imageHash, err)
 				return nil, nil, err
 			}
 

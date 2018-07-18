@@ -30,6 +30,7 @@ type Sandbox struct {
 	registry          registry.Interface
 	sock              string
 	runningContainers map[string]bool
+	localIP           string
 }
 
 // Config ...
@@ -42,13 +43,13 @@ func NewSandbox(config *Config) Interface {
 		config = &Config{}
 	}
 
+	localIP, err := network.LocalIP()
+	if err != nil {
+		log.Fatalf("[sandbox] %s", err)
+	}
+
 	dockerLocalRegistryHost := os.Getenv("DOCKER_LOCAL_REGISTRY_HOST")
 	if dockerLocalRegistryHost == "" {
-		localIP, err := network.LocalIP()
-		if err != nil {
-			log.Fatalf("[server] %s", err)
-		}
-
 		dockerLocalRegistryHost = localIP.String()
 	}
 
@@ -61,9 +62,10 @@ func NewSandbox(config *Config) Interface {
 		registry:          dit,
 		sock:              "/var/run/docker.sock",
 		runningContainers: map[string]bool{},
+		localIP:           localIP.String(),
 	}
 
-	go sb.cleanupOnExit()
+	//go sb.cleanupOnExit()
 
 	return sb
 }
@@ -92,7 +94,7 @@ func (s *Sandbox) Play(config *PlayConfig) ([]byte, error) {
 		}
 	}
 
-	log.Printf("[server] running docker image %s", dockerImageID)
+	log.Printf("[sandbox] running docker image %s", dockerImageID)
 
 	hp, err := network.GetFreePort()
 	if err != nil {
@@ -113,7 +115,7 @@ func (s *Sandbox) Play(config *PlayConfig) ([]byte, error) {
 		}
 	}
 
-	fmt.Println("state loaded in tmp dir", tmpdir)
+	log.Println("[sandbox] state loaded in tmp dir", tmpdir)
 
 	hostPort := strconv.Itoa(hp)
 	containerID, err := s.docker.RunContainer(dockerImageID, []string{}, &docker.RunContainerConfig{
@@ -143,63 +145,74 @@ func (s *Sandbox) Play(config *PlayConfig) ([]byte, error) {
 		time.Sleep(3 * time.Second)
 		err := s.sendMessage(config.Payload, hostPort)
 		if err != nil {
+			log.Printf("[sandbox] error sending message; %v", err)
 			errEvent <- err
 			return
 		}
 
+		log.Println("[sandbox] writing to done channel")
+
 		done <- true
 	}()
 
-	timer := time.NewTimer(20 * time.Second)
+	timer := time.NewTimer(1 * time.Minute)
 
 	go func() {
 		select {
 		case <-timer.C:
+			log.Println("[sandbox] writing to timeout channel")
 			timedout <- true
 		}
 	}()
 
 	select {
 	case e := <-errEvent:
+		log.Errorf("[sandbox] error; %v", e)
 		timer.Stop()
 		close(timedout)
 		close(errEvent)
 		err := s.killContainer(containerID)
 		if err != nil {
+			log.Printf("[sandbox] error killing container on error event; %v", err)
 			return nil, err
 		}
 
 		return nil, e
 	case <-timedout:
+		log.Error("[sandbox] timedout")
 		close(timedout)
 		close(errEvent)
 
 		err := s.killContainer(containerID)
 		if err != nil {
+			log.Printf("[sandbox] error killing container after timeout; %v", err)
 			return nil, err
 		}
 
 		return nil, errors.New("timedout")
 	case <-done:
-		log.Println("[server] reading new state...")
+		log.Println("[sandbox] reading new state...")
 		cmd := []string{"bash", "-c", "cat " + c3config.TempContainerStateFilePath}
 		resp, err := s.docker.ContainerExec(containerID, cmd)
 		if err != nil {
+			log.Printf("[sandbox] error calling exec on contaienr; %v", err)
 			return nil, err
 		}
 
 		result, err := parseNewState(resp)
 		if err != nil {
+			log.Printf("[sandbox] error parsing new state; %v", err)
 			return nil, err
 		}
 
-		log.Println("[server] done")
+		log.Println("[sandbox] done")
 		close(timedout)
 		close(errEvent)
 		timer.Stop()
 
 		err = s.killContainer(containerID)
 		if err != nil {
+			log.Printf("[sandbox] error killing container; %v", err)
 			return nil, err
 		}
 
@@ -224,7 +237,7 @@ func parseNewState(reader io.Reader) ([]byte, error) {
 		return nil, err
 	}
 
-	log.Printf("[server] new state json %s", string(src))
+	log.Printf("[sandbox] new state json %s", string(src))
 
 	b, err := stringutil.CompactJSON(src)
 	if err != nil {
@@ -236,22 +249,25 @@ func parseNewState(reader io.Reader) ([]byte, error) {
 		return nil, err
 	}
 
-	log.Printf("[server] new state %s", state)
+	log.Printf("[sandbox] new state %s", state)
 	return b, nil
 }
 
 func (s *Sandbox) sendMessage(msg []byte, port string) error {
-	log.Printf("[server] sending message %s", msg)
 	// TODO: communicate over IPC
-	host := fmt.Sprintf("localhost:%s", port)
+	host := fmt.Sprintf("%s:%s", s.localIP, port)
+	log.Printf("[sandbox] sending message to container on host %s; message: %s", host, msg)
+	time.Sleep(15 * time.Second)
 	conn, err := net.Dial("tcp", host)
 	if err != nil {
+		log.Printf("[sandbox] error sending message; %v", err)
 		return err
 	}
 	defer conn.Close()
-	log.Printf("[server] writing to %s", host)
+	log.Printf("[sandbox] writing to %s", host)
 	conn.Write(msg)
 	conn.Write([]byte("\n"))
+	log.Printf("[sandbox] wrote to %s", host)
 	return nil
 }
 
@@ -260,7 +276,7 @@ func (s *Sandbox) cleanupOnExit() {
 	signal.Notify(gracefulStop, syscall.SIGTERM)
 	signal.Notify(gracefulStop, syscall.SIGINT)
 	sig := <-gracefulStop
-	fmt.Printf("caught sig: %+v", sig)
+	log.Printf("[sandbox] caught sig: %+v", sig)
 	s.cleanup()
 	os.Exit(0)
 }
