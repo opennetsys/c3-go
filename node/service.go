@@ -12,7 +12,8 @@ import (
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/mainchain/miner"
 	"github.com/c3systems/c3/core/chain/statechain"
-	"github.com/c3systems/c3/logger"
+	colorlog "github.com/c3systems/c3/logger/color"
+	loghooks "github.com/c3systems/c3/logger/hooks"
 	nodetypes "github.com/c3systems/c3/node/types"
 	"github.com/davecgh/go-spew/spew"
 
@@ -497,6 +498,10 @@ func (s *Service) setMinedBlockData(minedBlock *miner.MinedBlock) error {
 		return errors.New("nil next block block hash")
 	}
 
+	blk := minedBlock.NextBlock.Props()
+
+	colorlog.Green("[node] storing mined block data\nblock number: %s\nblock hash: %s\nstate blocks merkle hash: %s", blk.BlockNumber, *blk.BlockHash, blk.StateBlocksMerkleHash)
+
 	for _, statechainBlock := range minedBlock.StatechainBlocksMap {
 		if statechainBlock == nil {
 			continue
@@ -554,5 +559,5 @@ func (s *Service) removeMinedTxs(minedBlock *miner.MinedBlock) error {
 }
 
 func init() {
-	log.AddHook(logger.ContextHook{})
+	log.AddHook(loghooks.ContextHook{})
 }

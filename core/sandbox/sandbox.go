@@ -20,7 +20,7 @@ import (
 	"github.com/c3systems/c3/common/stringutil"
 	c3config "github.com/c3systems/c3/config"
 	"github.com/c3systems/c3/core/docker"
-	"github.com/c3systems/c3/logger"
+	loghooks "github.com/c3systems/c3/logger/hooks"
 	"github.com/c3systems/c3/registry"
 )
 
@@ -275,5 +275,5 @@ func (s *Sandbox) cleanup() {
 }
 
 func init() {
-	log.AddHook(logger.ContextHook{})
+	log.AddHook(loghooks.ContextHook{})
 }

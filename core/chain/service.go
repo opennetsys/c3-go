@@ -5,7 +5,7 @@ import (
 
 	mainchain "github.com/c3systems/c3/core/chain/mainchain"
 	statechain "github.com/c3systems/c3/core/chain/statechain"
-	"github.com/c3systems/c3/logger"
+	loghooks "github.com/c3systems/c3/logger/hooks"
 	cid "github.com/ipfs/go-cid"
 	log "github.com/sirupsen/logrus"
 )
@@ -49,5 +49,5 @@ func (s Service) StateHead(hash string) (*statechain.Block, error) {
 }
 
 func init() {
-	log.AddHook(logger.ContextHook{})
+	log.AddHook(loghooks.ContextHook{})
 }

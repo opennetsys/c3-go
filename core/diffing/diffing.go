@@ -4,15 +4,26 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+
+	"github.com/c3systems/c3/common/command"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
 	// ErrNoDifferencesFound ...
 	ErrNoDifferencesFound = errors.New("no differences were found")
+
+	// ErrCommandNotFound ...
+	ErrCommandNotFound = errors.New("command not found")
 )
 
 // Diff ...
 func Diff(old, new, out string, isDir bool) error {
+	if !command.Exists("diff") {
+		log.Println("[miner] error; diff command not found")
+		return ErrCommandNotFound
+	}
+
 	var (
 		commands []interface{}
 		s        string
@@ -26,7 +37,7 @@ func Diff(old, new, out string, isDir bool) error {
 	commands = append(commands, old, new, ">", out)
 	s += " %s %s %s %s"
 
-	cmd := exec.Command("sh", "-c", fmt.Sprintf("/usr/bin/diff -ud"+s, commands...))
+	cmd := exec.Command("sh", "-c", fmt.Sprintf("diff -ud"+s, commands...))
 	if err := cmd.Start(); err != nil {
 		return err
 	}
@@ -51,8 +62,14 @@ func Diff(old, new, out string, isDir bool) error {
 
 // CombineDiff ...
 func CombineDiff(firstDiff, secondDiff, out string) error {
-	cmd := exec.Command("sh", "-c", fmt.Sprintf("/usr/bin/combinediff %s %s > %s", firstDiff, secondDiff, out))
+	if !command.Exists("combinediff") {
+		log.Println("[miner] error; combinediff command not found")
+		return ErrCommandNotFound
+	}
+
+	cmd := exec.Command("sh", "-c", fmt.Sprintf("combinediff %s %s > %s", firstDiff, secondDiff, out))
 	if err := cmd.Start(); err != nil {
+		log.Printf("[miner] error executing combinediff command; %s", err)
 		return err
 	}
 
@@ -61,6 +78,11 @@ func CombineDiff(firstDiff, secondDiff, out string) error {
 
 // Patch ...
 func Patch(patch string, backup bool, absPath bool) error {
+	if !command.Exists("patch") {
+		log.Println("[miner] error; patch command not found")
+		return ErrCommandNotFound
+	}
+
 	var (
 		commands []interface{}
 		s        string
@@ -78,7 +100,7 @@ func Patch(patch string, backup bool, absPath bool) error {
 	commands = append(commands, "<", patch)
 	s += " %s %s"
 
-	cmd := exec.Command("sh", "-c", fmt.Sprintf("/usr/bin/patch"+s, commands...))
+	cmd := exec.Command("sh", "-c", fmt.Sprintf("patch"+s, commands...))
 	if err := cmd.Start(); err != nil {
 		return err
 	}

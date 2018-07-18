@@ -107,7 +107,6 @@ test/integration:
 test/e2e:
 	@go test ./... -tags=e2e
 
-
 # /END TEST TYPES
 
 # SDK
@@ -200,6 +199,14 @@ test/node:
 	@go test -v node/*.go $(ARGS)
 
 # /END REGISTRY
+
+# LOGGER
+
+.PHONY: test/logger/color
+test/logger/color:
+	@go test -v logger/color/*.go $(ARGS)
+
+# /END LOGGER
 
 # NODE
 

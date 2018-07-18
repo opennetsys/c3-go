@@ -19,7 +19,7 @@ import (
 	"github.com/c3systems/c3/core/p2p"
 	"github.com/c3systems/c3/core/sandbox"
 	methodTypes "github.com/c3systems/c3/core/types/methods"
-	"github.com/c3systems/c3/logger"
+	loghooks "github.com/c3systems/c3/logger/hooks"
 	"github.com/c3systems/merkletree"
 )
 
@@ -204,7 +204,7 @@ func (s Service) generateMerkle() error {
 		list   []merkletree.Content
 	)
 
-	log.Printf("[miner] state chain blocks length; %v", len(s.minedBlock.StatechainBlocksMap))
+	log.Printf("[miner] state chain blocks length is %v for image hash %s", len(s.minedBlock.StatechainBlocksMap), s.minedBlock.NextBlock.Props().ImageHash)
 	for _, statechainBlock := range s.minedBlock.StatechainBlocksMap {
 		if s.props.Context.Err() != nil {
 			return s.props.Context.Err()
@@ -339,6 +339,13 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 			return err
 		}
 
+		if prevStateBlock == nil {
+			fmt.Println("[miner] prev block is nil")
+			return errors.New("prev block is nil")
+		}
+
+		log.Printf("[miner] prev state block; block number: %s; block hash: %s", prevStateBlock.Props().BlockNumber, *prevStateBlock.Props().BlockHash)
+
 		// gather the diffs
 		diffs, err = s.gatherDiffs(prevStateBlock)
 		if err != nil {
@@ -348,7 +355,13 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 		log.Printf("[miner] total diffs %v", len(diffs))
 	}
 
+	if diffs == nil {
+		log.Printf("[miner] error building next state for image hash %s; diffs list is nil", imageHash)
+		return errors.New("diffs is nil")
+	}
+
 	// apply the diffs to get the current state
+	// TODO: fetch real genesis state
 	genesisState := []byte("")
 	state, err := generateStateFromDiffs(s.props.Context, imageHash, genesisState, diffs)
 	if err != nil {
@@ -577,5 +590,5 @@ func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBloc
 }
 
 func init() {
-	log.AddHook(logger.ContextHook{})
+	log.AddHook(loghooks.ContextHook{})
 }

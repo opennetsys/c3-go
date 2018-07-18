@@ -8,7 +8,7 @@ import (
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/merkle"
 	"github.com/c3systems/c3/core/chain/statechain"
-	"github.com/c3systems/c3/logger"
+	loghooks "github.com/c3systems/c3/logger/hooks"
 	log "github.com/sirupsen/logrus"
 
 	cid "github.com/ipfs/go-cid"
@@ -155,6 +155,7 @@ func (s Service) FetchMostRecentStateBlock(imageHash string, block *mainchain.Bl
 	}
 
 	log.Printf("[p2p] state block merkle hash is %s for image hash %s", block.Props().StateBlocksMerkleHash, imageHash)
+	log.Printf("[p2p] fetch most recent state block starting with main chain block number %s for image hash %s", block.Props().BlockNumber, imageHash)
 
 	decodedMerkleHash, err := hexutil.DecodeString(block.Props().StateBlocksMerkleHash)
 	if err != nil {
@@ -162,9 +163,11 @@ func (s Service) FetchMostRecentStateBlock(imageHash string, block *mainchain.Bl
 		return nil, err
 	}
 
-	log.Printf("[p2p] block merkle hash for block %s is %s image hash %s", *block.Props().BlockHash, decodedMerkleHash, imageHash)
+	log.Printf("[p2p] block merkle hash for block %s is %q for image hash %s", *block.Props().BlockHash, decodedMerkleHash, imageHash)
 
 	if decodedMerkleHash != "" {
+		log.Printf("[p2p] decoded merkle hash is empty; %s", block.Props().StateBlocksMerkleHash)
+
 		// 1. search the current block
 		treeCID, err := GetCIDByHash(block.Props().StateBlocksMerkleHash)
 		if err != nil {
@@ -223,11 +226,13 @@ func (s Service) FetchMostRecentStateBlock(imageHash string, block *mainchain.Bl
 		}
 		head = prevBlock
 
-		decodedMerkleHash, err := hexutil.DecodeString(block.Props().StateBlocksMerkleHash)
+		decodedMerkleHash, err := hexutil.DecodeString(head.Props().StateBlocksMerkleHash)
 		if err != nil {
 			log.Printf("[p2p] error decoding merkle hash for image hash %s; error: %s", imageHash, err)
 			return nil, err
 		}
+
+		log.Printf("[p2p] decoded merkle hash for main chain block number %s is empty for image hash %s", head.Props().BlockNumber, imageHash)
 
 		if decodedMerkleHash == "" {
 			log.Printf("[p2p] decoded merkle hash for block %s is empty for image hash %s, continuing", *prevBlock.Props().BlockHash, imageHash)
@@ -272,5 +277,5 @@ func (s Service) FetchMostRecentStateBlock(imageHash string, block *mainchain.Bl
 }
 
 func init() {
-	log.AddHook(logger.ContextHook{})
+	log.AddHook(loghooks.ContextHook{})
 }

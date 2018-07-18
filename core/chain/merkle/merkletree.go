@@ -8,7 +8,7 @@ import (
 
 	"github.com/c3systems/c3/common/coder"
 	"github.com/c3systems/c3/common/hexutil"
-	"github.com/c3systems/c3/logger"
+	loghooks "github.com/c3systems/c3/logger/hooks"
 
 	"github.com/c3systems/merkletree"
 )
@@ -311,5 +311,5 @@ func BuildTreePropsFromCoder(tmp *coder.MerkleTree) (*TreeProps, error) {
 }
 
 func init() {
-	log.AddHook(logger.ContextHook{})
+	log.AddHook(loghooks.ContextHook{})
 }

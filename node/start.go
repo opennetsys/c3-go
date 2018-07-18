@@ -216,6 +216,7 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 	peers := newNode.Peerstore().Peers()
 	if len(peers) > 1 {
 		if err := sendEcho(newNode.ID(), peers, pBuff); err != nil {
+			log.Errorln("error echoing peer; is peer online?")
 			return fmt.Errorf("err echoing peer\n%v", err)
 		}
 		if err := fetchHeadBlock(newNode.ID(), nextBlock, peers, pBuff); err != nil {

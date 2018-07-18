@@ -22,7 +22,7 @@ import (
 	c3config "github.com/c3systems/c3/config"
 	"github.com/c3systems/c3/core/docker"
 	"github.com/c3systems/c3/core/ipfs"
-	"github.com/c3systems/c3/logger"
+	loghooks "github.com/c3systems/c3/logger/hooks"
 	"github.com/c3systems/c3/registry/server"
 	"github.com/c3systems/c3/registry/util"
 	"github.com/davecgh/go-spew/spew"
@@ -498,5 +498,5 @@ func normalizeImageName(name string) string {
 }
 
 func init() {
-	log.AddHook(logger.ContextHook{})
+	log.AddHook(loghooks.ContextHook{})
 }

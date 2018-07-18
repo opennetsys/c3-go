@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/c3systems/c3/logger"
+	loghooks "github.com/c3systems/c3/logger/hooks"
 	log "github.com/sirupsen/logrus"
 
 	api "github.com/ipfs/go-ipfs-api"
@@ -103,5 +103,5 @@ func getIpfsAPIURL() (string, error) {
 }
 
 func init() {
-	log.AddHook(logger.ContextHook{})
+	log.AddHook(loghooks.ContextHook{})
 }

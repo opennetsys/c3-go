@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/c3systems/c3/logger"
+	loghooks "github.com/c3systems/c3/logger/hooks"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/docker/docker/api/types"
@@ -295,5 +295,5 @@ func dockerVersionFromCLI() string {
 }
 
 func init() {
-	log.AddHook(logger.ContextHook{})
+	log.AddHook(loghooks.ContextHook{})
 }

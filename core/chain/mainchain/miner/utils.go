@@ -897,11 +897,13 @@ func fetchCurrentState(ctx context.Context, p2pSvc p2p.Interface, block *statech
 
 	go func() {
 		if block == nil {
+			log.Println("[miner] block is nil")
 			ch <- errors.New("nil block")
 
 			return
 		}
 		if block.Props().BlockHash == nil {
+			log.Println("[miner] block hash is nil")
 			ch <- errors.New("nil block hash")
 
 			return
@@ -913,7 +915,7 @@ func fetchCurrentState(ctx context.Context, p2pSvc p2p.Interface, block *statech
 		// gather the diffs
 		diffs, err := gatherDiffs(ctx, p2pSvc, block)
 		if err != nil {
-			log.Printf("[miner] err gathering diffs\n%v", err)
+			log.Printf("[miner] error gathering diffs\n%v", err)
 			ch <- err
 
 			return
@@ -925,12 +927,13 @@ func fetchCurrentState(ctx context.Context, p2pSvc p2p.Interface, block *statech
 		imageHash := block.Props().ImageHash
 		state, err := generateStateFromDiffs(ctx, imageHash, genesisState, diffs)
 		if err != nil {
-			log.Printf("[miner] err reading state file\n%v", err)
+			log.Printf("[miner] error reading state file\n%v", err)
 			ch <- err
 
 			return
 		}
 		if ctx.Err() != nil {
+			log.Printf("[miner] received context error; %s", err)
 			return
 		}
 
@@ -943,6 +946,7 @@ func fetchCurrentState(ctx context.Context, p2pSvc p2p.Interface, block *statech
 		switch v.(type) {
 		case error:
 			err, _ := v.(error)
+			log.Printf("[miner] channel error; %s", err)
 			return nil, err
 
 		case []byte:
@@ -968,53 +972,60 @@ func gatherDiffs(ctx context.Context, p2pSvc p2p.Interface, block *statechain.Bl
 	diffCID, err := p2p.GetCIDByHash(block.Props().StatePrevDiffHash)
 	if err != nil {
 		log.Printf("[miner] err getting diff cid by hash\n%v", err)
-
 		return nil, err
 	}
+
 	diff, err := p2pSvc.GetStatechainDiff(diffCID)
 	if err != nil {
 		log.Printf("[miner] err getting diff by cid\n%v", err)
-
 		return nil, err
 	}
+
+	log.Printf("[miner] state chain diff; %v", diff)
+
 	// note: prepend
 	diffs = append([]*statechain.Diff{diff}, diffs...)
 
 	head := block
 	for head.Props().BlockNumber != mainchain.GenesisBlock.Props().BlockNumber {
 		if ctx.Err() != nil {
+			log.Printf("[miner] gather diffs context error; %v", err)
 			return nil, ctx.Err()
 		}
 
 		prevStateCID, err := p2p.GetCIDByHash(head.Props().PrevBlockHash)
 		if err != nil {
 			log.Printf("[miner] err getting statechain cid by hash\n%v", err)
-
 			return nil, err
 		}
 
 		prevStateBlock, err := p2pSvc.GetStatechainBlock(prevStateCID)
 		if err != nil {
 			log.Printf("[miner] err getting state chain block by cid\n%v", err)
-
 			return nil, err
 		}
+
 		head = prevStateBlock
 
 		diffCID, err := p2p.GetCIDByHash(prevStateBlock.Props().StatePrevDiffHash)
 		if err != nil {
 			log.Printf("[miner] err getting diffCID by hash\n%v", err)
-
 			return nil, err
 		}
+
 		diff, err := p2pSvc.GetStatechainDiff(diffCID)
 		if err != nil {
 			log.Printf("[miner] err gitting diff by cid\n%v", err)
-
 			return nil, err
 		}
+
 		// note: prepend
 		diffs = append([]*statechain.Diff{diff}, diffs...)
+	}
+
+	if diffs == nil {
+		log.Println("[miner] error; diffs is nil")
+		return nil, errors.New("diffs is nil")
 	}
 
 	return diffs, nil
@@ -1023,6 +1034,7 @@ func gatherDiffs(ctx context.Context, p2pSvc p2p.Interface, block *statechain.Bl
 func generateStateFromDiffs(ctx context.Context, imageHash string, genesisState []byte, diffs []*statechain.Diff) ([]byte, error) {
 	combinedDiff, err := generateCombinedDiffs(ctx, imageHash, genesisState, diffs)
 	if err != nil {
+		log.Printf("[miner] error generating combined diffs; %s", err)
 		return nil, err
 	}
 
@@ -1032,34 +1044,42 @@ func generateStateFromDiffs(ctx context.Context, imageHash string, genesisState 
 
 	tmpStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
 	if err != nil {
+		log.Printf("[miner] error generating tmp state file; %s", err)
 		return nil, err
 	}
 	fileNames = append(fileNames, tmpStateFile.Name())
 	if _, err := tmpStateFile.Write(genesisState); err != nil {
+		log.Printf("[miner] error writing to genesis state to tmp state file; %s", err)
 		return nil, err
 	}
 	if err := tmpStateFile.Close(); err != nil {
+		log.Printf("[miner] error closing tmp state file; %s", err)
 		return nil, err
 	}
 
 	combinedPatchFile, err := makeTempFile(fmt.Sprintf("%s/%v/combined.patch", imageHash, ts))
 	if err != nil {
+		log.Printf("[miner] error creating combined patch file; %s", err)
 		return nil, err
 	}
 	fileNames = append(fileNames, combinedPatchFile.Name())
 	if _, err := combinedPatchFile.Write(combinedDiff); err != nil {
+		log.Printf("[miner] error writing combined diff to combined patch file; %s", err)
 		return nil, err
 	}
 	if err := combinedPatchFile.Close(); err != nil {
+		log.Printf("[miner] error closing combined patch file; %s", err)
 		return nil, err
 	}
 
 	// now apply the combined patch file to the state
 	if err := diffing.Patch(combinedPatchFile.Name(), false, true); err != nil {
+		log.Printf("[miner] error diffing combined patch file; %s", err)
 		return nil, err
 	}
 	state, err := ioutil.ReadFile(tmpStateFile.Name())
 	if err != nil {
+		log.Printf("[miner] error reading tmp state file; %s", err)
 		return nil, err
 	}
 
@@ -1073,49 +1093,65 @@ func generateCombinedDiffs(ctx context.Context, imageHash string, genesisState [
 
 	tmpStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
 	if err != nil {
+		log.Printf("[miner] error creating tmp state file; %s", err)
 		return nil, err
 	}
 	fileNames = append(fileNames, tmpStateFile.Name())
 	if _, err := tmpStateFile.Write(genesisState); err != nil {
+		log.Printf("[miner] error writing genesis state to tmp state file; %s", err)
 		return nil, err
 	}
 	if err := tmpStateFile.Close(); err != nil {
+		log.Printf("[miner] error closing tmp state file; %s", err)
 		return nil, err
 	}
 
 	combinedPatchFile, err := makeTempFile(fmt.Sprintf("%s/%v/combined.patch", imageHash, ts))
 	if err != nil {
+		log.Printf("[miner] error creating combined patch file; %s", err)
 		return nil, err
 	}
 	fileNames = append(fileNames, combinedPatchFile.Name())
 	if err := combinedPatchFile.Close(); err != nil {
+		log.Printf("[miner] error closing combined patch file; %s", err)
 		return nil, err
 	}
 
 	tmpPatchFile, err := makeTempFile(fmt.Sprintf("%s/%v/tmp.patch", imageHash, ts))
 	if err != nil {
+		log.Printf("[miner] error creating tmp patch file; %s", err)
 		return nil, err
 	}
 	fileNames = append(fileNames, tmpPatchFile.Name())
 	if err := tmpPatchFile.Close(); err != nil {
+		log.Printf("[miner] error closing tmp patch file; %s", err)
 		return nil, err
 	}
 
 	for _, diff := range diffs {
 		if ctx.Err() != nil {
+			log.Printf("[miner] error diffing; %s", err)
 			return nil, ctx.Err()
 		}
 
 		if err := ioutil.WriteFile(tmpPatchFile.Name(), []byte(diff.Props().Data), os.ModePerm); err != nil {
+			log.Printf("[miner] error writing to tmp patch file; %s", err)
 			return nil, err
 		}
 
 		if err := diffing.CombineDiff(combinedPatchFile.Name(), tmpPatchFile.Name(), combinedPatchFile.Name()); err != nil {
+			log.Printf("[miner] error invoking diffing combined diff with combined patch file, tmp patch file and combined patch file; %s", err)
 			return nil, err
 		}
 	}
 
-	return ioutil.ReadFile(combinedPatchFile.Name())
+	patch, err := ioutil.ReadFile(combinedPatchFile.Name())
+	if err != nil {
+		log.Printf("[miner] error reading combined patch file; %s", err)
+		return nil, err
+	}
+
+	return patch, nil
 }
 
 // VerifyMerkleTreeFromMinedBlock ...
@@ -1199,11 +1235,7 @@ func isGenesisTransaction(p2pSvc p2p.Interface, prevBlock *mainchain.Block, imag
 	for idx, tx := range transactions {
 		log.Printf("[miner] state block tx method %s", tx.Props().Method)
 		if tx.Props().Method == methodTypes.Deploy {
-			prevStateBlock, err := p2pSvc.FetchMostRecentStateBlock(imageHash, prevBlock)
-			if err != nil {
-				log.Printf("[miner] error fetching most recent state block for image hash %s\n%v", imageHash, err)
-				return false, nil, nil, err
-			}
+			prevStateBlock, _ := p2pSvc.FetchMostRecentStateBlock(imageHash, prevBlock)
 			if prevStateBlock != nil {
 				log.Printf("[miner] prev state block exists image hash %s", imageHash)
 				return false, nil, nil, errors.New("prev state block exists; can't deploy")

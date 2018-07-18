@@ -12,6 +12,16 @@
 
 ## Install
 
+### Requirements
+
+- Docker
+  - [Install instructions](https://docs.docker.com/install/)
+- IPFS
+  - [Install instructions](https://ipfs.io/docs/install/)
+- Patchutils
+  - MacOS
+    - `brew install patchutils`
+
 ### CLI
 
 Install using `go get` (must have [Go](https://golang.org/doc/install) installed).

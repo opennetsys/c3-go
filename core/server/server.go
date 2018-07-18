@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/c3systems/c3/logger"
+	loghooks "github.com/c3systems/c3/logger/hooks"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -75,5 +75,5 @@ func (client *Client) handleRequest() {
 }
 
 func init() {
-	log.AddHook(logger.ContextHook{})
+	log.AddHook(loghooks.ContextHook{})
 }
