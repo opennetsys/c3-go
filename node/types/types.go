@@ -23,8 +23,9 @@ type Keys struct {
 
 // Config ...
 type Config struct {
-	URI     string
-	Peer    string
-	DataDir string
-	Keys    Keys
+	URI             string
+	Peer            string
+	DataDir         string
+	Keys            Keys
+	BlockDifficulty int
 }

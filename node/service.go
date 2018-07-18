@@ -50,12 +50,20 @@ func (s *Service) spawnNextBlockMiner(prevBlock *mainchain.Block) error {
 
 	log.Printf("[node] pending tx count: %v", len(pendingTransactions))
 
+	// TODO: need to get this from the network
+	blockDifficulty := config.DefaultBlockDifficulty
+	if s.props.BlockDifficulty != 0 {
+		blockDifficulty = s.props.BlockDifficulty
+	}
+
+	log.Printf("[node] block difficult level: %v", blockDifficulty)
+
 	ch := make(chan interface{})
 	ctx, cancel := context.WithCancel(context.Background())
 	minerSvc, err := miner.New(&miner.Props{
 		Context:             ctx,
 		PreviousBlock:       prevBlock,
-		Difficulty:          config.BlockDifficulty, // TODO: need to get this from the network
+		Difficulty:          uint64(blockDifficulty),
 		Channel:             ch,
 		Async:               true, // TODO: need to make this a cli flag
 		P2P:                 s.props.P2P,

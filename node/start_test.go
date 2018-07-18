@@ -46,6 +46,7 @@ func TestBroadcast(t *testing.T) {
 					PEMFile:  privPEM,
 					Password: "",
 				},
+				Difficulty: 5,
 			})
 
 			if err != nil {
@@ -88,7 +89,7 @@ func TestBroadcast(t *testing.T) {
 		From:      encodedPub,
 	})
 
-	tx := tx1
+	tx := tx2
 	_ = tx1
 	_ = tx2
 

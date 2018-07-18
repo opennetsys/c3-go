@@ -24,11 +24,12 @@ var (
 // Build ...
 func Build() *cobra.Command {
 	var (
-		nodeURI  string
-		dataDir  string
-		peer     string
-		pem      string
-		password string
+		nodeURI    string
+		dataDir    string
+		peer       string
+		pem        string
+		password   string
+		difficulty int
 	)
 
 	dit := registry.NewRegistry(&registry.Config{})
@@ -131,6 +132,7 @@ For more info visit: https://github.com/c3systems/c3,
 					PEMFile:  pem,
 					Password: password,
 				},
+				BlockDifficulty: difficulty,
 			})
 		},
 	}
@@ -139,6 +141,7 @@ For more info visit: https://github.com/c3systems/c3,
 	startSubCmd.Flags().StringVarP(&dataDir, "data-dir", "d", config.DefaultStoreDirectory, "The directory in which to save data")
 	startSubCmd.Flags().StringVar(&pem, "pem", "", "A pem file containing an ecdsa private key")
 	startSubCmd.Flags().StringVar(&password, "password", "", "A password for the pem file [OPTIONAL]")
+	startSubCmd.Flags().IntVar(&difficulty, "difficulty", 6, "The hashing difficulty for mining blocks. (1-15) [OPTIONAL]")
 
 	startSubCmd.MarkFlagRequired("pem")
 	// TODO: add more flags for blockstore and nodestore, etc.

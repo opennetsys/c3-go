@@ -11,6 +11,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/c3systems/c3/common/hashing"
 	"github.com/c3systems/c3/common/hexutil"
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/merkle"
@@ -557,7 +558,11 @@ func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBloc
 			return nil, nil, err
 		}
 
-		nextStateHash := hexutil.EncodeToString(nextState)
+		nextStateHashBytes := hashing.Hash(nextState)
+		nextStateHash := hexutil.EncodeToString(nextStateHashBytes[:])
+		log.Printf("[miner] state prev diff hash: %s", *diffStruct.Props().DiffHash)
+		log.Printf("[miner] state current hash: %s", nextStateHash)
+
 		runningBlockNumber++
 		nextStateStruct := statechain.New(&statechain.BlockProps{
 			BlockNumber:       hexutil.EncodeUint64(runningBlockNumber),

@@ -221,11 +221,11 @@ test/logger/color:
 
 .PHONY: run/node
 run/node:
-	@go run main.go node start --pem=node/test_data/priv1.pem --uri /ip4/0.0.0.0/tcp/9005 --data-dir=~/.c3-1
+	@go run main.go node start --pem=node/test_data/priv1.pem --uri /ip4/0.0.0.0/tcp/9005 --data-dir ~/.c3-1 --difficulty 5
 
 .PHONY: run/node/2
 run/node/2:
-	@go run main.go node start --pem=node/test_data/priv2.pem --uri /ip4/0.0.0.0/tcp/9006 --data-dir=~/.c3-2
+	@go run main.go node start --pem=node/test_data/priv2.pem --uri /ip4/0.0.0.0/tcp/9006 --data-dir ~/.c3-2 --difficulty 5
 
 .PHONY: node/save/testimage
 node/save/testimage:

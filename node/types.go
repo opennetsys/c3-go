@@ -31,6 +31,7 @@ type Props struct {
 	P2P                 p2p.Interface
 	Keys                Keys
 	Protobyff           protobuff.Interface
+	BlockDifficulty     int
 }
 
 // Service ...

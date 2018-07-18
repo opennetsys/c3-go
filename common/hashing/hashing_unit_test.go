@@ -4,10 +4,20 @@ package hashing
 
 import (
 	"fmt"
+	"hash"
 	"testing"
 
 	"github.com/c3systems/c3/common/hexutil"
 )
+
+func TestNew(t *testing.T) {
+	t.Parallel()
+	hs := New()
+	_, ok := hs.(hash.Hash)
+	if !ok {
+		t.Errorf("expected to be instance of hash.Hash")
+	}
+}
 
 func TestHash(t *testing.T) {
 	t.Parallel()
@@ -46,9 +56,9 @@ func TestHashToHexString(t *testing.T) {
 
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
-			hash := HashToHexString(tt.in)
-			if hash != tt.out {
-				t.Errorf("want %v; got %v", tt.out, hash)
+			hs := HashToHexString(tt.in)
+			if hs != tt.out {
+				t.Errorf("want %v; got %v", tt.out, hs)
 			}
 		})
 	}

@@ -787,6 +787,8 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, sbSvc sandbox.Interface, 
 
 		nextStateHashBytes := hashing.Hash(nextState)
 		nextStateHash := hexutil.EncodeToString(nextStateHashBytes[:])
+		log.Printf("[miner] state prev diff hash: %s", *diffStruct.Props().DiffHash)
+		log.Printf("[miner] state current hash: %s", nextStateHash)
 		nextStateStruct := statechain.New(&statechain.BlockProps{
 			BlockNumber:       hexutil.EncodeUint64(prevBlockNumber),
 			BlockTime:         hexutil.EncodeUint64(uint64(ts)),

@@ -247,6 +247,7 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 			Priv: priv,
 			Pub:  pub,
 		},
+		BlockDifficulty: cfg.BlockDifficulty,
 	}
 
 	if err := n.listenForEvents(); err != nil {
