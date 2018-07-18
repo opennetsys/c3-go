@@ -700,7 +700,7 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, prevState []byte, prevBlo
 		return nil, nil, nil, err
 	}
 	defer os.Remove(outPatchFile.Name()) // clean up
-	if err := outPatchFile.Close(); err != nil {
+	if err = outPatchFile.Close(); err != nil {
 		return nil, nil, nil, err
 	}
 	prevStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/prevState.txt", prevBlock.Props().ImageHash, ts))
@@ -755,14 +755,14 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, prevState []byte, prevBlo
 		}
 		defer os.Remove(nextStateFile.Name()) // clean up
 
-		if _, err := nextStateFile.Write(nextState); err != nil {
+		if _, err = nextStateFile.Write(nextState); err != nil {
 			return nil, nil, nil, err
 		}
-		if err := nextStateFile.Close(); err != nil {
+		if err = nextStateFile.Close(); err != nil {
 			return nil, nil, nil, err
 		}
 
-		if err := diffing.Diff(prevStateFileName, nextStateFile.Name(), outPatchFile.Name(), false); err != nil {
+		if err = diffing.Diff(prevStateFileName, nextStateFile.Name(), outPatchFile.Name(), false); err != nil {
 			return nil, nil, nil, err
 		}
 
@@ -775,7 +775,7 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, prevState []byte, prevBlo
 		diffStruct := statechain.NewDiff(&statechain.DiffProps{
 			Data: string(diffData),
 		})
-		if err := diffStruct.SetHash(); err != nil {
+		if err = diffStruct.SetHash(); err != nil {
 			return nil, nil, nil, err
 		}
 
@@ -833,10 +833,10 @@ func buildGenesisStateBlock(imageHash string, tx *statechain.Transaction) (*stat
 		return nil, nil, err
 	}
 	defer os.Remove(nextStateFile.Name()) // clean up
-	if _, err := nextStateFile.Write(nextState); err != nil {
+	if _, err = nextStateFile.Write(nextState); err != nil {
 		return nil, nil, err
 	}
-	if err := nextStateFile.Close(); err != nil {
+	if err = nextStateFile.Close(); err != nil {
 		return nil, nil, err
 	}
 
@@ -845,7 +845,7 @@ func buildGenesisStateBlock(imageHash string, tx *statechain.Transaction) (*stat
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := tmpStateFile.Close(); err != nil {
+	if err = tmpStateFile.Close(); err != nil {
 		return nil, nil, err
 	}
 
@@ -854,11 +854,11 @@ func buildGenesisStateBlock(imageHash string, tx *statechain.Transaction) (*stat
 		return nil, nil, err
 	}
 	defer os.Remove(outPatchFile.Name()) // clean up
-	if err := outPatchFile.Close(); err != nil {
+	if err = outPatchFile.Close(); err != nil {
 		return nil, nil, err
 	}
 
-	if err := diffing.Diff(tmpStateFile.Name(), nextStateFile.Name(), outPatchFile.Name(), false); err != nil {
+	if err = diffing.Diff(tmpStateFile.Name(), nextStateFile.Name(), outPatchFile.Name(), false); err != nil {
 		return nil, nil, err
 	}
 
@@ -1028,17 +1028,17 @@ func generateStateFromDiffs(ctx context.Context, imageHash string, genesisState 
 
 	ts := time.Now().Unix()
 	var fileNames []string
-	defer cleanupFiles(fileNames)
+	defer cleanupFiles(&fileNames)
 
 	tmpStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
 	if err != nil {
 		return nil, err
 	}
 	fileNames = append(fileNames, tmpStateFile.Name())
-	if _, err := tmpStateFile.Write(genesisState); err != nil {
+	if _, err = tmpStateFile.Write(genesisState); err != nil {
 		return nil, err
 	}
-	if err := tmpStateFile.Close(); err != nil {
+	if err = tmpStateFile.Close(); err != nil {
 		return nil, err
 	}
 
@@ -1047,15 +1047,15 @@ func generateStateFromDiffs(ctx context.Context, imageHash string, genesisState 
 		return nil, err
 	}
 	fileNames = append(fileNames, combinedPatchFile.Name())
-	if _, err := combinedPatchFile.Write(combinedDiff); err != nil {
+	if _, err = combinedPatchFile.Write(combinedDiff); err != nil {
 		return nil, err
 	}
-	if err := combinedPatchFile.Close(); err != nil {
+	if err = combinedPatchFile.Close(); err != nil {
 		return nil, err
 	}
 
 	// now apply the combined patch file to the state
-	if err := diffing.Patch(combinedPatchFile.Name(), false, true); err != nil {
+	if err = diffing.Patch(combinedPatchFile.Name(), false, true); err != nil {
 		return nil, err
 	}
 	state, err := ioutil.ReadFile(tmpStateFile.Name())
@@ -1069,17 +1069,17 @@ func generateStateFromDiffs(ctx context.Context, imageHash string, genesisState 
 func generateCombinedDiffs(ctx context.Context, imageHash string, genesisState []byte, diffs []*statechain.Diff) ([]byte, error) {
 	ts := time.Now().Unix()
 	var fileNames []string
-	defer cleanupFiles(fileNames)
+	defer cleanupFiles(&fileNames)
 
 	tmpStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
 	if err != nil {
 		return nil, err
 	}
 	fileNames = append(fileNames, tmpStateFile.Name())
-	if _, err := tmpStateFile.Write(genesisState); err != nil {
+	if _, err = tmpStateFile.Write(genesisState); err != nil {
 		return nil, err
 	}
-	if err := tmpStateFile.Close(); err != nil {
+	if err = tmpStateFile.Close(); err != nil {
 		return nil, err
 	}
 
@@ -1088,7 +1088,7 @@ func generateCombinedDiffs(ctx context.Context, imageHash string, genesisState [
 		return nil, err
 	}
 	fileNames = append(fileNames, combinedPatchFile.Name())
-	if err := combinedPatchFile.Close(); err != nil {
+	if err = combinedPatchFile.Close(); err != nil {
 		return nil, err
 	}
 
@@ -1286,10 +1286,13 @@ func groupStateBlocksByImageHash(stateBlocksMap map[string]*statechain.Block) (m
 	return ret, nil
 }
 
-func cleanupFiles(fileNames []string) {
-	for idx := range fileNames {
-		if err := os.Remove(fileNames[idx]); err != nil {
-			log.Printf("[miner] err cleaning up file %s", fileNames[idx])
+func cleanupFiles(fileNames *[]string) {
+	if fileNames == nil {
+		return
+	}
+	for _, fileName := range *fileNames {
+		if err := os.Remove(fileName); err != nil {
+			log.Printf("[miner] err cleaning up file %s", fileName)
 		}
 	}
 }
