@@ -204,9 +204,12 @@ func (s Service) FetchMostRecentStateBlock(imageHash string, block *mainchain.Bl
 		}
 	}
 
+	log.Printf("[p2p] mainchain genesis block block number is %v", mainchain.GenesisBlock.Props().BlockNumber)
+
 	// walk the mainchain
 	head := block
 	for head.Props().BlockNumber != mainchain.GenesisBlock.Props().BlockNumber {
+		log.Printf("[p2p] checking head block number %v for image hash %s", head.Props().BlockNumber, imageHash)
 		prevCID, err := GetCIDByHash(head.Props().PrevBlockHash)
 		if err != nil {
 			log.Printf("[p2p] error getting cid by hash for prev block hash %s for image hash %s", head.Props().PrevBlockHash, imageHash)

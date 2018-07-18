@@ -378,6 +378,11 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 func (s *Service) gatherDiffs(block *statechain.Block) ([]*statechain.Diff, error) {
 	var diffs []*statechain.Diff
 
+	if block == nil {
+		log.Printf("[miner] can't gather diffs because block is nil; returning empty list")
+		return diffs, nil
+	}
+
 	diffCID, err := p2p.GetCIDByHash(block.Props().StatePrevDiffHash)
 	if err != nil {
 		return nil, err

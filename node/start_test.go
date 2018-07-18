@@ -7,20 +7,21 @@ import (
 
 	"github.com/c3systems/c3/common/c3crypto"
 	"github.com/c3systems/c3/core/chain/statechain"
+	//docker "github.com/c3systems/c3/core/docker"
 	methodTypes "github.com/c3systems/c3/core/types/methods"
 	nodetypes "github.com/c3systems/c3/node/types"
 	"github.com/davecgh/go-spew/spew"
 )
 
 func TestBroadcast(t *testing.T) {
-	imageHash := "QmQpXfKvirguQaMG7khqvLrqWcxEzh2qVApfC1Ts7QyFK7"
+	imageHash := "Qmf9XFxbFDGv4yssc7YvAisxxUBU89BFbimAAYgT33ZTAf"
 
 	/*
-		dockerclient := docker.NewClient()
-		err := dockerclient.LoadImageByFilepath("./test_data/go_example_image.tar")
-		if err != nil {
-			t.Error(err)
-		}
+			dockerclient := docker.NewClient()
+			err := dockerclient.LoadImageByFilepath("./test_data/go_example_image.tar")
+			if err != nil {
+				t.Error(err)
+			}
 
 		registry := registry.NewRegistry(&registry.Config{})
 		imageHash, err := registry.PushImageByID("goexample")
@@ -87,7 +88,7 @@ func TestBroadcast(t *testing.T) {
 		From:      encodedPub,
 	})
 
-	tx := tx2
+	tx := tx1
 	_ = tx1
 	_ = tx2
 
