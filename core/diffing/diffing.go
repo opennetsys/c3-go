@@ -34,8 +34,16 @@ func Diff(old, new, out string, isDir bool) error {
 		s = " %s"
 	}
 
-	commands = append(commands, old, new, ">", out)
-	s += " %s %s %s %s"
+	/*
+	 * note: the first two lines of a standard patch file are:
+	 *    --- oldFileName timestamp
+	 *    +++ newFileName timestamp
+	 *
+	 *    We want the oldFileName to show up on both lines, so we replace the first instance in the file with sed
+	 *
+	 */
+	commands = append(commands, old, new, new, old, out)
+	s += " %s %s | sed -e 's|%s|%s|' > %s"
 
 	cmd := exec.Command("sh", "-c", fmt.Sprintf("diff -ud"+s, commands...))
 	if err := cmd.Start(); err != nil {
@@ -43,21 +51,10 @@ func Diff(old, new, out string, isDir bool) error {
 	}
 
 	if err := cmd.Wait(); err != nil {
-		/*
-		 * note:
-		 *   0 == no diffs found;
-		 *   1 == diffs were found;
-		 *   2 == some other err;
-		 *
-		 */
-		if err.Error() == "exit status 1" {
-			return nil
-		}
-
 		return err
 	}
 
-	return ErrNoDifferencesFound
+	return nil
 }
 
 // CombineDiff ...
@@ -77,7 +74,7 @@ func CombineDiff(firstDiff, secondDiff, out string) error {
 }
 
 // Patch ...
-func Patch(patch string, backup bool, absPath bool) error {
+func Patch(patch, orig string, backup bool, absPath bool) error {
 	if !command.Exists("patch") {
 		log.Println("[miner] error; patch command not found")
 		return ErrCommandNotFound
@@ -97,7 +94,7 @@ func Patch(patch string, backup bool, absPath bool) error {
 		s += " %s"
 	}
 
-	commands = append(commands, "<", patch)
+	commands = append(commands, orig, patch)
 	s += " %s %s"
 
 	cmd := exec.Command("sh", "-c", fmt.Sprintf("patch"+s, commands...))

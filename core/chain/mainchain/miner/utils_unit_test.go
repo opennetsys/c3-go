@@ -4,6 +4,8 @@ package miner
 
 import (
 	"context"
+	"io/ioutil"
+	"os"
 	"reflect"
 	"testing"
 
@@ -383,15 +385,104 @@ func TestGatherDiffs(t *testing.T) {
 }
 
 func TestGenerateStateFromDiffs(t *testing.T) {
-	t.Skip()
+	t.Parallel()
 
-	// TODO
+	genesisState, err := ioutil.ReadFile("./test_data/tmp/state.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := ioutil.WriteFile("./test_data/tmp/state.txt", genesisState, os.ModePerm); err != nil {
+			t.Logf("err returning genesis state file to it's original state\n%v", err)
+		}
+	}()
+	expectedState, err := ioutil.ReadFile("./test_data/tmp/state3.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data1, err := ioutil.ReadFile("./test_data/1.patch")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data2, err := ioutil.ReadFile("./test_data/2.patch")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data3, err := ioutil.ReadFile("./test_data/3.patch")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	diff1 := statechain.NewDiff(&statechain.DiffProps{
+		Data: string(data1),
+	})
+	diff2 := statechain.NewDiff(&statechain.DiffProps{
+		Data: string(data2),
+	})
+	diff3 := statechain.NewDiff(&statechain.DiffProps{
+		Data: string(data3),
+	})
+
+	diffs := []*statechain.Diff{
+		diff1,
+		diff2,
+		diff3,
+	}
+
+	state, err := generateStateFromDiffs(context.TODO(), "fakeImage", genesisState, diffs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if string(expectedState) != string(state) {
+		t.Errorf("expected %s\nreceived %s", string(expectedState), string(state))
+	}
 }
 
 func TestGenerateCombinedDiffs(t *testing.T) {
-	t.Skip()
+	t.Parallel()
 
-	// TODO
+	expected, err := ioutil.ReadFile("./test_data/combined.patch")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data1, err := ioutil.ReadFile("./test_data/1.patch")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data2, err := ioutil.ReadFile("./test_data/2.patch")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data3, err := ioutil.ReadFile("./test_data/3.patch")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	diff1 := statechain.NewDiff(&statechain.DiffProps{
+		Data: string(data1),
+	})
+	diff2 := statechain.NewDiff(&statechain.DiffProps{
+		Data: string(data2),
+	})
+	diff3 := statechain.NewDiff(&statechain.DiffProps{
+		Data: string(data3),
+	})
+
+	diffs := []*statechain.Diff{
+		diff1,
+		diff2,
+		diff3,
+	}
+
+	received, err := generateCombinedDiffs(context.TODO(), "fakeImage", diffs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if string(expected) != string(received) {
+		t.Errorf("expected %s\n\n\nreceived %s", string(expected), string(received))
+	}
 }
 
 func TestIsGenesisTransaction(t *testing.T) {

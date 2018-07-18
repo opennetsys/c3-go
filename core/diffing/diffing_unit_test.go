@@ -219,7 +219,7 @@ func TestPatch(t *testing.T) {
 		t.Errorf("err diffing the files\n%v", err)
 	}
 
-	if err := Patch(fmt.Sprintf("%s/.testfiles/12.patch", wd), true, true); err != nil {
+	if err := Patch(fmt.Sprintf("%s/.testfiles/12.patch", wd), fmt.Sprintf("%s/.testfiles/1.txt", wd), true, true); err != nil {
 		t.Errorf("err patching\n%v", err)
 	}
 
