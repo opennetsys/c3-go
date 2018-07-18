@@ -26,8 +26,8 @@ import (
 
 // Sandbox ...
 type Sandbox struct {
-	docker            *docker.Client
-	registry          *registry.Registry
+	docker            docker.Interface
+	registry          registry.Interface
 	sock              string
 	runningContainers map[string]bool
 }
@@ -37,7 +37,7 @@ type Config struct {
 }
 
 // NewSandbox ...
-func NewSandbox(config *Config) *Sandbox {
+func NewSandbox(config *Config) Interface {
 	if config == nil {
 		config = &Config{}
 	}

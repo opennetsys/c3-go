@@ -40,7 +40,7 @@ type Config struct {
 }
 
 // NewRegistry ...
-func NewRegistry(config *Config) *Registry {
+func NewRegistry(config *Config) Interface {
 	dockerLocalRegistryHost := config.DockerLocalRegistryHost
 	if dockerLocalRegistryHost == "" {
 		dockerLocalRegistryHost = os.Getenv("DOCKER_LOCAL_REGISTRY_HOST")

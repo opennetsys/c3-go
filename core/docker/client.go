@@ -28,7 +28,7 @@ type Client struct {
 }
 
 // NewClient ...
-func NewClient() *Client {
+func NewClient() Interface {
 	return newEnvClient()
 }
 
