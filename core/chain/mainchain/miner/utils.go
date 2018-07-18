@@ -1323,9 +1323,10 @@ func cleanupFiles(fileNames *[]string) {
 	if fileNames == nil {
 		return
 	}
-	for _, fileName := range *fileNames {
-		if err := os.Remove(fileName); err != nil {
-			log.Printf("[miner] err cleaning up file %s", fileName)
+
+	for idx := range *fileNames {
+		if err := os.Remove((*fileNames)[idx]); err != nil {
+			log.Printf("[miner] err cleaning up file %s", (*fileNames)[idx])
 		}
 	}
 }
