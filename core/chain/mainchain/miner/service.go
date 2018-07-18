@@ -360,6 +360,10 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 		log.Printf("[miner] total diffs %v", len(diffs))
 	}
 
+	for i := range diffs {
+		log.Printf("[miner] diff %v\n%s", i, diffs[i].Props().Data)
+	}
+
 	if diffs == nil {
 		log.Printf("[miner] error building next state for image hash %s; diffs list is nil", imageHash)
 		return errors.New("diffs is nil")
@@ -372,6 +376,8 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 		log.Printf("[miner] error getting state from diffs for image hash %s\n%v", imageHash, err)
 		return err
 	}
+
+	colorlog.Yellow("[miner] generated state from diffs: %s", string(state))
 
 	newStatechainBlocks, newDiffs, err := s.buildStateblocksAndDiffsFromStateAndTransactions(prevStateBlock, imageHash, state, transactions)
 	if err != nil {
@@ -510,7 +516,7 @@ func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBloc
 			}
 
 			log.Printf("[miner] invoking method %s for image hash %s", parsed[0], imageHash)
-			log.Printf("[miner] setting docker container initial state to %s", string(state))
+			log.Printf("[miner] setting docker container initial state to %q", string(state))
 
 			// run container, passing the tx inputs
 			nextState, err = s.props.Sandbox.Play(&sandbox.PlayConfig{

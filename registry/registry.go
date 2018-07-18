@@ -166,13 +166,13 @@ func ipfsPrep(tmp string) (string, error) {
 			return "", errors.New("only one repository expected in input file")
 		}
 		for imageName, tags := range reposJSON {
-			fmt.Println(imageName, tags)
+			log.Println("[registry]", imageName, tags)
 			if len(tags) != 1 {
 				return "", fmt.Errorf("only one tag expected for %s", imageName)
 			}
 			for tag, hash := range tags {
 				name = normalizeImageName(imageName)
-				fmt.Printf("processing image:%s tag:%s hash:256:%s", name, tag, hash)
+				fmt.Printf("[registry] processing image:%s tag:%s hash:256:%s", name, tag, hash)
 			}
 		}
 	}

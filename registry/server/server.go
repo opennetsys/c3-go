@@ -32,7 +32,7 @@ func Run() error {
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		uri := r.RequestURI
-		fmt.Println(uri)
+		log.Printf("[registry] %s", uri)
 
 		if uri == "/v2/" {
 			jsonstr := []byte(fmt.Sprintf(`{"what": "a registry", "gateway":%q, "handles": [%q, %q], "problematic": ["version 1 registries"], "project": "https://github.com/c3systems/c3"}`, gw, contentTypes["manifestListV2Schema"], contentTypes["manifestV2Schema"]))
@@ -78,7 +78,7 @@ func Run() error {
 			// manifest request
 			location = location + suffix
 		}
-		fmt.Printf("location %s", location)
+		log.Printf("[registy] location %s", location)
 
 		req, err := http.NewRequest("GET", location, nil)
 		if err != nil {

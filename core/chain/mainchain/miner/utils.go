@@ -933,7 +933,7 @@ func fetchCurrentState(ctx context.Context, p2pSvc p2p.Interface, block *statech
 
 		// apply the diffs to get the current state
 		// TODO: get the genesis state of the block?
-		genesisState := []byte("")
+		var genesisState []byte
 		imageHash := block.Props().ImageHash
 		state, err := generateStateFromDiffs(ctx, imageHash, genesisState, diffs)
 		if err != nil {
@@ -1150,10 +1150,30 @@ func generateCombinedDiffs(ctx context.Context, imageHash string, genesisState [
 			return nil, err
 		}
 
+		// reading for debug logging
+		combinedPathFileData, err := ioutil.ReadFile(combinedPatchFile.Name())
+		if err != nil {
+			return nil, err
+		}
+		tmpPatchFileData, err := ioutil.ReadFile(tmpPatchFile.Name())
+		if err != nil {
+			return nil, err
+		}
+
+		log.Printf("[miner] combining diffs\n%s\n%s\n%s\n%s\nout: %s", combinedPatchFile.Name(), string(combinedPathFileData), tmpPatchFile.Name(), string(tmpPatchFileData), combinedPatchFile.Name())
+
 		if err := diffing.CombineDiff(combinedPatchFile.Name(), tmpPatchFile.Name(), combinedPatchFile.Name()); err != nil {
 			log.Printf("[miner] error invoking diffing combined diff with combined patch file, tmp patch file and combined patch file; %s", err)
 			return nil, err
 		}
+
+		// reading for debug logging
+		combinedPathFileData, err = ioutil.ReadFile(combinedPatchFile.Name())
+		if err != nil {
+			return nil, err
+		}
+
+		log.Printf("[miner] combined diffs\n%s\n%s", combinedPatchFile.Name(), string(combinedPathFileData))
 	}
 
 	patch, err := ioutil.ReadFile(combinedPatchFile.Name())

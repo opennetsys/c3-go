@@ -46,7 +46,7 @@ func TestBroadcast(t *testing.T) {
 					PEMFile:  privPEM,
 					Password: "",
 				},
-				Difficulty: 5,
+				BlockDifficulty: 5,
 			})
 
 			if err != nil {
