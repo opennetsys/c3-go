@@ -16,6 +16,9 @@ import (
 	"github.com/ipfs/go-ipfs/exchange/bitswap/network"
 )
 
+// Ensure the struct implements the interface
+var _ Interface = (*Service)(nil)
+
 // New ...
 func New(props *Props) (*Service, error) {
 	var err error

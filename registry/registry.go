@@ -27,10 +27,13 @@ import (
 	"github.com/c3systems/c3/registry/util"
 )
 
+// Ensure the struct implements the interface
+var _ Interface = (*Registry)(nil)
+
 // Registry ...
 type Registry struct {
 	dockerLocalRegistryHost string
-	ipfsClient              *ipfs.Client
+	ipfsClient              ipfs.Interface
 }
 
 // Config ...
@@ -39,7 +42,7 @@ type Config struct {
 }
 
 // NewRegistry ...
-func NewRegistry(config *Config) Interface {
+func NewRegistry(config *Config) *Registry {
 	dockerLocalRegistryHost := config.DockerLocalRegistryHost
 	if dockerLocalRegistryHost == "" {
 		dockerLocalRegistryHost = os.Getenv("DOCKER_LOCAL_REGISTRY_HOST")

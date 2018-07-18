@@ -9,6 +9,7 @@ import (
 	"github.com/c3systems/c3/core/chain/merkle"
 	"github.com/c3systems/c3/core/chain/statechain"
 	"github.com/c3systems/c3/core/p2p"
+	"github.com/c3systems/c3/core/sandbox"
 )
 
 var (
@@ -35,6 +36,7 @@ type Props struct {
 	Async               bool // note: build state blocks asynchronously?
 	EncodedMinerAddress string
 	P2P                 p2p.Interface
+	Sandbox             sandbox.Interface
 	PendingTransactions []*statechain.Transaction
 }
 

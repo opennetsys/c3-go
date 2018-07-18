@@ -19,7 +19,7 @@ func init() {
 
 func TestNew(t *testing.T) {
 	t.Parallel()
-	sb := NewSandbox(&Config{})
+	sb := New(nil)
 	if sb == nil {
 		t.Error("expected instance")
 	}
@@ -27,7 +27,7 @@ func TestNew(t *testing.T) {
 
 func TestPayload(t *testing.T) {
 	t.Parallel()
-	sb := NewSandbox(&Config{})
+	sb := New(nil)
 	newState, err := sb.Play(&PlayConfig{
 		ImageID: imageID,
 		Payload: []byte(`["setItem", "foo", "bar"]`),
@@ -44,7 +44,7 @@ func TestPayload(t *testing.T) {
 
 func TestInitialState(t *testing.T) {
 	t.Parallel()
-	sb := NewSandbox(&Config{})
+	sb := New(nil)
 	newState, err := sb.Play(&PlayConfig{
 		ImageID:      imageID,
 		Payload:      []byte(`["setItem", "foo", "bar"]`),
@@ -62,7 +62,7 @@ func TestInitialState(t *testing.T) {
 
 func TestMultipleInputs(t *testing.T) {
 	t.Parallel()
-	sb := NewSandbox(&Config{})
+	sb := New(nil)
 	newState, err := sb.Play(&PlayConfig{
 		ImageID:      imageID,
 		Payload:      []byte(`[["setItem", "foo", "bar"],["setItem", "hello", "mars"]]`),

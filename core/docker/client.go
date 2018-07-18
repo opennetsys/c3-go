@@ -22,13 +22,16 @@ import (
 	"github.com/docker/go-connections/tlsconfig"
 )
 
+// Ensure the struct implements the interface
+var _ Interface = (*Client)(nil)
+
 // Client ...
 type Client struct {
 	client *client.Client
 }
 
 // NewClient ...
-func NewClient() Interface {
+func NewClient() *Client {
 	return newEnvClient()
 }
 

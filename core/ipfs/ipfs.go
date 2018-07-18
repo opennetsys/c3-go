@@ -12,6 +12,9 @@ import (
 	api "github.com/ipfs/go-ipfs-api"
 )
 
+// Ensure the service implements the struct
+var _ Interface = (*Client)(nil)
+
 // Client ...
 type Client struct {
 	client *api.Shell

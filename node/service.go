@@ -12,6 +12,7 @@ import (
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/mainchain/miner"
 	"github.com/c3systems/c3/core/chain/statechain"
+	"github.com/c3systems/c3/core/sandbox"
 	colorlog "github.com/c3systems/c3/logger/color"
 	loghooks "github.com/c3systems/c3/logger/hooks"
 	nodetypes "github.com/c3systems/c3/node/types"
@@ -58,6 +59,7 @@ func (s *Service) spawnNextBlockMiner(prevBlock *mainchain.Block) error {
 		Channel:             ch,
 		Async:               true, // TODO: need to make this a cli flag
 		P2P:                 s.props.P2P,
+		Sandbox:             sandbox.New(nil),
 		EncodedMinerAddress: encMinerAddr,
 		PendingTransactions: pendingTransactions,
 	})
@@ -369,7 +371,7 @@ func (s *Service) handleReceiptOfMinedBlock(minedBlock *miner.MinedBlock) {
 	// note: timeout should be a cli flag
 	ctx, cancel := context.WithTimeout(context.Background(), config.MinedBlockVerificationTimeout)
 	defer cancel()
-	ok, err := miner.VerifyMinedBlock(ctx, s.props.P2P, minedBlock)
+	ok, err := miner.VerifyMinedBlock(ctx, s.props.P2P, sandbox.New(nil), minedBlock)
 	if err != nil {
 		log.Printf("[node] received err while verifying mined block\nblock: %v\nerr: %v", *minedBlock.NextBlock, err)
 		return
