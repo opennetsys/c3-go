@@ -513,8 +513,7 @@ func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBloc
 			log.Printf("[miner] setting docker container initial state to %s", string(state))
 
 			// run container, passing the tx inputs
-			sb := sandbox.NewSandbox(&sandbox.Config{})
-			nextState, err = sb.Play(&sandbox.PlayConfig{
+			nextState, err = s.props.Sandbox.Play(&sandbox.PlayConfig{
 				ImageID:      imageHash,
 				Payload:      payload,
 				InitialState: state,

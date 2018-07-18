@@ -24,8 +24,11 @@ import (
 	"github.com/c3systems/c3/registry"
 )
 
-// Sandbox ...
-type Sandbox struct {
+// Ensure the service implements the interface
+var _ Interface = (*Service)(nil)
+
+// Service ...
+type Service struct {
 	docker            docker.Interface
 	registry          registry.Interface
 	sock              string
@@ -35,31 +38,37 @@ type Sandbox struct {
 
 // Config ...
 type Config struct {
+	docker   docker.Interface
+	registry registry.Interface
 }
 
-// NewSandbox ...
-func NewSandbox(config *Config) Interface {
-	if config == nil {
-		config = &Config{}
-	}
-
+// New ...
+func New(config *Config) *Service {
 	localIP, err := network.LocalIP()
 	if err != nil {
 		log.Fatalf("[sandbox] %s", err)
 	}
 
-	dockerLocalRegistryHost := os.Getenv("DOCKER_LOCAL_REGISTRY_HOST")
-	if dockerLocalRegistryHost == "" {
-		dockerLocalRegistryHost = localIP.String()
+	if config == nil {
+		dockerLocalRegistryHost := os.Getenv("DOCKER_LOCAL_REGISTRY_HOST")
+		if dockerLocalRegistryHost == "" {
+			dockerLocalRegistryHost = localIP.String()
+		}
+
+		docker := docker.NewClient()
+		dit := registry.NewRegistry(&registry.Config{
+			DockerLocalRegistryHost: dockerLocalRegistryHost,
+		})
+
+		config = &Config{
+			docker:   docker,
+			registry: dit,
+		}
 	}
 
-	docker := docker.NewClient()
-	dit := registry.NewRegistry(&registry.Config{
-		DockerLocalRegistryHost: dockerLocalRegistryHost,
-	})
-	sb := &Sandbox{
-		docker:            docker,
-		registry:          dit,
+	sb := &Service{
+		docker:            config.docker,
+		registry:          config.registry,
 		sock:              "/var/run/docker.sock",
 		runningContainers: map[string]bool{},
 		localIP:           localIP.String(),
@@ -78,7 +87,7 @@ type PlayConfig struct {
 }
 
 // Play in the sandbox
-func (s *Sandbox) Play(config *PlayConfig) ([]byte, error) {
+func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 	if config == nil {
 		return nil, errors.New("config is required")
 	}
@@ -220,7 +229,7 @@ func (s *Sandbox) Play(config *PlayConfig) ([]byte, error) {
 	}
 }
 
-func (s *Sandbox) killContainer(containerID string) error {
+func (s *Service) killContainer(containerID string) error {
 	delete(s.runningContainers, containerID)
 	if err := s.docker.StopContainer(containerID); err != nil {
 		return err
@@ -253,7 +262,7 @@ func parseNewState(reader io.Reader) ([]byte, error) {
 	return b, nil
 }
 
-func (s *Sandbox) sendMessage(msg []byte, port string) error {
+func (s *Service) sendMessage(msg []byte, port string) error {
 	// TODO: communicate over IPC
 	host := fmt.Sprintf("%s:%s", s.localIP, port)
 	log.Printf("[sandbox] sending message to container on host %s; message: %s", host, msg)
@@ -271,7 +280,7 @@ func (s *Sandbox) sendMessage(msg []byte, port string) error {
 	return nil
 }
 
-func (s *Sandbox) cleanupOnExit() {
+func (s *Service) cleanupOnExit() {
 	var gracefulStop = make(chan os.Signal)
 	signal.Notify(gracefulStop, syscall.SIGTERM)
 	signal.Notify(gracefulStop, syscall.SIGINT)
@@ -281,7 +290,7 @@ func (s *Sandbox) cleanupOnExit() {
 	os.Exit(0)
 }
 
-func (s *Sandbox) cleanup() {
+func (s *Service) cleanup() {
 	for cid := range s.runningContainers {
 		err := s.docker.StopContainer(cid)
 		if err != nil {

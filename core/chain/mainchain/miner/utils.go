@@ -125,7 +125,7 @@ func VerifyTransaction(tx *statechain.Transaction) (bool, error) {
 }
 
 // VerifyMinedBlock ...
-func VerifyMinedBlock(ctx context.Context, p2pSvc p2p.Interface, minedBlock *MinedBlock) (bool, error) {
+func VerifyMinedBlock(ctx context.Context, p2pSvc p2p.Interface, sbSvc sandbox.Interface, minedBlock *MinedBlock) (bool, error) {
 	ch := make(chan interface{})
 
 	go func() {
@@ -297,7 +297,7 @@ func VerifyMinedBlock(ctx context.Context, p2pSvc p2p.Interface, minedBlock *Min
 				return false, nil
 			}
 
-			return VerifyStateBlocksFromMinedBlock(ctx, p2pSvc, minedBlock)
+			return VerifyStateBlocksFromMinedBlock(ctx, p2pSvc, sbSvc, minedBlock)
 
 		default:
 			log.Printf("[miner] received unknown message of type %T\n%v", v, v)
@@ -312,7 +312,7 @@ func VerifyMinedBlock(ctx context.Context, p2pSvc p2p.Interface, minedBlock *Min
 
 // VerifyStateBlocksFromMinedBlock ...
 // note: this function also checks the merkle tree. That check is not required to be performed, separately.
-func VerifyStateBlocksFromMinedBlock(ctx context.Context, p2pSvc p2p.Interface, minedBlock *MinedBlock) (bool, error) {
+func VerifyStateBlocksFromMinedBlock(ctx context.Context, p2pSvc p2p.Interface, sbSvc sandbox.Interface, minedBlock *MinedBlock) (bool, error) {
 	ch := make(chan interface{})
 
 	go func() {
@@ -594,7 +594,7 @@ func VerifyStateBlocksFromMinedBlock(ctx context.Context, p2pSvc p2p.Interface, 
 					return
 				}
 
-				nextStateBlock, nextDiff, nextState, err := buildNextStateFromPrevState(p2pSvc, prevState, block, tx)
+				nextStateBlock, nextDiff, nextState, err := buildNextStateFromPrevState(p2pSvc, sbSvc, prevState, block, tx)
 				if err != nil {
 					log.Printf("[miner] err building next state from prev state\n %v", err)
 					ch <- err
@@ -683,7 +683,7 @@ func VerifyStateBlocksFromMinedBlock(ctx context.Context, p2pSvc p2p.Interface, 
 	}
 }
 
-func buildNextStateFromPrevState(p2pSvc p2p.Interface, prevState []byte, prevBlock *statechain.Block, tx *statechain.Transaction) (*statechain.Block, *statechain.Diff, []byte, error) {
+func buildNextStateFromPrevState(p2pSvc p2p.Interface, sbSvc sandbox.Interface, prevState []byte, prevBlock *statechain.Block, tx *statechain.Transaction) (*statechain.Block, *statechain.Diff, []byte, error) {
 	if prevState == nil {
 		return nil, nil, nil, errors.New("nil state")
 	}
@@ -737,8 +737,7 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, prevState []byte, prevBlo
 		}
 
 		// run container, passing the tx inputs
-		sb := sandbox.NewSandbox(&sandbox.Config{})
-		nextState, err = sb.Play(&sandbox.PlayConfig{
+		nextState, err = sbSvc.Play(&sandbox.PlayConfig{
 			ImageID:      tx.Props().ImageHash,
 			Payload:      inputsJSON,
 			InitialState: prevState,

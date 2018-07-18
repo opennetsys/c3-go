@@ -33,7 +33,7 @@ var _ Interface = (*Registry)(nil)
 // Registry ...
 type Registry struct {
 	dockerLocalRegistryHost string
-	ipfsClient              *ipfs.Client
+	ipfsClient              ipfs.Interface
 }
 
 // Config ...
