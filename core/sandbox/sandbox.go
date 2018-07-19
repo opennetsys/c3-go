@@ -155,7 +155,7 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 		time.Sleep(3 * time.Second)
 		err := s.sendMessage(config.Payload, hostPort)
 		if err != nil {
-			log.Printf("[sandbox] error sending message; %v", err)
+			log.Errorf("[sandbox] error sending message; %v", err)
 			errEvent <- err
 			return
 		}
@@ -170,7 +170,7 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 	go func() {
 		select {
 		case <-timer.C:
-			log.Println("[sandbox] writing to timeout channel")
+			log.Error("[sandbox] writing to timeout channel")
 			timedout <- true
 		}
 	}()
@@ -183,7 +183,7 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 		close(errEvent)
 		err := s.killContainer(containerID)
 		if err != nil {
-			log.Printf("[sandbox] error killing container on error event; %v", err)
+			log.Errorf("[sandbox] error killing container on error event; %v", err)
 			return nil, err
 		}
 
@@ -195,7 +195,7 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 
 		err := s.killContainer(containerID)
 		if err != nil {
-			log.Printf("[sandbox] error killing container after timeout; %v", err)
+			log.Errorf("[sandbox] error killing container after timeout; %v", err)
 			return nil, err
 		}
 
@@ -205,13 +205,13 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 		cmd := []string{"bash", "-c", "cat " + c3config.TempContainerStateFilePath}
 		resp, err := s.docker.ContainerExec(containerID, cmd)
 		if err != nil {
-			log.Printf("[sandbox] error calling exec on contaienr; %v", err)
+			log.Errorf("[sandbox] error calling exec on contaienr; %v", err)
 			return nil, err
 		}
 
 		result, err := parseNewState(resp)
 		if err != nil {
-			log.Printf("[sandbox] error parsing new state; %v", err)
+			log.Errorf("[sandbox] error parsing new state; %v", err)
 			return nil, err
 		}
 
@@ -222,7 +222,7 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 
 		err = s.killContainer(containerID)
 		if err != nil {
-			log.Printf("[sandbox] error killing container; %v", err)
+			log.Errorf("[sandbox] error killing container; %v", err)
 			return nil, err
 		}
 
@@ -269,7 +269,7 @@ func (s *Service) sendMessage(msg []byte, port string) error {
 	log.Printf("[sandbox] sending message to container on host %s; message: %s", host, msg)
 	conn, err := net.Dial("tcp", host)
 	if err != nil {
-		log.Printf("[sandbox] error sending message; %v", err)
+		log.Errorf("[sandbox] error sending message; %v", err)
 		return err
 	}
 	defer conn.Close()
@@ -294,7 +294,7 @@ func (s *Service) cleanup() {
 	for cid := range s.runningContainers {
 		err := s.docker.StopContainer(cid)
 		if err != nil {
-			log.Printf("[server] error %s", err)
+			log.Errorf("[server] error %s", err)
 		}
 	}
 }

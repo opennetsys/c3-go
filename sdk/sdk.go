@@ -87,7 +87,7 @@ func (c3 *C3) RegisterMethod(methodName string, types []string, ifn interface{})
 			log.Printf("[c3] executed method %s with args: %s %s", methodName, key, value)
 			err := v(key, value)
 			if err != nil {
-				log.Printf("[c3] method failed %s", err)
+				log.Error("[c3] method failed %s", err)
 				log.Fatalf("[c3] %s", err)
 			}
 		}
@@ -126,7 +126,7 @@ func (s *State) Set(key, value string) error {
 
 	f, err := os.OpenFile(c3config.TempContainerStateFilePath, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
-		log.Println("[c3] failed to store file")
+		log.Error("[c3] failed to store file")
 		return err
 	}
 
@@ -147,7 +147,7 @@ func (c3 *C3) setInitialState() error {
 	if _, err := os.Stat(c3.statefile); err == nil {
 		src, err := ioutil.ReadFile(c3.statefile)
 		if err != nil {
-			log.Printf("[c3] fail to read %s", err)
+			log.Errorf("[c3] fail to read %s", err)
 			return err
 		}
 
@@ -159,17 +159,17 @@ func (c3 *C3) setInitialState() error {
 
 		b, err := stringutil.CompactJSON(src)
 		if err != nil {
-			log.Printf("[c3] failed to compact %s", err)
+			log.Errorf("[c3] failed to compact %s", err)
 			return err
 		}
 
 		err = json.Unmarshal(b, &c3.state.state)
 		if err != nil {
-			log.Printf("[c3] fail to unmarshal %s", err)
+			log.Errorf("[c3] fail to unmarshal %s", err)
 			return err
 		}
 	} else {
-		log.Println("[c3] state file not found")
+		log.Error("[c3] state file not found")
 	}
 
 	return nil
@@ -179,7 +179,7 @@ func (c3 *C3) setInitialState() error {
 func (c3 *C3) Process(payload []byte) error {
 	var ifcs []interface{}
 	if err := json.Unmarshal(payload, &ifcs); err != nil {
-		log.Printf("[c3] %s", err)
+		log.Errorf("[c3] %s", err)
 		return err
 	}
 
