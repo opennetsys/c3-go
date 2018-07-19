@@ -1,0 +1,10 @@
+{
+  "foo": "bar",
+  "bar": true,
+  "foobar": 123,
+  "foofoo": {
+    "Foo": "Bar",
+    "Bar": false,
+    "FooBar": 1
+  }
+}

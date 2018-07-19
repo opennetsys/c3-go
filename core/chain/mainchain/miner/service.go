@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"sync"
 	"time"
 
@@ -460,19 +461,28 @@ func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBloc
 
 	ts := time.Now().Unix()
 
-	tmpStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
+	stateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
 	if err != nil {
 		return nil, nil, err
 	}
-	fileNames = append(fileNames, tmpStateFile.Name())
-	if _, err = tmpStateFile.Write(state); err != nil {
+	fileNames = append(fileNames, stateFile.Name())
+	if _, err = stateFile.Write(state); err != nil {
 		return nil, nil, err
 	}
-	if err = tmpStateFile.Close(); err != nil {
+	if err = stateFile.Close(); err != nil {
 		return nil, nil, err
 	}
 
-	patchFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.patch", imageHash, ts))
+	nextStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/nextState.txt", imageHash, ts))
+	if err != nil {
+		return nil, nil, err
+	}
+	fileNames = append(fileNames, nextStateFile.Name()) // clean up
+	if err = nextStateFile.Close(); err != nil {
+		return nil, nil, err
+	}
+
+	patchFile, err := makeTempFile(fmt.Sprintf("%s/%v/diff.patch", imageHash, ts))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -481,15 +491,15 @@ func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBloc
 		return nil, nil, err
 	}
 
-	headStateFileName := tmpStateFile.Name()
 	runningBlockNumber, err := hexutil.DecodeUint64(prevStateBlock.Props().BlockNumber)
 	if err != nil {
 		return nil, nil, err
 	}
 	runningBlockHash := *prevStateBlock.Props().BlockHash // note: already checked nil pointer, above
+	runningState := state
 
 	// apply state to container and start running transactions
-	for i, tx := range transactions {
+	for _, tx := range transactions {
 		if s.props.Context.Err() != nil {
 			return nil, nil, s.props.Context.Err()
 		}
@@ -522,7 +532,7 @@ func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBloc
 			nextState, err = s.props.Sandbox.Play(&sandbox.PlayConfig{
 				ImageID:      imageHash,
 				Payload:      payload,
-				InitialState: state,
+				InitialState: runningState,
 			})
 
 			if err != nil {
@@ -533,23 +543,13 @@ func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBloc
 			log.Printf("[miner] container new state: %s", string(nextState))
 		}
 
-		nextStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.%d.txt", imageHash, ts, i))
-		if err != nil {
-			return nil, nil, err
-		}
-		fileNames = append(fileNames, nextStateFile.Name()) // clean up
-
-		if _, err = nextStateFile.Write(nextState); err != nil {
-			return nil, nil, err
-		}
-		if err = nextStateFile.Close(); err != nil {
+		if err := ioutil.WriteFile(nextStateFile.Name(), nextState, os.ModePerm); err != nil {
 			return nil, nil, err
 		}
 
-		if err = diffing.Diff(headStateFileName, nextStateFile.Name(), patchFile.Name(), false); err != nil {
+		if err = diffing.Diff(stateFile.Name(), nextStateFile.Name(), patchFile.Name(), false); err != nil {
 			return nil, nil, err
 		}
-		headStateFileName = nextStateFile.Name()
 
 		// build the diff struct
 		diffData, err := ioutil.ReadFile(patchFile.Name())
@@ -586,6 +586,13 @@ func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBloc
 
 		newDiffs = append(newDiffs, diffStruct)
 		newStatechainBlocks = append(newStatechainBlocks, nextStateStruct)
+
+		// get ready for the next loop
+		runningState = nextState
+
+		if err := ioutil.WriteFile(stateFile.Name(), nextState, os.ModePerm); err != nil {
+			return nil, nil, err
+		}
 	}
 
 	return newStatechainBlocks, newDiffs, nil

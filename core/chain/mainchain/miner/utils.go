@@ -696,7 +696,7 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, sbSvc sandbox.Interface, 
 	}
 
 	ts := time.Now().Unix()
-	outPatchFile, err := makeTempFile(fmt.Sprintf("%s/%v/combined.txt", prevBlock.Props().ImageHash, ts))
+	outPatchFile, err := makeTempFile(fmt.Sprintf("%s/%v/diff.patch", prevBlock.Props().ImageHash, ts))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -704,7 +704,7 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, sbSvc sandbox.Interface, 
 	if err = outPatchFile.Close(); err != nil {
 		return nil, nil, nil, err
 	}
-	prevStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/prevState.txt", prevBlock.Props().ImageHash, ts))
+	prevStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.txt", prevBlock.Props().ImageHash, ts))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -749,7 +749,7 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, sbSvc sandbox.Interface, 
 		}
 
 		//log.Printf("[miner] container new state: %s", string(nextState))
-		nextStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.txt", prevBlock.Props().ImageHash, ts))
+		nextStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/nextState.txt", prevBlock.Props().ImageHash, ts))
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -830,7 +830,16 @@ func buildGenesisStateBlock(imageHash string, tx *statechain.Transaction) (*stat
 	nextState := tx.Props().Payload
 	log.Printf("[miner] container initial state: %s", string(nextState))
 
-	nextStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
+	stateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
+	if err != nil {
+		return nil, nil, err
+	}
+	defer os.Remove(stateFile.Name()) // clean up
+	if err = stateFile.Close(); err != nil {
+		return nil, nil, err
+	}
+
+	nextStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/nextState.txt", imageHash, ts))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -842,16 +851,7 @@ func buildGenesisStateBlock(imageHash string, tx *statechain.Transaction) (*stat
 		return nil, nil, err
 	}
 
-	tmpStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/tmpState.txt", imageHash, ts))
-	defer os.Remove(tmpStateFile.Name()) // clean up
-	if err != nil {
-		return nil, nil, err
-	}
-	if err = tmpStateFile.Close(); err != nil {
-		return nil, nil, err
-	}
-
-	outPatchFile, err := makeTempFile(fmt.Sprintf("%s/%v/combined.txt", imageHash, ts))
+	outPatchFile, err := makeTempFile(fmt.Sprintf("%s/%v/diff.patch", imageHash, ts))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -860,9 +860,9 @@ func buildGenesisStateBlock(imageHash string, tx *statechain.Transaction) (*stat
 		return nil, nil, err
 	}
 
-	log.Printf("[miner] diffing the files:\ntmp state: %s\nnext state: %s\nout patch: %s", tmpStateFile.Name(), nextStateFile.Name(), outPatchFile.Name())
+	log.Printf("[miner] diffing the files:\ntmp state: %s\nnext state: %s\nout patch: %s", stateFile.Name(), nextStateFile.Name(), outPatchFile.Name())
 
-	if err = diffing.Diff(tmpStateFile.Name(), nextStateFile.Name(), outPatchFile.Name(), false); err != nil {
+	if err = diffing.Diff(stateFile.Name(), nextStateFile.Name(), outPatchFile.Name(), false); err != nil {
 		return nil, nil, err
 	}
 
@@ -1042,7 +1042,7 @@ func gatherDiffs(ctx context.Context, p2pSvc p2p.Interface, block *statechain.Bl
 }
 
 func generateStateFromDiffs(ctx context.Context, imageHash string, genesisState []byte, diffs []*statechain.Diff) ([]byte, error) {
-	combinedDiff, err := generateCombinedDiffs(ctx, imageHash, genesisState, diffs)
+	combinedDiff, err := generateCombinedDiffs(ctx, imageHash, diffs)
 	if err != nil {
 		log.Printf("[miner] error generating combined diffs; %s", err)
 		return nil, err
@@ -1084,8 +1084,8 @@ func generateStateFromDiffs(ctx context.Context, imageHash string, genesisState 
 	}
 
 	// now apply the combined patch file to the state
-	if err := diffing.Patch(combinedPatchFile.Name(), false, true); err != nil {
-		log.Printf("[miner] error diffing combined patch file; %s", err)
+	if err := diffing.Patch(combinedPatchFile.Name(), tmpStateFile.Name(), false, true); err != nil {
+		log.Printf("[miner] error applying combined patch file; %s", err)
 		return nil, err
 	}
 	state, err := ioutil.ReadFile(tmpStateFile.Name())
@@ -1097,24 +1097,13 @@ func generateStateFromDiffs(ctx context.Context, imageHash string, genesisState 
 	return state, nil
 }
 
-func generateCombinedDiffs(ctx context.Context, imageHash string, genesisState []byte, diffs []*statechain.Diff) ([]byte, error) {
+func generateCombinedDiffs(ctx context.Context, imageHash string, diffs []*statechain.Diff) ([]byte, error) {
 	ts := time.Now().Unix()
 	var fileNames []string
 	defer cleanupFiles(&fileNames)
 
-	tmpStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
-	if err != nil {
-		log.Printf("[miner] error creating tmp state file; %s", err)
-		return nil, err
-	}
-	fileNames = append(fileNames, tmpStateFile.Name())
-	if _, err := tmpStateFile.Write(genesisState); err != nil {
-		log.Printf("[miner] error writing genesis state to tmp state file; %s", err)
-		return nil, err
-	}
-	if err := tmpStateFile.Close(); err != nil {
-		log.Printf("[miner] error closing tmp state file; %s", err)
-		return nil, err
+	if diffs == nil || len(diffs) == 0 {
+		return nil, errors.New("nil diffs")
 	}
 
 	combinedPatchFile, err := makeTempFile(fmt.Sprintf("%s/%v/combined.patch", imageHash, ts))
@@ -1123,6 +1112,10 @@ func generateCombinedDiffs(ctx context.Context, imageHash string, genesisState [
 		return nil, err
 	}
 	fileNames = append(fileNames, combinedPatchFile.Name())
+	if _, err := combinedPatchFile.Write([]byte(diffs[0].Props().Data)); err != nil {
+		log.Printf("[miner] error writing to genesis state to tmp state file; %s", err)
+		return nil, err
+	}
 	if err := combinedPatchFile.Close(); err != nil {
 		log.Printf("[miner] error closing combined patch file; %s", err)
 		return nil, err
@@ -1138,14 +1131,34 @@ func generateCombinedDiffs(ctx context.Context, imageHash string, genesisState [
 		log.Printf("[miner] error closing tmp patch file; %s", err)
 		return nil, err
 	}
+	tmpPatchFile1, err := makeTempFile(fmt.Sprintf("%s/%v/tmp1.patch", imageHash, ts))
+	if err != nil {
+		log.Printf("[miner] error creating tmp patch file; %s", err)
+		return nil, err
+	}
+	fileNames = append(fileNames, tmpPatchFile1.Name())
+	if err := tmpPatchFile1.Close(); err != nil {
+		log.Printf("[miner] error closing tmp patch file 1; %s", err)
+		return nil, err
+	}
 
-	for _, diff := range diffs {
+	for i := 1; i < len(diffs); i++ {
 		if ctx.Err() != nil {
 			log.Printf("[miner] error diffing; %s", err)
 			return nil, ctx.Err()
 		}
 
-		if err := ioutil.WriteFile(tmpPatchFile.Name(), []byte(diff.Props().Data), os.ModePerm); err != nil {
+		prevComb, err := ioutil.ReadFile(combinedPatchFile.Name())
+		if err != nil {
+			log.Printf("[miner] error reading previous combined patch file; %s", err)
+			return nil, err
+		}
+		if err := ioutil.WriteFile(tmpPatchFile.Name(), prevComb, os.ModePerm); err != nil {
+			log.Printf("[miner] error writing to tmp patch file; %s", err)
+			return nil, err
+		}
+
+		if err := ioutil.WriteFile(tmpPatchFile1.Name(), []byte(diffs[i].Props().Data), os.ModePerm); err != nil {
 			log.Printf("[miner] error writing to tmp patch file; %s", err)
 			return nil, err
 		}
@@ -1155,6 +1168,7 @@ func generateCombinedDiffs(ctx context.Context, imageHash string, genesisState [
 		if err != nil {
 			return nil, err
 		}
+		// reading for debug logging
 		tmpPatchFileData, err := ioutil.ReadFile(tmpPatchFile.Name())
 		if err != nil {
 			return nil, err
@@ -1162,7 +1176,7 @@ func generateCombinedDiffs(ctx context.Context, imageHash string, genesisState [
 
 		log.Printf("[miner] combining diffs\n%s\n%s\n%s\n%s\nout: %s", combinedPatchFile.Name(), string(combinedPathFileData), tmpPatchFile.Name(), string(tmpPatchFileData), combinedPatchFile.Name())
 
-		if err := diffing.CombineDiff(combinedPatchFile.Name(), tmpPatchFile.Name(), combinedPatchFile.Name()); err != nil {
+		if err := diffing.CombineDiff(tmpPatchFile.Name(), tmpPatchFile1.Name(), combinedPatchFile.Name()); err != nil {
 			log.Printf("[miner] error invoking diffing combined diff with combined patch file, tmp patch file and combined patch file; %s", err)
 			return nil, err
 		}

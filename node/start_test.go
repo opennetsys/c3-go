@@ -85,11 +85,11 @@ func TestBroadcast(t *testing.T) {
 	tx2 := statechain.NewTransaction(&statechain.TransactionProps{
 		ImageHash: imageHash,
 		Method:    methodTypes.InvokeMethod,
-		Payload:   []byte(`["setItem", "foo", "baz"]`),
+		Payload:   []byte(`["setItem", "foo", "qux"]`),
 		From:      encodedPub,
 	})
 
-	tx := tx2
+	tx := tx1
 	_ = tx1
 	_ = tx2
 
