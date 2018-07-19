@@ -10,8 +10,8 @@ import (
 	"github.com/c3systems/c3/common/hexutil"
 	"github.com/c3systems/c3/config"
 	"github.com/c3systems/c3/core/chain/mainchain"
-	"github.com/c3systems/c3/core/miner"
 	"github.com/c3systems/c3/core/chain/statechain"
+	"github.com/c3systems/c3/core/miner"
 	"github.com/c3systems/c3/core/sandbox"
 	colorlog "github.com/c3systems/c3/logger/color"
 	loghooks "github.com/c3systems/c3/logger/hooks"
@@ -359,7 +359,7 @@ func (s *Service) handleReceiptOfMinedBlock(minedBlock *miner.MinedBlock) {
 		return
 	}
 
-	colorlog.Yellow("[node] received mined block on the channel\nblock number: %s", minedBlock.NextBlock.Props().BlockNumber)
+	log.Println(colorlog.Yellow("[node] received mined block on the channel\nblock number: %s", minedBlock.NextBlock.Props().BlockNumber))
 	//spew.Dump(minedBlock)
 
 	if err := s.props.Store.SetPendingMainchainBlock(minedBlock.NextBlock); err != nil {
@@ -492,7 +492,7 @@ func (s *Service) handleReceiptOfStatechainTransaction(tx *statechain.Transactio
 			return
 		}
 
-		colorlog.Magenta("[node] tx new added to mempool; tx hash: %s", *tx.Props().TxHash)
+		log.Println(colorlog.Magenta("[node] tx new added to mempool; tx hash: %s", *tx.Props().TxHash))
 	}
 
 	if err != nil {
@@ -519,7 +519,7 @@ func (s *Service) setMinedBlockData(minedBlock *miner.MinedBlock) error {
 
 	blk := minedBlock.NextBlock.Props()
 
-	colorlog.Green("[node] storing mined block data\nblock number: %s\nblock hash: %s\nstate blocks merkle hash: %s\nstate chain blocks: %v\ntransactions: %v", blk.BlockNumber, *blk.BlockHash, blk.StateBlocksMerkleHash, len(minedBlock.StatechainBlocksMap), len(minedBlock.TransactionsMap))
+	log.Println(colorlog.Green("[node] storing mined block data\nblock number: %s\nblock hash: %s\nstate blocks merkle hash: %s\nstate chain blocks: %v\ntransactions: %v", blk.BlockNumber, *blk.BlockHash, blk.StateBlocksMerkleHash, len(minedBlock.StatechainBlocksMap), len(minedBlock.TransactionsMap)))
 
 	for _, statechainBlock := range minedBlock.StatechainBlocksMap {
 		if statechainBlock == nil {
@@ -532,7 +532,7 @@ func (s *Service) setMinedBlockData(minedBlock *miner.MinedBlock) error {
 			return err
 		}
 
-		colorlog.Green("[node] storing state chain block\nstate chain block number: %s\nstate chain block hash: %s\nstate current hash: %s\ntx hash: %s\nprev state block hash: %s\nprev state diff hash: %s", statechainBlock.Props().BlockNumber, *statechainBlock.Props().BlockHash, statechainBlock.Props().StateCurrentHash, statechainBlock.Props().TxHash, statechainBlock.Props().PrevBlockHash, statechainBlock.Props().StatePrevDiffHash)
+		log.Println(colorlog.Green("[node] storing state chain block\nstate chain block number: %s\nstate chain block hash: %s\nstate current hash: %s\ntx hash: %s\nprev state block hash: %s\nprev state diff hash: %s", statechainBlock.Props().BlockNumber, *statechainBlock.Props().BlockHash, statechainBlock.Props().StateCurrentHash, statechainBlock.Props().TxHash, statechainBlock.Props().PrevBlockHash, statechainBlock.Props().StatePrevDiffHash))
 	}
 
 	for _, transaction := range minedBlock.TransactionsMap {

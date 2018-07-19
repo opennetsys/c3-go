@@ -317,7 +317,7 @@ func PutMainchainBlock(bs bserv.BlockService, block *mainchain.Block) (*cid.Cid,
 		return nil, err
 	}
 
-	colorlog.Yellow("[p2p] ipfs add main chain block %s", c.String())
+	log.Println(colorlog.Yellow("[p2p] ipfs add main chain block %s", c.String()))
 
 	if err := bs.AddBlock(basicIPFSBlock); err != nil {
 		return nil, err
@@ -348,7 +348,7 @@ func PutStatechainBlock(bs bserv.BlockService, block *statechain.Block) (*cid.Ci
 		return nil, err
 	}
 
-	colorlog.Yellow("[p2p] ipfs add state chain block %s", c.String())
+	log.Println(colorlog.Yellow("[p2p] ipfs add state chain block %s", c.String()))
 
 	if err := bs.AddBlock(basicIPFSBlock); err != nil {
 		return nil, err

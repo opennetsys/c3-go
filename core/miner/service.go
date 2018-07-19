@@ -311,7 +311,7 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 		prevStateBlock *statechain.Block
 	)
 
-	colorlog.Cyan("[miner] processing %v transactions for image hash %s", len(transactions), imageHash)
+	log.Println(colorlog.Cyan("[miner] processing %v transactions for image hash %s", len(transactions), imageHash))
 
 	log.Printf("[miner] build next state state; image hash: %s, tx count: %v", imageHash, len(transactions))
 

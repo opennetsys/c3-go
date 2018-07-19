@@ -872,7 +872,7 @@ func buildGenesisStateBlock(imageHash string, tx *statechain.Transaction) (*stat
 		return nil, nil, err
 	}
 
-	colorlog.Yellow("[miner] diff data from patch file: %s", string(diffData))
+	log.Println(colorlog.Yellow("[miner] diff data from patch file: %s", string(diffData)))
 
 	diffStruct := statechain.NewDiff(&statechain.DiffProps{
 		Data: string(diffData),
