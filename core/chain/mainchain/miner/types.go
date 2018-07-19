@@ -12,6 +12,11 @@ import (
 	"github.com/c3systems/c3/core/sandbox"
 )
 
+const (
+	// StateFileName ...
+	StateFileName string = "state.txt"
+)
+
 var (
 	// ErrNilBlock ...
 	ErrNilBlock = errors.New("block is nil")
