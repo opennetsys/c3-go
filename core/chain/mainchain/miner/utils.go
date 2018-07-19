@@ -704,7 +704,7 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, sbSvc sandbox.Interface, 
 	if err = outPatchFile.Close(); err != nil {
 		return nil, nil, nil, err
 	}
-	prevStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.txt", prevBlock.Props().ImageHash, ts))
+	prevStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/%s", prevBlock.Props().ImageHash, ts, StateFileName))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -830,7 +830,7 @@ func buildGenesisStateBlock(imageHash string, tx *statechain.Transaction) (*stat
 	nextState := tx.Props().Payload
 	log.Printf("[miner] container initial state: %s", string(nextState))
 
-	stateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
+	stateFile, err := makeTempFile(fmt.Sprintf("%s/%v/%s", imageHash, ts, StateFileName))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1052,7 +1052,7 @@ func generateStateFromDiffs(ctx context.Context, imageHash string, genesisState 
 	var fileNames []string
 	defer cleanupFiles(&fileNames)
 
-	tmpStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
+	tmpStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/%s", imageHash, ts, StateFileName))
 	if err != nil {
 		log.Printf("[miner] error generating tmp state file; %s", err)
 		return nil, err
@@ -1259,7 +1259,11 @@ func isGenesisTransaction(p2pSvc p2p.Interface, prevBlock *mainchain.Block, imag
 	for idx, tx := range transactions {
 		log.Printf("[miner] state block tx method %s", tx.Props().Method)
 		if tx.Props().Method == methodTypes.Deploy {
-			prevStateBlock, _ := p2pSvc.FetchMostRecentStateBlock(imageHash, prevBlock)
+			// note: we need this err, what if the network errs and we allow another deploy?
+			prevStateBlock, err := p2pSvc.FetchMostRecentStateBlock(imageHash, prevBlock)
+			if err != nil {
+				return false, nil, nil, err
+			}
 			if prevStateBlock != nil {
 				log.Printf("[miner] prev state block exists image hash %s", imageHash)
 				return false, nil, nil, errors.New("prev state block exists; can't deploy")
@@ -1317,7 +1321,8 @@ func orderStatechainBlocks(blocks []*statechain.Block) ([]*statechain.Block, err
 	return stateBlocks, nil
 }
 
-// the return is a map with keys on the image hash
+// input is a map with a key on block hash
+// return is a map with keys on the image hash
 func groupStateBlocksByImageHash(stateBlocksMap map[string]*statechain.Block) (map[string][]*statechain.Block, error) {
 	/*
 		// note: mined block with no transactions will have nil state block map
