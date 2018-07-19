@@ -12,7 +12,7 @@ import (
 	"github.com/c3systems/c3/common/c3crypto"
 	"github.com/c3systems/c3/config"
 	"github.com/c3systems/c3/core/chain/mainchain"
-	"github.com/c3systems/c3/core/chain/mainchain/miner"
+	"github.com/c3systems/c3/core/miner"
 	"github.com/c3systems/c3/core/chain/statechain"
 	"github.com/c3systems/c3/core/p2p"
 	"github.com/c3systems/c3/core/p2p/protobuff"

@@ -1,0 +1,14 @@
+diff -u state.txt state.txt
+--- state.txt	2018-07-18 13:18:32.026805900 -0700
++++ state.txt	2018-07-18 13:29:29.929108800 -0700
+@@ -0,0 +1,10 @@
++{
++  "foo": "",
++  "bar": true,
++  "foobar": 1,
++  "foofoo": {
++    "Foo": "Bar",
++    "Bar": true,
++    "FooBar": 1
++  }
++}

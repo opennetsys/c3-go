@@ -1,0 +1,16 @@
+--- state.txt	2018-07-18 13:18:14.501825500 -0700
++++ state.txt	2018-07-18 13:18:32.026805900 -0700
+@@ -1,10 +1,10 @@
+ {
+-  "foo": "foo",
++  "foo": "bar",
+   "bar": true,
+   "foobar": 123,
+   "foofoo": {
+-    "Foo": "Foo",
++    "Foo": "Bar",
+     "Bar": false,
+-    "FooBar": 0
++    "FooBar": 1
+   }
+ }
