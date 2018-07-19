@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/c3systems/c3/common/command"
 	log "github.com/sirupsen/logrus"
@@ -34,6 +35,8 @@ func Diff(old, new, out string, isDir bool) error {
 		s = " %s"
 	}
 
+	oldFile := filepath.Base(old)
+
 	/*
 	 * note: the first two lines of a standard patch file are:
 	 *    --- oldFileName timestamp
@@ -42,19 +45,15 @@ func Diff(old, new, out string, isDir bool) error {
 	 *    We want the oldFileName to show up on both lines, so we replace the first instance in the file with sed
 	 *
 	 */
-	commands = append(commands, old, new, new, old, out)
-	s += " %s %s | sed -e 's|%s|%s|' > %s"
+	commands = append(commands, old, new, old, oldFile, new, oldFile, out)
+	s += " %s %s | sed -e 's|%s|%s|' | sed -e 's|%s|%s|' > %s"
 
 	cmd := exec.Command("sh", "-c", fmt.Sprintf("diff -ud"+s, commands...))
 	if err := cmd.Start(); err != nil {
 		return err
 	}
 
-	if err := cmd.Wait(); err != nil {
-		return err
-	}
-
-	return nil
+	return cmd.Wait()
 }
 
 // CombineDiff ...

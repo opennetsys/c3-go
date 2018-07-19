@@ -20,7 +20,7 @@ func TestDiff(t *testing.T) {
 	if err := createDirIfNotExist(fmt.Sprintf("%s/.testfiles/", wd)); err != nil {
 		t.Errorf("err creating test files directory\n%v", err)
 	}
-	defer os.RemoveAll(fmt.Sprintf("%s/.testfiles", wd))
+	//defer os.RemoveAll(fmt.Sprintf("%s/.testfiles", wd))
 
 	f1, err := os.Create(fmt.Sprintf("%s/.testfiles/1.txt", wd))
 	if err != nil {
