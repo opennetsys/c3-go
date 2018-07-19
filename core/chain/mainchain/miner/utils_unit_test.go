@@ -5,6 +5,7 @@ package miner
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -678,13 +679,74 @@ func TestGroupStateBlocksByImageHash(t *testing.T) {
 }
 
 func TestCleanupFiles(t *testing.T) {
-	t.Skip()
+	t.Parallel()
 
-	// TODO
+	// 1. nil fileNames should return
+	cleanupFiles(nil)
+
+	// 2. an array of names should be cleaned
+	f1, err := os.Create("./test_data/foo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(f1.Name())
+	if err = f1.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	f2, err := os.Create("./test_data/bar")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = f2.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	fileNames := &[]string{
+		f1.Name(),
+		f2.Name(),
+	}
+
+	cleanupFiles(fileNames)
+
+	if _, err = os.Stat(f1.Name()); !os.IsNotExist(err) {
+		t.Errorf("expected file %s to not exist", f1.Name())
+	}
+	if _, err = os.Stat(f2.Name()); !os.IsNotExist(err) {
+		t.Errorf("expected file %s to not exist", f2.Name())
+	}
+
+	// 3. TODO: test that an error is printed to stdout
 }
 
 func TestMakeTempFile(t *testing.T) {
-	t.Skip()
+	t.Parallel()
 
-	// TODO
+	file := "baz"
+	fileName := fmt.Sprintf("%s/%s/%s", "foo", "bar", file)
+	f, err := makeTempFile(fileName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(t.Name())
+	if err = f.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err = os.Stat(f.Name()); err != nil {
+		t.Fatalf("expected nil err but received %v", err)
+	}
+
+	prefix := "/tmp/foo_bar"
+	name := f.Name()
+
+	if len(name) <= len(prefix) {
+		t.Fatalf("expected filename of at least %d\nreceived %d", len(prefix), len(name))
+	}
+	if name[:len(prefix)] != prefix {
+		t.Errorf("expected %s prefix\nreceived %s", prefix, name[:len(prefix)])
+	}
+	if name[len(name)-len(file):] != file {
+		t.Errorf("expected %s ending\nreceived %s", file, name[len(name)-len(file):])
+	}
 }
