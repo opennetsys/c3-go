@@ -3,15 +3,12 @@ go:
 - 1.10.x
 - master
 script:
-- echo "TODO"
+- go test -v -covermode=count -coverprofile=coverage.out
+- $(go env GOPATH | awk 'BEGIN{FS=":"} {print $1}')/bin/goveralls -coverprofile=coverage.out
+  -service=travis-ci -repotoken=$COVERALLS_TOKEN
 env:
   global:
-    secure: UCT6x27Xg5zhHIxO82RZ2Wxh29Vn/pvDMnXirQFErIJaTy3bKVMPyOhyocTd3F4t37T/G7axY0dIiM9X6orsvfq6ks8UQIIRPbIkckg+13bCJboxIEe4f8oZoP25abez/iihGgwYcLqYbca0gd0EzKdnlwCEaIg+XcXXb7QZmBJo2lY64d90Dwa/d1m85gqMj8dc1BT5iLqGHYSxe9LkbgDcjCObyhfG1wvCzHdD1SCLOVLfIDPj0tNa87BqNdsLNjGOm/m6s180nGT0+jjkcfiNmEg8Z3u6IrXa+lOGJjTpqHnNcstbU4tq2b61tAxgj2bq3W0QMXGplDE1LOBospDC3aauLshiXO/SK1Tgtsj5ZHv8/3mRFNV+QZNWfCMX42KrjN06SC2HEzoWmhBF8F0WTVhMbVZWmBFrm907EI+vHxYWWn2yNsqKAxoCZ+TLhHIihL/tSN4I/MInz3RYumB80W7aC/06POvNwL70Z581vHduzDvGVmkal2vEpynzwxDl42BO0rYgcDUMs22QUh73eaobb/wbLGRvTMGCxtnXrHGtJsS/XWsPjAGCaya/S5LzB8W903V8/5hDjnuHJJ2weKegrcs/Vtj9SYX8LMi6Y0oUoo9P4AISrtiupq72eAGLYnZqoLzVg6y8FMT9+gmp4JS2FkiJMrNOUf5EtzA=
-
+  - secure: N88ftOGSDRHO4rz4UQ3wVNnuQQP8/qseQBKQ3F9FzJ8oe2Gkj7d7dv3oEGQeBzkwua25zNRo+HxTTUOBBcYvd7TuBmsir2OKKB4kggI1BgcjeszfCF55RFNDZqwB4l4YnQW106k1xql2FiCWBLt439rPjtqkuaBqneiFWz1pKAagL7r8OxU6VuAUk6YsctVPY7SgVCNJhWbkBosRl+pbDqKegYiztW11eIysNb8JQsjmDiyZZyMy11eh4YbF5EFtGdy2TpGqV92tzU3j4/6maIDZ8B5I9NxRLAhuxOqwqcsW8ri4tc3jiaaDG6fRK1ScRzXQ4cFhBxQ+5e/5cEt0VYuu2mxt8UX+ryZas6fFYjEin9Lwtp/wnOupAWolHX9PXrOlRxAlVBDDRA5AwgUD3Pgi252lACL2r/+u+jfZU20Kv3nxrAaYKLHyrh3oV5ObaQddgYblN3+X48+GDM2z5VkNyjh+Cg9aJO+yTgFA32IO1Sq/mdLh9P94cdvTRVLFkhTddgrKhKAXiOVWN3ojNLulu8A+d/Q5TzPzlbIbHs8z537uC7Q20rkYYHt53guVCNIOYMO8fSqKFHuGrX0ZKUefEJ5U18YNWIOIxB/zX+N4+3MAYP89pIz4Uj+FPQgkBAp+XQJvOD1u+6yvFAKI4Lfr0wZ8m/Us8u4YvEm9fzQ=
 install:
-  - go get golang.org/x/tools/cmd/cover
-  - go get github.com/mattn/goveralls
-
-script:
-  - go test -v -covermode=count -coverprofile=coverage.out
-  - $(go env GOPATH | awk 'BEGIN{FS=":"} {print $1}')/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken=$COVERALLS_TOKEN
+- go get golang.org/x/tools/cmd/cover
+- go get github.com/mattn/goveralls
