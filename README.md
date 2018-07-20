@@ -8,7 +8,7 @@
 
 > Implementation of the C3 protocol
 
-[![License](http://img.shields.io/badge/license-Apache-blue.svg)](https://raw.githubusercontent.com/c3systems/c3/master/LICENSE.md) [![CircleCI](https://circleci.com/gh/c3systems/c3.svg?style=svg)](https://circleci.com/gh/c3systems/c3) [![Go Report Card](https://goreportcard.com/badge/github.com/c3systems/c3?)](https://goreportcard.com/report/github.com/c3systems/c3) [![GoDoc](https://godoc.org/github.com/c3systems/c3?status.svg)](https://godoc.org/github.com/c3systems/c3) [![Automated Release Notes by gren](https://img.shields.io/badge/%F0%9F%A4%96-release%20notes-00B2EE.svg)](https://github-tools.github.io/github-release-notes/)
+[![License](http://img.shields.io/badge/license-Apache-blue.svg)](https://raw.githubusercontent.com/c3systems/c3/master/LICENSE.md) [![CircleCI](https://circleci.com/gh/c3systems/c3.svg?style=svg)](https://circleci.com/gh/c3systems/c3) [![Coverage Status](https://coveralls.io/repos/github/c3systems/c3/badge.svg?branch=master)](https://coveralls.io/github/c3systems/c3?branch=master) [![Go Report Card](https://goreportcard.com/badge/github.com/c3systems/c3?)](https://goreportcard.com/report/github.com/c3systems/c3) [![GoDoc](https://godoc.org/github.com/c3systems/c3?status.svg)](https://godoc.org/github.com/c3systems/c3) [![Automated Release Notes by gren](https://img.shields.io/badge/%F0%9F%A4%96-release%20notes-00B2EE.svg)](https://github-tools.github.io/github-release-notes/)
 
 ## Install
 

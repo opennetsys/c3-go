@@ -55,7 +55,7 @@ func (h *HeadBlock) onHeadBlockRequest(s inet.Stream) {
 	decoder := protobufCodec.Multicodec(nil).Decoder(bufio.NewReader(s))
 	err := decoder.Decode(data)
 	if err != nil {
-		log.Printf("[p2p] %s", err)
+		log.Errorf("[p2p] %s", err)
 		return
 	}
 
@@ -63,7 +63,7 @@ func (h *HeadBlock) onHeadBlockRequest(s inet.Stream) {
 	valid := h.node.authenticateMessage(data, data.MessageData)
 
 	if !valid {
-		log.Println("[p2p] failed to authenticate message")
+		log.Error("[p2p] failed to authenticate message")
 		return
 	}
 
@@ -71,12 +71,12 @@ func (h *HeadBlock) onHeadBlockRequest(s inet.Stream) {
 	// fetch our head block
 	headBlock, err := h.getHeadBlockFN()
 	if err != nil {
-		log.Printf("[p2p] err getting headblock\n%v", err)
+		log.Errorf("[p2p] err getting headblock\n%v", err)
 		return
 	}
 	bytes, err := headBlock.Serialize()
 	if err != nil {
-		log.Printf("[p2p] err serializing headblock\n%v", err)
+		log.Errorf("[p2p] err serializing headblock\n%v", err)
 		return
 	}
 
@@ -90,7 +90,7 @@ func (h *HeadBlock) onHeadBlockRequest(s inet.Stream) {
 	// sign the data
 	signature, err := h.node.signProtoMessage(resp)
 	if err != nil {
-		log.Printf("[p2p] failed to sign response\n%v", err)
+		log.Errorf("[p2p] failed to sign response\n%v", err)
 		return
 	}
 
@@ -99,7 +99,7 @@ func (h *HeadBlock) onHeadBlockRequest(s inet.Stream) {
 
 	s, respErr := h.node.NewStream(context.Background(), s.Conn().RemotePeer(), headBlockResponse)
 	if respErr != nil {
-		log.Printf("[p2p] %s", respErr)
+		log.Errorf("[p2p] %s", respErr)
 		return
 	}
 
@@ -115,7 +115,7 @@ func (h *HeadBlock) onHeadBlockResponse(s inet.Stream) {
 	data := &pb.HeadBlockResponse{}
 	decoder := protobufCodec.Multicodec(nil).Decoder(bufio.NewReader(s))
 	if err := decoder.Decode(data); err != nil {
-		log.Printf("[p2p] err decoding headblock response\n%v", err)
+		log.Errorf("[p2p] err decoding headblock response\n%v", err)
 		return
 	}
 
@@ -125,7 +125,7 @@ func (h *HeadBlock) onHeadBlockResponse(s inet.Stream) {
 		// remove request from map as we have processed it here
 		delete(h.requests, data.MessageData.Id)
 	} else {
-		log.Println("[p2p] ailed to locate request data boject for response")
+		log.Error("[p2p] ailed to locate request data boject for response")
 		return
 	}
 
@@ -156,7 +156,7 @@ func (h *HeadBlock) FetchHeadBlock(peerID peer.ID, resp chan interface{}) error 
 
 	signature, err := h.node.signProtoMessage(req)
 	if err != nil {
-		// log.Println("[p2p] failed to sign message")
+		log.Error("[p2p] failed to sign message")
 		return err
 	}
 
@@ -165,7 +165,7 @@ func (h *HeadBlock) FetchHeadBlock(peerID peer.ID, resp chan interface{}) error 
 
 	s, err := h.node.NewStream(context.Background(), peerID, headBlockRequest)
 	if err != nil {
-		// log.Printf("[p2p] %s", err)
+		log.Errorf("[p2p] %s", err)
 		return err
 	}
 

@@ -12,8 +12,8 @@ import (
 	"github.com/c3systems/c3/common/c3crypto"
 	"github.com/c3systems/c3/config"
 	"github.com/c3systems/c3/core/chain/mainchain"
-	"github.com/c3systems/c3/core/chain/mainchain/miner"
 	"github.com/c3systems/c3/core/chain/statechain"
+	"github.com/c3systems/c3/core/miner"
 	"github.com/c3systems/c3/core/p2p"
 	"github.com/c3systems/c3/core/p2p/protobuff"
 	pb "github.com/c3systems/c3/core/p2p/protobuff/pb"
@@ -166,7 +166,7 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 		log.Println("[node] PIN INFO", pinfo)
 
 		if err := newNode.Connect(ctx, *pinfo); err != nil {
-			log.Printf("[node] bootstrapping a peer failed\n%v", err)
+			log.Errorf("[node] bootstrapping a peer failed\n%v", err)
 		}
 
 		newNode.Peerstore().AddAddrs(pinfo.ID, pinfo.Addrs, peerstore.PermanentAddrTTL)
@@ -207,7 +207,7 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 
 	c, err := p2pSvc.SetMainchainBlock(&mainchain.GenesisBlock)
 	if err != nil {
-		log.Printf("[miner] error setting mainchain genesis block; error %s", err)
+		log.Errorf("[miner] error setting mainchain genesis block; error %s", err)
 		return err
 	}
 
@@ -263,7 +263,7 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 		switch v := <-n.props.SubscriberChannel; v.(type) {
 		case error:
 			err, _ := v.(error)
-			log.Printf("[node] received an error on the channel %s", err)
+			log.Errorf("[node] received an error on the channel %s", err)
 
 		case *miner.MinedBlock:
 			log.Print("[node] received mined block")
@@ -276,7 +276,7 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 			go n.handleReceiptOfStatechainTransaction(tx)
 
 		default:
-			log.Printf("[node] received an unknown message on channel of type %T\n%v", v, v)
+			log.Errorf("[node] received an unknown message on channel of type %T\n%v", v, v)
 		}
 	}
 }
@@ -412,7 +412,7 @@ func addAddr(conn net.Conn) {
 	log.Printf("[node] added %s to our peerstore", conn.RemoteMultiaddr())
 
 	if _, err := h.Network().DialPeer(context.Background(), conn.RemotePeer()); err != nil {
-		log.Printf("[node] err connecting to a peer\n%v", err)
+		log.Errorf("[node] err connecting to a peer\n%v", err)
 
 		return
 	}

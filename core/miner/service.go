@@ -165,7 +165,7 @@ func (s Service) buildMainchainBlock() error {
 func (s Service) mineBlock() error {
 	// TODO: timeout?
 	if err := s.generateMerkle(); err != nil {
-		log.Printf("[miner] error mining block; %s", err)
+		log.Errorf("[miner] error mining block; %s", err)
 		return err
 	}
 
@@ -176,13 +176,13 @@ func (s Service) mineBlock() error {
 
 		hash, nonce, err := s.generateHashAndNonce()
 		if err != nil {
-			log.Printf("[miner] error generating hash and nonce; %s", err)
+			log.Errorf("[miner] error generating hash and nonce; %s", err)
 			return err
 		}
 
 		check, err := CheckHashAgainstDifficulty(hash, s.props.Difficulty)
 		if err != nil {
-			log.Printf("[miner] error checking hash against difficulty; %s", err)
+			log.Errorf("[miner] error checking hash against difficulty; %s", err)
 			return err
 		}
 
@@ -214,11 +214,11 @@ func (s Service) generateMerkle() error {
 		}
 
 		if statechainBlock == nil {
-			log.Println("[miner] state chain block is nil")
+			log.Error("[miner] state chain block is nil")
 			return errors.New("nil block")
 		}
 		if statechainBlock.Props().BlockHash == nil {
-			log.Println("[miner] state chain block hash is nil")
+			log.Error("[miner] state chain block hash is nil")
 			return errors.New("nil block hash")
 		}
 
@@ -228,15 +228,15 @@ func (s Service) generateMerkle() error {
 
 	tree, err := merkle.BuildFromObjects(list, merkle.StatechainBlocksKindStr)
 	if err != nil {
-		log.Printf("[miner] error building merkle tree from objects\n%v", list)
+		log.Errorf("[miner] error building merkle tree from objects\n%v", list)
 		return err
 	}
 	if tree == nil {
-		log.Println("[miner] tree is nil")
+		log.Error("[miner] tree is nil")
 		return errors.New("nil tree")
 	}
 	if tree.Props().MerkleTreeRootHash == nil {
-		log.Println("[miner] merkle root hash is nil")
+		log.Error("[miner] merkle root hash is nil")
 		return errors.New("nil merkle root hash")
 	}
 
@@ -311,18 +311,28 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 		prevStateBlock *statechain.Block
 	)
 
-	colorlog.Cyan("[miner] processing %v transactions for image hash %s", len(transactions), imageHash)
+	log.Println(colorlog.Cyan("[miner] processing %v transactions for image hash %s", len(transactions), imageHash))
 
 	log.Printf("[miner] build next state state; image hash: %s, tx count: %v", imageHash, len(transactions))
 
 	// note: pops tx from transactions if genesisTransaction
 	isGenesisTx, tx, transactions, err := isGenesisTransaction(s.props.P2P, s.minedBlock.PreviousBlock, imageHash, transactions)
 	if err != nil {
-		log.Printf("[miner] error determining if tx is genesis for image hash %s; error: %s", imageHash, err)
+		log.Errorf("[miner] error determining if tx is genesis for image hash %s; error: %s", imageHash, err)
+		if err == ErrInvalidTx {
+			log.Infof("[miner] invalid tx %v", tx)
+			if tx != nil && tx.Props().TxHash != nil {
+				log.Infof("[miner] removing invalid tx from database %v", tx)
+				if err1 := s.props.RemoveTx(*tx.Props().TxHash); err1 != nil {
+					log.Errorf("[miner] err removing invalid tx %v from database %v", tx, err1)
+				}
+			}
+		}
+
 		return err
 	}
 	if isGenesisTx {
-		log.Printf("[miner] is genesis tx for image hash %s", imageHash)
+		log.Errorf("[miner] is genesis tx for image hash %s", imageHash)
 		genesisBlock, diff, err := buildGenesisStateBlock(imageHash, tx)
 		if err != nil {
 			return err
@@ -341,7 +351,7 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 	} else {
 		prevStateBlock, err = s.props.P2P.FetchMostRecentStateBlock(imageHash, s.props.PreviousBlock)
 		if err != nil {
-			log.Printf("[miner] error fetching most recent state block for image hash %s %s", imageHash, err)
+			log.Errorf("[miner] error fetching most recent state block for image hash %s %s", imageHash, err)
 			return err
 		}
 
@@ -355,7 +365,7 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 		// gather the diffs
 		diffs, err = s.gatherDiffs(prevStateBlock)
 		if err != nil {
-			log.Printf("[miner] error getting cid by hash for image hash %s\n%v", imageHash, err)
+			log.Errorf("[miner] error getting cid by hash for image hash %s\n%v", imageHash, err)
 			return err
 		}
 		log.Printf("[miner] total diffs %v", len(diffs))
@@ -366,7 +376,7 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 	}
 
 	if diffs == nil {
-		log.Printf("[miner] error building next state for image hash %s; diffs list is nil", imageHash)
+		log.Errorf("[miner] error building next state for image hash %s; diffs list is nil", imageHash)
 		return errors.New("diffs is nil")
 	}
 
@@ -374,7 +384,7 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 	var genesisState []byte
 	state, err := generateStateFromDiffs(s.props.Context, imageHash, genesisState, diffs)
 	if err != nil {
-		log.Printf("[miner] error getting state from diffs for image hash %s\n%v", imageHash, err)
+		log.Errorf("[miner] error getting state from diffs for image hash %s\n%v", imageHash, err)
 		return err
 	}
 
@@ -382,7 +392,7 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 
 	newStatechainBlocks, newDiffs, err := s.buildStateblocksAndDiffsFromStateAndTransactions(prevStateBlock, imageHash, state, transactions)
 	if err != nil {
-		log.Printf("[miner] error building state blocks from state and txs for image hash %s\n%v", imageHash, err)
+		log.Errorf("[miner] error building state blocks from state and txs for image hash %s\n%v", imageHash, err)
 		return err
 	}
 
@@ -403,7 +413,7 @@ func (s *Service) gatherDiffs(block *statechain.Block) ([]*statechain.Diff, erro
 	var diffs []*statechain.Diff
 
 	if block == nil {
-		log.Printf("[miner] can't gather diffs because block is nil; returning empty list")
+		log.Error("[miner] can't gather diffs because block is nil; returning empty list")
 		return diffs, nil
 	}
 
@@ -461,7 +471,7 @@ func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBloc
 
 	ts := time.Now().Unix()
 
-	stateFile, err := makeTempFile(fmt.Sprintf("%s/%v/state.txt", imageHash, ts))
+	stateFile, err := makeTempFile(fmt.Sprintf("%s/%v/%s", imageHash, ts, StateFileName))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -505,11 +515,11 @@ func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBloc
 		}
 
 		if tx == nil {
-			log.Printf("[miner] tx is nil for image hash %s", imageHash)
+			log.Errorf("[miner] tx is nil for image hash %s", imageHash)
 			return nil, nil, errors.New("nil tx")
 		}
 		if tx.Props().TxHash == nil {
-			log.Printf("[miner] tx hash is nil for %v", tx.Props())
+			log.Errorf("[miner] tx hash is nil for %v", tx.Props())
 			return nil, nil, errors.New("nil tx hash")
 		}
 
@@ -521,7 +531,7 @@ func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBloc
 
 			var parsed []string
 			if err := json.Unmarshal(payload, &parsed); err != nil {
-				log.Printf("[miner] error unmarshalling json for image hash %s", imageHash)
+				log.Errorf("[miner] error unmarshalling json for image hash %s", imageHash)
 				return nil, nil, err
 			}
 
@@ -536,7 +546,7 @@ func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBloc
 			})
 
 			if err != nil {
-				log.Printf("[miner] error running container for image hash: %s; error: %s", imageHash, err)
+				log.Errorf("[miner] error running container for image hash: %s; error: %s", imageHash, err)
 				return nil, nil, err
 			}
 

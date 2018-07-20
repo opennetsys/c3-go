@@ -64,7 +64,7 @@ func (n *Node) authenticateMessage(message proto.Message, data *pb.MessageData) 
 	// marshall data without the signature to protobufs3 binary format
 	bin, err := proto.Marshal(message)
 	if err != nil {
-		log.Printf("[p2p] failed to marshal pb message %s", err)
+		log.Errorf("[p2p] failed to marshal pb message %s", err)
 		return false
 	}
 
@@ -74,7 +74,7 @@ func (n *Node) authenticateMessage(message proto.Message, data *pb.MessageData) 
 	// restore peer id binary format from base58 encoded node id data
 	peerID, err := peer.IDB58Decode(data.NodeId)
 	if err != nil {
-		log.Printf("[p2p] failed to decode node id from base58 %s", err)
+		log.Errorf("[p2p] failed to decode node id from base58 %s", err)
 		return false
 	}
 
@@ -107,7 +107,7 @@ func (n *Node) signData(data []byte) ([]byte, error) {
 func (n *Node) verifyData(data []byte, signature []byte, peerID peer.ID, pubKeyData []byte) bool {
 	key, err := crypto.UnmarshalPublicKey(pubKeyData)
 	if err != nil {
-		log.Printf("[p2p] failed to extract key from message key data %s", err)
+		log.Errorf("[p2p] failed to extract key from message key data %s", err)
 		return false
 	}
 
@@ -115,19 +115,19 @@ func (n *Node) verifyData(data []byte, signature []byte, peerID peer.ID, pubKeyD
 	idFromKey, err := peer.IDFromPublicKey(key)
 
 	if err != nil {
-		log.Printf("[p2p] failed to extract peer id from public key %s", err)
+		log.Errorf("[p2p] failed to extract peer id from public key %s", err)
 		return false
 	}
 
 	// verify that message author node id matches the provided node public key
 	if idFromKey != peerID {
-		log.Print("[p2p] node id and provided public key mismatch")
+		log.Error("[p2p] node id and provided public key mismatch")
 		return false
 	}
 
 	res, err := key.Verify(data, signature)
 	if err != nil {
-		log.Printf("[p2p] error authenticating data %s", err)
+		log.Errorf("[p2p] error authenticating data %s", err)
 		return false
 	}
 
@@ -160,13 +160,13 @@ func (n *Node) sendProtoMessage(data proto.Message, s inet.Stream) bool {
 	writer := bufio.NewWriter(s)
 	enc := protobufCodec.Multicodec(nil).Encoder(writer)
 	if err := enc.Encode(data); err != nil {
-		log.Printf("[p2p] err encoding\n%v", err)
+		log.Errorf("[p2p] err encoding\n%v", err)
 
 		return false
 	}
 
 	if err := writer.Flush(); err != nil {
-		log.Printf("[p2p] err flushing writer\n%v", err)
+		log.Errorf("[p2p] err flushing writer\n%v", err)
 
 		return false
 	}

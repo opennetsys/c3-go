@@ -49,7 +49,7 @@ func (e *Echo) onEchoRequest(s inet.Stream) {
 	decoder := protobufCodec.Multicodec(nil).Decoder(bufio.NewReader(s))
 	err := decoder.Decode(data)
 	if err != nil {
-		log.Printf("[p2p] %s", err)
+		log.Errorf("[p2p] %s", err)
 		return
 	}
 
@@ -58,7 +58,7 @@ func (e *Echo) onEchoRequest(s inet.Stream) {
 	valid := e.node.authenticateMessage(data, data.MessageData)
 
 	if !valid {
-		log.Println("Failed to authenticate message")
+		log.Error("Failed to authenticate message")
 		return
 	}
 
@@ -73,7 +73,7 @@ func (e *Echo) onEchoRequest(s inet.Stream) {
 	// sign the data
 	signature, err := e.node.signProtoMessage(resp)
 	if err != nil {
-		log.Println("[p2p] failed to sign response")
+		log.Error("[p2p] failed to sign response")
 		return
 	}
 
@@ -82,7 +82,7 @@ func (e *Echo) onEchoRequest(s inet.Stream) {
 
 	s, respErr := e.node.NewStream(context.Background(), s.Conn().RemotePeer(), echoResponse)
 	if respErr != nil {
-		log.Printf("[p2p] %s", respErr)
+		log.Error("[p2p] %s", respErr)
 		return
 	}
 
@@ -98,7 +98,7 @@ func (e *Echo) onEchoResponse(s inet.Stream) {
 	data := &pb.EchoResponse{}
 	decoder := protobufCodec.Multicodec(nil).Decoder(bufio.NewReader(s))
 	if err := decoder.Decode(data); err != nil {
-		log.Printf("[p2p] err decoding echo response\n%v", err)
+		log.Errorf("[p2p] err decoding echo response\n%v", err)
 		return
 	}
 
@@ -108,7 +108,7 @@ func (e *Echo) onEchoResponse(s inet.Stream) {
 		// remove request from map as we have processed it here
 		delete(e.requests, data.MessageData.Id)
 	} else {
-		log.Println("[p2p] failed to locate request data boject for response")
+		log.Error("[p2p] failed to locate request data boject for response")
 		return
 	}
 
@@ -140,7 +140,7 @@ func (e *Echo) SendEcho(peerID peer.ID, resp chan interface{}) error {
 
 	signature, err := e.node.signProtoMessage(req)
 	if err != nil {
-		// log.Println("[p2p] failed to sign message")
+		log.Error("[p2p] failed to sign message")
 		return err
 	}
 
@@ -149,7 +149,7 @@ func (e *Echo) SendEcho(peerID peer.ID, resp chan interface{}) error {
 
 	s, err := e.node.NewStream(context.Background(), peerID, echoRequest)
 	if err != nil {
-		// log.Printf("[p2p] %s", err)
+		log.Errorf("[p2p] %s", err)
 		return err
 	}
 

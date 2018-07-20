@@ -1,7 +1,10 @@
 package color
 
-import "testing"
+import (
+	"log"
+	"testing"
+)
 
 func TestGreen(t *testing.T) {
-	Green("hello %s", "bob")
+	log.Println(Green("hello %s", "bob"))
 }

@@ -21,7 +21,7 @@ var (
 // Diff ...
 func Diff(old, new, out string, isDir bool) error {
 	if !command.Exists("diff") {
-		log.Println("[miner] error; diff command not found")
+		log.Error("[miner] error; diff command not found")
 		return ErrCommandNotFound
 	}
 
@@ -60,13 +60,13 @@ func Diff(old, new, out string, isDir bool) error {
 // CombineDiff ...
 func CombineDiff(firstDiff, secondDiff, out string) error {
 	if !command.Exists("combinediff") {
-		log.Println("[miner] error; combinediff command not found")
+		log.Error("[miner] error; combinediff command not found")
 		return ErrCommandNotFound
 	}
 
 	cmd := exec.Command("sh", "-c", fmt.Sprintf("combinediff %s %s > %s", firstDiff, secondDiff, out))
 	if err := cmd.Start(); err != nil {
-		log.Printf("[miner] error executing combinediff command; %s", err)
+		log.Errorf("[miner] error executing combinediff command; %s", err)
 		return err
 	}
 
@@ -76,7 +76,7 @@ func CombineDiff(firstDiff, secondDiff, out string) error {
 // Patch ...
 func Patch(patch, orig string, backup bool, absPath bool) error {
 	if !command.Exists("patch") {
-		log.Println("[miner] error; patch command not found")
+		log.Error("[miner] error; patch command not found")
 		return ErrCommandNotFound
 	}
 

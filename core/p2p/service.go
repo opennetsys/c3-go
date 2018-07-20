@@ -147,12 +147,12 @@ func (s Service) GetMerkleTree(c *cid.Cid) (*merkle.Tree, error) {
 // FetchMostRecentStateBlock ...
 func (s Service) FetchMostRecentStateBlock(imageHash string, block *mainchain.Block) (*statechain.Block, error) {
 	if block == nil {
-		log.Printf("[p2p] block is nil for image hash %s", imageHash)
+		log.Errorf("[p2p] block is nil for image hash %s", imageHash)
 		return nil, errors.New("block is nil")
 	}
 
 	if block.Props().BlockHash == nil {
-		log.Printf("[p2p] block hash is nil for image hash %s", imageHash)
+		log.Errorf("[p2p] block hash is nil for image hash %s", imageHash)
 		return nil, errors.New("block hash is nil")
 	}
 
@@ -169,7 +169,7 @@ func (s Service) FetchMostRecentStateBlock(imageHash string, block *mainchain.Bl
 		// 1. search the current block
 		treeCID, err := GetCIDByHash(block.Props().StateBlocksMerkleHash)
 		if err != nil {
-			log.Printf("[p2p] error getting cid by hash for state block merkle hash %s for image hash %s", block.Props().StateBlocksMerkleHash, imageHash)
+			log.Errorf("[p2p] error getting cid by hash for state block merkle hash %s for image hash %s", block.Props().StateBlocksMerkleHash, imageHash)
 			return nil, err
 		}
 
@@ -177,7 +177,7 @@ func (s Service) FetchMostRecentStateBlock(imageHash string, block *mainchain.Bl
 
 		tree, err := s.GetMerkleTree(treeCID)
 		if err != nil {
-			log.Printf("[p2p] error getting merkle tree for tree cid %s for image hash %s", treeCID, imageHash)
+			log.Errorf("[p2p] error getting merkle tree for tree cid %s for image hash %s", treeCID, imageHash)
 			return nil, err
 		}
 
@@ -188,13 +188,13 @@ func (s Service) FetchMostRecentStateBlock(imageHash string, block *mainchain.Bl
 		for _, stateBlockHash := range tree.Props().Hashes {
 			stateBlockCID, err := GetCIDByHash(stateBlockHash)
 			if err != nil {
-				log.Printf("[p2p] error getting cid by hash for state block hash %s for image hash %s", stateBlockHash, imageHash)
+				log.Errorf("[p2p] error getting cid by hash for state block hash %s for image hash %s", stateBlockHash, imageHash)
 				return nil, err
 			}
 
 			stateBlock, err := s.GetStatechainBlock(stateBlockCID)
 			if err != nil {
-				log.Printf("[p2p] error getting state chain block for state block cid %s for image hash %s", stateBlockCID, imageHash)
+				log.Errorf("[p2p] error getting state chain block for state block cid %s for image hash %s", stateBlockCID, imageHash)
 				return nil, err
 			}
 
@@ -213,13 +213,13 @@ func (s Service) FetchMostRecentStateBlock(imageHash string, block *mainchain.Bl
 		log.Printf("[p2p] checking head block number %v for image hash %s", head.Props().BlockNumber, imageHash)
 		prevCID, err := GetCIDByHash(head.Props().PrevBlockHash)
 		if err != nil {
-			log.Printf("[p2p] error getting cid by hash for prev block hash %s for image hash %s", head.Props().PrevBlockHash, imageHash)
+			log.Errorf("[p2p] error getting cid by hash for prev block hash %s for image hash %s", head.Props().PrevBlockHash, imageHash)
 			return nil, err
 		}
 
 		prevBlock, err := s.GetMainchainBlock(prevCID)
 		if err != nil {
-			log.Printf("[p2p] error getting main chain block for prev cid %s for image hash %s", prevCID, imageHash)
+			log.Errorf("[p2p] error getting main chain block for prev cid %s for image hash %s", prevCID, imageHash)
 			return nil, err
 		}
 		head = prevBlock
@@ -229,19 +229,19 @@ func (s Service) FetchMostRecentStateBlock(imageHash string, block *mainchain.Bl
 		log.Printf("[p2p] block merkle hash for block %s is %q for image hash %s", *block.Props().BlockHash, merkleHash, imageHash)
 
 		if merkleHash == "" {
-			log.Printf("[p2p] merkle hash for block %s is empty for image hash %s, continuing", *prevBlock.Props().BlockHash, imageHash)
+			log.Errorf("[p2p] merkle hash for block %s is empty for image hash %s, continuing", *prevBlock.Props().BlockHash, imageHash)
 			continue
 		}
 
 		treeCID, err := GetCIDByHash(prevBlock.Props().StateBlocksMerkleHash)
 		if err != nil {
-			log.Printf("[p2p] error getting cid by hash for prev block state blocks merkle hash %s for image hash %s", prevBlock.Props().StateBlocksMerkleHash, imageHash)
+			log.Errorf("[p2p] error getting cid by hash for prev block state blocks merkle hash %s for image hash %s", prevBlock.Props().StateBlocksMerkleHash, imageHash)
 			return nil, err
 		}
 
 		tree, err := s.GetMerkleTree(treeCID)
 		if err != nil {
-			log.Printf("[p2p] error getting merkle tree by tree cid %s for image hash %s", treeCID, imageHash)
+			log.Errorf("[p2p] error getting merkle tree by tree cid %s for image hash %s", treeCID, imageHash)
 			return nil, err
 		}
 
@@ -249,7 +249,7 @@ func (s Service) FetchMostRecentStateBlock(imageHash string, block *mainchain.Bl
 		// TODO: use go routines
 		log.Printf("[p2p] tree hash count %v for image hash %v", len(tree.Props().Hashes), imageHash)
 		for _, stateBlockHash := range tree.Props().Hashes {
-			log.Printf("[p2p] getting cid for state chain block by state block hash %s", stateBlockHash)
+			log.Errorf("[p2p] getting cid for state chain block by state block hash %s", stateBlockHash)
 			stateBlockCID, err := GetCIDByHash(stateBlockHash)
 			if err != nil {
 				log.Printf("[p2p] error getting cid by hash for state block hash %s for image hash %s", stateBlockHash, imageHash)
@@ -259,7 +259,7 @@ func (s Service) FetchMostRecentStateBlock(imageHash string, block *mainchain.Bl
 			log.Printf("[p2p] getting state chain block by state block hash %s and state block cid %s", stateBlockHash, stateBlockCID)
 			stateBlock, err := s.GetStatechainBlock(stateBlockCID)
 			if err != nil {
-				log.Printf("[p2p] error getting state chain block for state block cid %s for image hash %s", stateBlockCID, imageHash)
+				log.Errorf("[p2p] error getting state chain block for state block cid %s for image hash %s", stateBlockCID, imageHash)
 				return nil, err
 			}
 

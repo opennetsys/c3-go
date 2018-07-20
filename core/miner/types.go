@@ -12,6 +12,11 @@ import (
 	"github.com/c3systems/c3/core/sandbox"
 )
 
+const (
+	// StateFileName ...
+	StateFileName string = "state.txt"
+)
+
 var (
 	// ErrNilBlock ...
 	ErrNilBlock = errors.New("block is nil")
@@ -23,6 +28,8 @@ var (
 	ErrNoSig = errors.New("no signature present")
 	// ErrInvalidFromAddress ...
 	ErrInvalidFromAddress = errors.New("from address is not valid")
+	// ErrInvalidTx ...
+	ErrInvalidTx = errors.New("transaction is not valid")
 	// ErrNilDiff ...
 	ErrNilDiff = errors.New("diff is nil")
 )
@@ -38,6 +45,7 @@ type Props struct {
 	P2P                 p2p.Interface
 	Sandbox             sandbox.Interface
 	PendingTransactions []*statechain.Transaction
+	RemoveTx            func(hash string) error
 }
 
 // Service ...

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	colorlog "github.com/c3systems/c3/logger/color"
 	loghooks "github.com/c3systems/c3/logger/hooks"
 	log "github.com/sirupsen/logrus"
 
@@ -59,7 +60,7 @@ func RunDaemon() error {
 	ready := make(chan bool)
 	go func() {
 		if err = spawnIpfsDaemon(ready); err != nil {
-			log.Printf("[ipfs] %s", err)
+			log.Errorf("[ipfs] %s", err)
 		}
 	}()
 
@@ -75,7 +76,7 @@ func RunDaemon() error {
 func spawnIpfsDaemon(ready chan bool) error {
 	out, err := exec.Command("pgrep", "ipfs").Output()
 	if err != nil || strings.TrimSpace(string(out)) == "" {
-		log.Println("[ipfs] IPFS is not running. Starting...")
+		log.Warn("[ipfs] IPFS is not running. Starting...")
 
 		go func() {
 			// TODO: detect when running by watching log output
@@ -86,13 +87,13 @@ func spawnIpfsDaemon(ready chan bool) error {
 		err := exec.Command("ipfs", "daemon").Run()
 		if err != nil {
 			ready <- false
-			log.Printf("[ipfs] %s", err)
+			log.Errorf("[ipfs] %s", err)
 			return errors.New("failed to start IPFS")
 		}
 	}
 
 	ready <- true
-	log.Println("[ipfs] IPFS is running...")
+	log.Println(colorlog.Green("[ipfs] IPFS is running..."))
 	return nil
 }
 

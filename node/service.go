@@ -10,8 +10,8 @@ import (
 	"github.com/c3systems/c3/common/hexutil"
 	"github.com/c3systems/c3/config"
 	"github.com/c3systems/c3/core/chain/mainchain"
-	"github.com/c3systems/c3/core/chain/mainchain/miner"
 	"github.com/c3systems/c3/core/chain/statechain"
+	"github.com/c3systems/c3/core/miner"
 	"github.com/c3systems/c3/core/sandbox"
 	colorlog "github.com/c3systems/c3/logger/color"
 	loghooks "github.com/c3systems/c3/logger/hooks"
@@ -38,13 +38,13 @@ func New(props *Props) (*Service, error) {
 func (s *Service) spawnNextBlockMiner(prevBlock *mainchain.Block) error {
 	pendingTransactions, err := s.props.Store.GatherPendingTransactions()
 	if err != nil {
-		log.Printf("[node] error gathering pending transactions; %v", err)
+		log.Errorf("[node] error gathering pending transactions; %v", err)
 		return err
 	}
 
 	encMinerAddr, err := c3crypto.EncodeAddress(s.props.Keys.Pub)
 	if err != nil {
-		log.Printf("[node] error encoding miner address; %v", err)
+		log.Errorf("[node] error encoding miner address; %v", err)
 		return err
 	}
 
@@ -70,16 +70,17 @@ func (s *Service) spawnNextBlockMiner(prevBlock *mainchain.Block) error {
 		Sandbox:             sandbox.New(nil),
 		EncodedMinerAddress: encMinerAddr,
 		PendingTransactions: pendingTransactions,
+		RemoveTx:            s.props.Store.RemoveTx,
 	})
 	if err != nil {
-		log.Printf("[node] err building miner\n%v", err)
+		log.Errorf("[node] err building miner\n%v", err)
 		cancel()
 
 		return err
 	}
 
 	if err := minerSvc.SpawnMiner(); err != nil {
-		log.Printf("[node] err spawning miner\n%v", err)
+		log.Errorf("[node] err spawning miner\n%v", err)
 		cancel()
 
 		return err
@@ -98,7 +99,7 @@ func (s *Service) spawnMinerListener(cancel context.CancelFunc, minerChan chan i
 				switch v.(type) {
 				case error:
 					err, _ := v.(error)
-					log.Printf("[node] received an error from the miner\n%v", err)
+					log.Errorf("[node] received an error from the miner\n%v", err)
 
 					// just to be safe
 					cancel()
@@ -116,7 +117,7 @@ func (s *Service) spawnMinerListener(cancel context.CancelFunc, minerChan chan i
 							// TODO: make this recursive and keep trying on err
 							nextBlock, err := s.props.Store.GetHeadBlock()
 							if err != nil {
-								log.Printf("[node] err getting head block for miner\n%v", err)
+								log.Errorf("[node] err getting head block for miner\n%v", err)
 								return
 							}
 
@@ -131,7 +132,7 @@ func (s *Service) spawnMinerListener(cancel context.CancelFunc, minerChan chan i
 
 					pendingBlocks, err := s.props.Store.GetPendingMainchainBlocks()
 					if err != nil {
-						log.Printf("[node] err checking pending mainchain blocks\n%v", err)
+						log.Errorf("[node] err checking pending mainchain blocks\n%v", err)
 						return
 					}
 
@@ -144,25 +145,25 @@ func (s *Service) spawnMinerListener(cancel context.CancelFunc, minerChan chan i
 
 					currentBlock, err := s.props.Store.GetHeadBlock()
 					if err != nil {
-						log.Printf("[node] err getting head block\n%v", err)
+						log.Errorf("[node] err getting head block\n%v", err)
 						return
 					}
 
 					eq, err := currentBlock.Equals(minedBlock.PreviousBlock)
 					if err != nil {
-						log.Printf("[node] err checking if current block head was the one mined\n%v", err)
+						log.Errorf("[node] err checking if current block head was the one mined\n%v", err)
 						return
 					}
 
 					if !eq {
 						log.Println(currentBlock, *minedBlock.PreviousBlock, *minedBlock.NextBlock, *minedBlock.NextBlock.Props().BlockHash)
-						log.Printf("[node] the block mined is not built from the current head block\n%v", err)
+						log.Errorf("[node] the block mined is not built from the current head block\n%v", err)
 						return
 					}
 
 					sigR, sigS, err := c3crypto.Sign(s.props.Keys.Priv, []byte(*minedBlock.NextBlock.Props().BlockHash))
 					if err != nil {
-						log.Printf("[node] err signing mined block\n%v", err)
+						log.Errorf("[node] err signing mined block\n%v", err)
 						return
 					}
 
@@ -175,28 +176,28 @@ func (s *Service) spawnMinerListener(cancel context.CancelFunc, minerChan chan i
 					minedBlock.NextBlock = nextBlock
 
 					if err := s.BroadcastMinedBlock(minedBlock); err != nil {
-						log.Printf("[node] err broadcasting mined block\n%s", err)
+						log.Errorf("[node] err broadcasting mined block\n%s", err)
 						return
 					}
 
 					go func() {
 						if err := s.setMinedBlockData(minedBlock); err != nil {
-							log.Printf("[node] err setting mined block data\n%v", err)
+							log.Errorf("[node] err setting mined block data\n%v", err)
 						}
 					}()
 
 					if err := s.props.Store.SetHeadBlock(minedBlock.NextBlock); err != nil {
-						log.Printf("[node] err setting the head block\n%v", err)
+						log.Errorf("[node] err setting the head block\n%v", err)
 						return
 					}
 
 					if err := s.removeMinedTxs(minedBlock); err != nil {
-						log.Printf("[node] err removing mined txs\n%v", err)
+						log.Errorf("[node] err removing mined txs\n%v", err)
 						return
 					}
 
 				default:
-					log.Printf("[node] received message of unknown type from the miner\ntype %T\n%v", v, v)
+					log.Errorf("[node] received message of unknown type from the miner\ntype %T\n%v", v, v)
 					// just to be safe
 					cancel()
 
@@ -315,12 +316,12 @@ func (s *Service) BroadcastTransaction(tx *statechain.Transaction) (*nodetypes.S
 
 	data, err := tx.Serialize()
 	if err != nil {
-		log.Printf("[node] error serializing transaction; %v", err)
+		log.Errorf("[node] error serializing transaction; %v", err)
 		return nil, err
 	}
 
 	if err := s.props.Pubsub.Publish("transactions", data); err != nil {
-		log.Printf("[node] error publishing transaction; %v", err)
+		log.Errorf("[node] error publishing transaction; %v", err)
 		return nil, err
 	}
 
@@ -347,28 +348,28 @@ func (s *Service) handleReceiptOfMinedBlock(minedBlock *miner.MinedBlock) {
 	log.Println("[node] handling receipt of mined block")
 
 	if minedBlock == nil {
-		log.Println("[node] received nil block")
+		log.Error("[node] received nil block")
 		return
 	}
 	if minedBlock.NextBlock == nil {
-		log.Println("[nored] received nil next block")
+		log.Error("[nored] received nil next block")
 		return
 	}
 	if minedBlock.NextBlock.Props().BlockHash == nil {
-		log.Println("[node] received block with nil hash")
+		log.Error("[node] received block with nil hash")
 		return
 	}
 
-	colorlog.Yellow("[node] received mined block on the channel\nblock number: %s", minedBlock.NextBlock.Props().BlockNumber)
+	log.Println(colorlog.Yellow("[node] received mined block on the channel\nblock number: %s", minedBlock.NextBlock.Props().BlockNumber))
 	//spew.Dump(minedBlock)
 
 	if err := s.props.Store.SetPendingMainchainBlock(minedBlock.NextBlock); err != nil {
-		log.Printf("[node] err setting pending mainchain block\n%v", err)
+		log.Errorf("[node] err setting pending mainchain block\n%v", err)
 		return
 	}
 	defer func() {
 		if err := s.props.Store.RemovePendingMainchainBlock(*minedBlock.NextBlock.Props().BlockHash); err != nil {
-			log.Printf("[node] err removing pending mainchain block\n%v", err)
+			log.Errorf("[node] err removing pending mainchain block\n%v", err)
 		}
 	}()
 
@@ -381,13 +382,13 @@ func (s *Service) handleReceiptOfMinedBlock(minedBlock *miner.MinedBlock) {
 	defer cancel()
 	ok, err := miner.VerifyMinedBlock(ctx, s.props.P2P, sandbox.New(nil), minedBlock)
 	if err != nil {
-		log.Printf("[node] received err while verifying mined block\nblock: %v\nerr: %v", *minedBlock.NextBlock, err)
+		log.Errorf("[node] received err while verifying mined block\nblock: %v\nerr: %v", *minedBlock.NextBlock, err)
 		return
 	}
 
 	// note: ping the other nodes to tell them we didn't accept the block? See if they did?
 	if !ok {
-		log.Printf("[node] received invalid mined block\nerr: %v", err)
+		log.Error("[node] received invalid mined block")
 		spew.Dump(minedBlock)
 		return
 	}
@@ -396,24 +397,24 @@ func (s *Service) handleReceiptOfMinedBlock(minedBlock *miner.MinedBlock) {
 	// compare it to the block head that we have
 	localHeadBlock, err := s.props.Store.GetHeadBlock()
 	if err != nil {
-		log.Printf("[node] err getting our head block\n%v", err)
+		log.Errorf("[node] err getting our head block\n%v", err)
 		return
 	}
 
 	localBlockHeight, err := hexutil.DecodeUint64(localHeadBlock.Props().BlockNumber)
 	if err != nil {
-		log.Printf("[node] err decoding head block height\n%v", err)
+		log.Errorf("[node] err decoding head block height\n%v", err)
 		return
 	}
 	receivedBlockHeight, err := hexutil.DecodeUint64(minedBlock.NextBlock.Props().BlockNumber)
 	if err != nil {
-		log.Printf("[node] err decoding received block height\n%v", err)
+		log.Errorf("[node] err decoding received block height\n%v", err)
 		return
 	}
 
 	// TODO: if delta(local, received) > 1 then we need to backfill our missing blocks
 	if localBlockHeight >= receivedBlockHeight {
-		log.Printf("[node] local block height is %v and received is %v, therefore, not adding block to chain", localBlockHeight, receivedBlockHeight)
+		log.Errorf("[node] local block height is %v and received is %v, therefore, not adding block to chain", localBlockHeight, receivedBlockHeight)
 		return
 	}
 
@@ -421,22 +422,22 @@ func (s *Service) handleReceiptOfMinedBlock(minedBlock *miner.MinedBlock) {
 	s.props.CancelMinersChannel <- struct{}{}
 
 	if err := s.props.Store.SetHeadBlock(minedBlock.NextBlock); err != nil {
-		log.Printf("[node] err setting head block in node store\n%v", err)
+		log.Errorf("[node] err setting head block in node store\n%v", err)
 		return
 	}
 	if err := s.props.Store.RemovePendingMainchainBlock(*minedBlock.NextBlock.Props().BlockHash); err != nil {
-		log.Printf("[node] err removing pending mainchain block\n%v", err)
+		log.Errorf("[node] err removing pending mainchain block\n%v", err)
 		return
 	}
 
 	go func() {
 		if err := s.setMinedBlockData(minedBlock); err != nil {
-			log.Printf("[node] err setting mined block data\n%v", err)
+			log.Errorf("[node] err setting mined block data\n%v", err)
 		}
 	}()
 
 	if err := s.removeMinedTxs(minedBlock); err != nil {
-		log.Printf("[node] err removing mined txs\n%v", err)
+		log.Errorf("[node] err removing mined txs\n%v", err)
 		return
 	}
 
@@ -444,18 +445,18 @@ func (s *Service) handleReceiptOfMinedBlock(minedBlock *miner.MinedBlock) {
 	// TODO: if any of the above fails, we may never get here and may be stuck!
 	pendingBlocks, err := s.props.Store.GetPendingMainchainBlocks()
 	if err != nil {
-		log.Printf("[node] err checking pending mainchain blocks\n%v", err)
+		log.Errorf("[node] err checking pending mainchain blocks\n%v", err)
 		return
 	}
 
 	// TODO: check that all pending blocks have block #'s larger than the one we just mined
 	if pendingBlocks != nil && len(pendingBlocks) > 0 {
-		log.Printf("[node] blocks pending, don't start mining new block, yet")
+		log.Errorf("[node] blocks pending, don't start mining new block, yet")
 		return
 	}
 
 	if err := s.spawnNextBlockMiner(minedBlock.NextBlock); err != nil {
-		log.Printf("err starting miner\n%v", err)
+		log.Errorf("err starting miner\n%v", err)
 		return
 	}
 }
@@ -467,12 +468,12 @@ func (s *Service) handleReceiptOfStatechainTransaction(tx *statechain.Transactio
 
 	ok, err := miner.VerifyTransaction(tx)
 	if err != nil {
-		log.Printf("[node] err verifying tx: %v\nerr: %v", *tx, err)
+		log.Errorf("[node] err verifying tx: %v\nerr: %v", *tx, err)
 		return
 	}
 
 	if !ok {
-		log.Printf("[node] received an invalid tx\n%v", *tx)
+		log.Errorf("[node] received an invalid tx\n%v", *tx)
 		return
 	}
 
@@ -488,20 +489,20 @@ func (s *Service) handleReceiptOfStatechainTransaction(tx *statechain.Transactio
 	if err == nil && !ok {
 		if err := s.props.Store.AddTx(tx); err != nil {
 			// TODO: need to handle this err better
-			log.Printf("[node] err adding tx to store\n%v", err)
+			log.Errorf("[node] err adding tx to store\n%v", err)
 			return
 		}
 
-		colorlog.Magenta("[node] tx new added to mempool; tx hash: %s", *tx.Props().TxHash)
+		log.Errorf(colorlog.Magenta("[node] tx new added to mempool; tx hash: %s", *tx.Props().TxHash))
 	}
 
 	if err != nil {
-		log.Printf("[node] err checking if store has tx\n%v", err)
+		log.Errorf("[node] err checking if store has tx\n%v", err)
 	}
 
 	if _, err = s.props.P2P.SetStatechainTransaction(tx); err != nil {
 		// TODO: need to handle this err better
-		log.Printf("[node] err setting tx: %v\nerr: %v", *tx, err)
+		log.Errorf("[node] err setting tx: %v\nerr: %v", *tx, err)
 		return
 	}
 }
@@ -519,42 +520,42 @@ func (s *Service) setMinedBlockData(minedBlock *miner.MinedBlock) error {
 
 	blk := minedBlock.NextBlock.Props()
 
-	colorlog.Green("[node] storing mined block data\nblock number: %s\nblock hash: %s\nstate blocks merkle hash: %s\nstate chain blocks: %v\ntransactions: %v", blk.BlockNumber, *blk.BlockHash, blk.StateBlocksMerkleHash, len(minedBlock.StatechainBlocksMap), len(minedBlock.TransactionsMap))
+	log.Println(colorlog.Green("[node] storing mined block data\nblock number: %s\nblock hash: %s\nstate blocks merkle hash: %s\nstate chain blocks: %v\ntransactions: %v", blk.BlockNumber, *blk.BlockHash, blk.StateBlocksMerkleHash, len(minedBlock.StatechainBlocksMap), len(minedBlock.TransactionsMap)))
 
 	for _, statechainBlock := range minedBlock.StatechainBlocksMap {
 		if statechainBlock == nil {
-			log.Println("[node] mined block state chain block is nil, continuing")
+			log.Errorf("[node] mined block state chain block is nil, continuing")
 			continue
 		}
 
 		if _, err := s.props.P2P.SetStatechainBlock(statechainBlock); err != nil {
-			log.Printf("[node] error setting state chain block; %v", err)
+			log.Errorf("[node] error setting state chain block; %v", err)
 			return err
 		}
 
-		colorlog.Green("[node] storing state chain block\nstate chain block number: %s\nstate chain block hash: %s\nstate current hash: %s\ntx hash: %s\nprev state block hash: %s\nprev state diff hash: %s", statechainBlock.Props().BlockNumber, *statechainBlock.Props().BlockHash, statechainBlock.Props().StateCurrentHash, statechainBlock.Props().TxHash, statechainBlock.Props().PrevBlockHash, statechainBlock.Props().StatePrevDiffHash)
+		log.Println(colorlog.Green("[node] storing state chain block\nstate chain block number: %s\nstate chain block hash: %s\nstate current hash: %s\ntx hash: %s\nprev state block hash: %s\nprev state diff hash: %s", statechainBlock.Props().BlockNumber, *statechainBlock.Props().BlockHash, statechainBlock.Props().StateCurrentHash, statechainBlock.Props().TxHash, statechainBlock.Props().PrevBlockHash, statechainBlock.Props().StatePrevDiffHash))
 	}
 
 	for _, transaction := range minedBlock.TransactionsMap {
 		if transaction == nil {
-			log.Println("[node] mined block transaction is nil, continuing")
+			log.Errorf("[node] mined block transaction is nil, continuing")
 			continue
 		}
 
 		if _, err := s.props.P2P.SetStatechainTransaction(transaction); err != nil {
-			log.Printf("[node] error setting state chain transaction; %v", err)
+			log.Errorf("[node] error setting state chain transaction; %v", err)
 			return err
 		}
 	}
 
 	for _, diff := range minedBlock.DiffsMap {
 		if diff == nil {
-			log.Println("[node] mined block diff is nil, continuing")
+			log.Errorf("[node] mined block diff is nil, continuing")
 			continue
 		}
 
 		if _, err := s.props.P2P.SetStatechainDiff(diff); err != nil {
-			log.Printf("[node] error setting state chain diff diff; %v", err)
+			log.Errorf("[node] error setting state chain diff diff; %v", err)
 			return err
 		}
 	}
@@ -566,13 +567,13 @@ func (s *Service) setMinedBlockData(minedBlock *miner.MinedBlock) error {
 		}
 
 		if _, err := s.props.P2P.SetMerkleTree(tree); err != nil {
-			log.Printf("[node] error setting main chain merkle tree; %v", err)
+			log.Errorf("[node] error setting main chain merkle tree; %v", err)
 			return err
 		}
 	}
 
 	if _, err := s.props.P2P.SetMainchainBlock(minedBlock.NextBlock); err != nil {
-		log.Printf("[node] error setting main chain block; %v", err)
+		log.Errorf("[node] error setting main chain block; %v", err)
 		return err
 	}
 

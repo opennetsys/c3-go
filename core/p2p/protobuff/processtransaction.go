@@ -8,8 +8,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/c3systems/c3/core/chain/mainchain/miner"
 	"github.com/c3systems/c3/core/chain/statechain"
+	"github.com/c3systems/c3/core/miner"
 	pb "github.com/c3systems/c3/core/p2p/protobuff/pb"
 	nodetypes "github.com/c3systems/c3/node/types"
 
@@ -58,7 +58,7 @@ func (p *ProcessTransaction) onProcessTransactionRequest(s inet.Stream) {
 	decoder := protobufCodec.Multicodec(nil).Decoder(bufio.NewReader(s))
 	err := decoder.Decode(data)
 	if err != nil {
-		log.Printf("[p2p] %s", err)
+		log.Errorf("[p2p] %s", err)
 		return
 	}
 
@@ -66,7 +66,7 @@ func (p *ProcessTransaction) onProcessTransactionRequest(s inet.Stream) {
 	valid := p.node.authenticateMessage(data, data.MessageData)
 
 	if !valid {
-		log.Println("[p2p] failed to authenticate message")
+		log.Error("[p2p] failed to authenticate message")
 		return
 	}
 
@@ -130,7 +130,7 @@ func (p *ProcessTransaction) sendResp(resp *pb.ProcessTransactionResponse, s ine
 	// sign the data
 	signature, err := p.node.signProtoMessage(resp)
 	if err != nil {
-		log.Printf("[p2p] failed to sign response\n%v", err)
+		log.Errorf("[p2p] failed to sign response\n%v", err)
 		return
 	}
 
@@ -139,7 +139,7 @@ func (p *ProcessTransaction) sendResp(resp *pb.ProcessTransactionResponse, s ine
 
 	s, respErr := p.node.NewStream(context.Background(), s.Conn().RemotePeer(), processTransactionResponse)
 	if respErr != nil {
-		log.Printf("[p2p] %s", respErr)
+		log.Errorf("[p2p] %s", respErr)
 		return
 	}
 
@@ -155,7 +155,7 @@ func (p *ProcessTransaction) onProcessTransactionResponse(s inet.Stream) {
 	data := &pb.ProcessTransactionResponse{}
 	decoder := protobufCodec.Multicodec(nil).Decoder(bufio.NewReader(s))
 	if err := decoder.Decode(data); err != nil {
-		log.Printf("[p2p] err decoding process transaction response\n%v", err)
+		log.Errorf("[p2p] err decoding process transaction response\n%v", err)
 		return
 	}
 
@@ -165,7 +165,7 @@ func (p *ProcessTransaction) onProcessTransactionResponse(s inet.Stream) {
 		// remove request from map as we have processed it here
 		delete(p.requests, data.MessageData.Id)
 	} else {
-		log.Println("[p2p] failed to locate request data object for response")
+		log.Error("[p2p] failed to locate request data object for response")
 		return
 	}
 
@@ -196,7 +196,7 @@ func (p *ProcessTransaction) SendTransaction(peerID peer.ID, resp chan interface
 
 	signature, err := p.node.signProtoMessage(req)
 	if err != nil {
-		// log.Println("[p2p] failed to sign message")
+		log.Error("[p2p] failed to sign message")
 		return err
 	}
 
@@ -205,7 +205,7 @@ func (p *ProcessTransaction) SendTransaction(peerID peer.ID, resp chan interface
 
 	s, err := p.node.NewStream(context.Background(), peerID, headBlockRequest)
 	if err != nil {
-		// log.Printf("[p2p] %s", err)
+		log.Errorf("[p2p] %s", err)
 		return err
 	}
 
