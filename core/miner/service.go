@@ -319,6 +319,16 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 	isGenesisTx, tx, transactions, err := isGenesisTransaction(s.props.P2P, s.minedBlock.PreviousBlock, imageHash, transactions)
 	if err != nil {
 		log.Errorf("[miner] error determining if tx is genesis for image hash %s; error: %s", imageHash, err)
+		if err == ErrInvalidTx {
+			log.Infof("[miner] invalid tx %v", tx)
+			if tx != nil && tx.Props().TxHash != nil {
+				log.Infof("[miner] removing invalid tx from database %v", tx)
+				if err1 = s.props.RemoveTx(*tx.Props().TxHash); err1 != nil {
+					log.Errorf("[miner] err removing invalid tx %v from database %v", tx, err1)
+				}
+			}
+		}
+
 		return err
 	}
 	if isGenesisTx {
