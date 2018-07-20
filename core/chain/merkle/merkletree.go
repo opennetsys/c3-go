@@ -9,7 +9,7 @@ import (
 
 	"github.com/c3systems/c3/common/coder"
 	"github.com/c3systems/c3/common/hexutil"
-	loghooks "github.com/c3systems/c3/logger/hooks"
+	loghooks "github.com/c3systems/c3/log/hooks"
 
 	"github.com/c3systems/merkletree"
 )

@@ -84,7 +84,7 @@ test/check:
 	@pgrep -f docker > /dev/null || echo "Docker daemon is not running"
 
 .PHONY: test
-test: test/check test/sdk test/common test/cleanup
+test: test/check test/common test/cleanup
 	# test/unit test/integration test/e2e
 	# test/core
 	# test/registry
@@ -112,22 +112,14 @@ test/e2e:
 
 # /END TEST TYPES
 
-# SDK
-
-.PHONY: test/sdk
-test/sdk:
-	@go test -v sdk/*.go $(ARGS)
-
-# /END SDK
-
 # COMMON
 
 .PHONY: test/common
-test/common: test/common/network test/common/stringutil test/common/hexutil test/common/hashing test/common/c3crypto
+test/common: test/common/netutil test/common/stringutil test/common/hexutil test/common/hashing test/common/c3crypto
 
-.PHONY: test/common/network
-test/common/network:
-	@go test -v common/network/*.go $(ARGS)
+.PHONY: test/common/netutil
+test/common/netutil:
+	@go test -v common/netutil/*.go $(ARGS)
 
 .PHONY: test/common/stringutil
 test/common/stringutil:
@@ -205,6 +197,10 @@ test/core/diffing:
 test/registry:
 	@docker pull hello-world && \
 	go test -v -parallel 1 registry/*.go $(ARGS)
+
+.PHONY: test/registry/server
+test/registry/server:
+	@go test -v registry/server/*.go $(ARGS)
 
 # /END REGISTRY
 

@@ -4,8 +4,6 @@ import (
 	"io"
 	"os"
 	"testing"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 var (
@@ -29,7 +27,14 @@ func TestListImages(t *testing.T) {
 		t.Error(err)
 	}
 
-	spew.Dump(images)
+	for _, image := range images {
+		if len(image.ID) == 0 {
+			t.Error("expected image ID")
+		}
+		if image.Size <= 0 {
+			t.Error("expected image size")
+		}
+	}
 }
 
 func TestPullImage(t *testing.T) {
@@ -75,6 +80,71 @@ func TestLoadImageByFilepath(t *testing.T) {
 	err := client.LoadImageByFilepath(TestImageTar)
 	if err != nil {
 		t.Error(err)
+	}
+}
+
+func TestTagImage(t *testing.T) {
+	t.Parallel()
+	client := NewClient()
+	err := client.PullImage(TestImage)
+	if err != nil {
+		t.Error(err)
+	}
+	newTag := "my-image:mytag"
+	err = client.TagImage(TestImage, newTag)
+	if err != nil {
+		t.Error(err)
+	}
+
+	images, err := client.ListImages()
+	if err != nil {
+		t.Error(err)
+	}
+
+	var hasImage bool
+	for _, image := range images {
+		for _, tag := range image.Tags {
+			if tag == newTag {
+				hasImage = true
+				break
+			}
+		}
+	}
+
+	if !hasImage {
+		t.Error("expected image tag")
+	}
+}
+
+func TestRemoveImage(t *testing.T) {
+	t.Parallel()
+	client := NewClient()
+	err := client.PullImage(TestImage)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = client.RemoveImage(TestImage)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestRemoveAllImages(t *testing.T) {
+	t.Parallel()
+	client := NewClient()
+	err := client.RemoveAllImages()
+	if err != nil {
+		t.Error(err)
+	}
+
+	images, err := client.ListImages()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(images) != 0 {
+		t.Error("expected number of images to be 0")
 	}
 }
 

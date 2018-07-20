@@ -16,11 +16,11 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/c3systems/c3/common/network"
+	"github.com/c3systems/c3/common/netutil"
 	"github.com/c3systems/c3/common/stringutil"
 	c3config "github.com/c3systems/c3/config"
 	"github.com/c3systems/c3/core/docker"
-	loghooks "github.com/c3systems/c3/logger/hooks"
+	loghooks "github.com/c3systems/c3/log/hooks"
 	"github.com/c3systems/c3/registry"
 )
 
@@ -44,7 +44,7 @@ type Config struct {
 
 // New ...
 func New(config *Config) *Service {
-	localIP, err := network.LocalIP()
+	localIP, err := netutil.LocalIP()
 	if err != nil {
 		log.Fatalf("[sandbox] %s", err)
 	}
@@ -105,7 +105,7 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 
 	log.Printf("[sandbox] running docker image %s", dockerImageID)
 
-	hp, err := network.GetFreePort()
+	hp, err := netutil.GetFreePort()
 	if err != nil {
 		return nil, err
 	}

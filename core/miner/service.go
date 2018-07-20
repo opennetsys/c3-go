@@ -21,8 +21,8 @@ import (
 	"github.com/c3systems/c3/core/p2p"
 	"github.com/c3systems/c3/core/sandbox"
 	methodTypes "github.com/c3systems/c3/core/types/methods"
-	colorlog "github.com/c3systems/c3/logger/color"
-	loghooks "github.com/c3systems/c3/logger/hooks"
+	colorlog "github.com/c3systems/c3/log/color"
+	loghooks "github.com/c3systems/c3/log/hooks"
 	"github.com/c3systems/merkletree"
 )
 

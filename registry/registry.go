@@ -18,11 +18,11 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/c3systems/c3/common/network"
+	"github.com/c3systems/c3/common/netutil"
 	c3config "github.com/c3systems/c3/config"
 	"github.com/c3systems/c3/core/docker"
 	"github.com/c3systems/c3/core/ipfs"
-	loghooks "github.com/c3systems/c3/logger/hooks"
+	loghooks "github.com/c3systems/c3/log/hooks"
 	"github.com/c3systems/c3/registry/server"
 	"github.com/c3systems/c3/registry/util"
 )
@@ -47,7 +47,7 @@ func NewRegistry(config *Config) *Registry {
 	if dockerLocalRegistryHost == "" {
 		dockerLocalRegistryHost = os.Getenv("DOCKER_LOCAL_REGISTRY_HOST")
 		if dockerLocalRegistryHost == "" {
-			localIP, err := network.LocalIP()
+			localIP, err := netutil.LocalIP()
 			if err != nil {
 				log.Fatalf("[registry] %s", err)
 			}

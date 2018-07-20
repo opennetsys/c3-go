@@ -7,7 +7,7 @@ import (
 	"github.com/c3systems/c3/core/chain/mainchain"
 	"github.com/c3systems/c3/core/chain/merkle"
 	"github.com/c3systems/c3/core/chain/statechain"
-	loghooks "github.com/c3systems/c3/logger/hooks"
+	loghooks "github.com/c3systems/c3/log/hooks"
 	log "github.com/sirupsen/logrus"
 
 	cid "github.com/ipfs/go-cid"

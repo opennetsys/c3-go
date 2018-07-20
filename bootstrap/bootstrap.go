@@ -12,4 +12,6 @@ func Bootstrap() {
 	if err != nil {
 		log.Fatal("Failed to start IPFS daemon")
 	}
+
+	// TODO: run docker daemon if not running
 }

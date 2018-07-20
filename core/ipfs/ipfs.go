@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	colorlog "github.com/c3systems/c3/logger/color"
-	loghooks "github.com/c3systems/c3/logger/hooks"
+	colorlog "github.com/c3systems/c3/log/color"
+	loghooks "github.com/c3systems/c3/log/hooks"
 	log "github.com/sirupsen/logrus"
 
 	api "github.com/ipfs/go-ipfs-api"

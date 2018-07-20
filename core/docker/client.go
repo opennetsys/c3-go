@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	loghooks "github.com/c3systems/c3/logger/hooks"
+	loghooks "github.com/c3systems/c3/log/hooks"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/docker/docker/api/types"
@@ -95,6 +95,7 @@ func newEnvClient() *Client {
 // ImageSummary ....
 type ImageSummary struct {
 	ID   string
+	Tags []string
 	Size int64
 }
 
@@ -108,10 +109,11 @@ func (s *Client) ListImages() ([]*ImageSummary, error) {
 	}
 
 	var summaries []*ImageSummary
-	for _, img := range images {
+	for _, image := range images {
 		summaries = append(summaries, &ImageSummary{
-			ID:   img.ID,
-			Size: img.Size,
+			ID:   image.ID,
+			Tags: image.RepoTags,
+			Size: image.Size,
 		})
 	}
 
@@ -138,6 +140,49 @@ func (s *Client) PushImage(imageID string) error {
 		return err
 	}
 	io.Copy(os.Stdout, reader)
+	return nil
+}
+
+// TagImage ...
+func (s *Client) TagImage(imageID, tag string) error {
+	return s.client.ImageTag(context.Background(), imageID, tag)
+}
+
+// RemoveImage ...
+func (s *Client) RemoveImage(imageID string) error {
+	_, err := s.client.ImageRemove(context.Background(), imageID, types.ImageRemoveOptions{
+		Force:         true,
+		PruneChildren: true,
+	})
+
+	return err
+}
+
+// RemoveAllImages ...
+func (s *Client) RemoveAllImages() error {
+	images, err := s.ListImages()
+	if err != nil {
+		return err
+	}
+
+	var lastErr error
+	for _, image := range images {
+		err := s.RemoveImage(image.ID)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+	}
+
+	images, err = s.ListImages()
+	if err != nil {
+		return err
+	}
+
+	if len(images) != 0 {
+		return lastErr
+	}
+
 	return nil
 }
 

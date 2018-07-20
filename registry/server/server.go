@@ -121,7 +121,9 @@ func Run() error {
 
 // Close ...
 func Close() {
-	listener.Close()
+	if listener != nil {
+		listener.Close()
+	}
 }
 
 func ipfsURL(hash string) string {

@@ -1,4 +1,4 @@
-package network
+package netutil
 
 import (
 	"errors"
