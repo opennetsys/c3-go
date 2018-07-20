@@ -37,6 +37,22 @@ func TestListImages(t *testing.T) {
 	}
 }
 
+func TestHasImage(t *testing.T) {
+	t.Parallel()
+	client := NewClient()
+	err := client.PullImage(TestImage)
+	if err != nil {
+		t.Error(err)
+	}
+	hasImage, err := client.HasImage(TestImage)
+	if err != nil {
+		t.Error(err)
+	}
+	if !hasImage {
+		t.Error("expected to have image")
+	}
+}
+
 func TestPullImage(t *testing.T) {
 	t.Parallel()
 	client := NewClient()

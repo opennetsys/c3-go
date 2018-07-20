@@ -16,6 +16,7 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
@@ -118,6 +119,25 @@ func (s *Client) ListImages() ([]*ImageSummary, error) {
 	}
 
 	return summaries, nil
+}
+
+// HasImage ...
+func (s *Client) HasImage(imageID string) (bool, error) {
+	args := filters.NewArgs()
+	args.Add("reference", imageID)
+	images, err := s.client.ImageList(context.Background(), types.ImageListOptions{
+		All:     true,
+		Filters: args,
+	})
+	if err != nil {
+		return false, err
+	}
+
+	if len(images) > 0 {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 // PullImage ...

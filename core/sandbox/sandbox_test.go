@@ -6,7 +6,7 @@ import (
 )
 
 // Docker file found in /example
-var imageID = "Qmf9XFxbFDGv4yssc7YvAisxxUBU89BFbimAAYgT33ZTAf"
+var imageID = "QmUJtVGaAwLihH7RxPjRqTR3VxtjA4JAqxGTtBsuuRbTuR"
 
 //var imageID = "0192547c385a"
 

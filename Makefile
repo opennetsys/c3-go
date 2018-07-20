@@ -165,7 +165,11 @@ test/core/ipfs:
 	@go test -v -parallel 1 core/ipfs/*.go $(ARGS)
 
 .PHONY: test/core/sandbox
-test/core/sandbox: docker/build/example
+test/core/sandbox:
+	@go test -v -parallel 1 core/sandbox/*.go $(ARGS)
+
+.PHONY: test/core/sandbox/with-build
+test/core/sandbox/with-build: docker/build/example
 	@IMAGEID=$$(docker images -q | grep -m1 "") go test -v -parallel 1 core/sandbox/*.go $(ARGS)
 
 .PHONY: test/core/chain

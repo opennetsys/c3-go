@@ -22,6 +22,7 @@ import (
 	"github.com/c3systems/c3/core/docker"
 	loghooks "github.com/c3systems/c3/log/hooks"
 	"github.com/c3systems/c3/registry"
+	regutil "github.com/c3systems/c3/registry/util"
 )
 
 // Ensure the service implements the interface
@@ -97,9 +98,20 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 
 	// If it's an IPFS hash then pull it from IPFS
 	if strings.HasPrefix(config.ImageID, "Qm") {
-		dockerImageID, err = s.registry.PullImage(config.ImageID)
+		dockerizedHash := regutil.DockerizeHash(config.ImageID)
+		hasImage, err := s.docker.HasImage(dockerizedHash)
 		if err != nil {
 			return nil, err
+		}
+		if hasImage {
+			log.Printf("[sandbox] using cached image %s", dockerizedHash)
+			dockerImageID = dockerizedHash
+		} else {
+			log.Printf("[sandbox] image not cached, pulling %s", config.ImageID)
+			dockerImageID, err = s.registry.PullImage(config.ImageID)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
