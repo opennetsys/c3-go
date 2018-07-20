@@ -743,6 +743,7 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, sbSvc sandbox.Interface, 
 		}
 
 		// run container, passing the tx inputs
+		// note: certain err's, here, should remove the tx from the pending tx pool
 		nextState, err = sbSvc.Play(&sandbox.PlayConfig{
 			ImageID:      tx.Props().ImageHash,
 			Payload:      inputsJSON,

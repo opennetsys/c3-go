@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/c3systems/c3/c3"
+	c3 "github.com/c3systems/sdk-go"
 )
 
 var client = c3.NewC3()
