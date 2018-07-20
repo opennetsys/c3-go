@@ -78,7 +78,7 @@ func TestBroadcast(t *testing.T) {
 	tx1 := statechain.NewTransaction(&statechain.TransactionProps{
 		ImageHash: imageHash,
 		Method:    methodTypes.Deploy,
-		Payload:   []byte(`{"hello": "world!"}`),
+		Payload:   []byte(`{"hello": "world"}`),
 		From:      encodedPub,
 	})
 

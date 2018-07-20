@@ -48,6 +48,7 @@ func Diff(old, new, out string, isDir bool) error {
 	commands = append(commands, old, new, old, oldFile, new, oldFile, out)
 	s += " %s %s | sed -e 's|%s|%s|' | sed -e 's|%s|%s|' > %s"
 
+	// same as: git diff --minimal --unified file1 file2
 	cmd := exec.Command("sh", "-c", fmt.Sprintf("diff -ud"+s, commands...))
 	if err := cmd.Start(); err != nil {
 		return err

@@ -158,6 +158,7 @@ test/core: test/core/server test/core/ipfs
 	# test/core/sandbox
 	# test/core/docker
 	# test/core/chain/mainchain/miner
+	# test/core/diffing
 
 .PHONY: test/core/server
 test/core/server:
@@ -190,6 +191,10 @@ test/core/chain/statechain:
 .PHONY: test/core/chain/mainchain/miner
 test/core/chain/mainchain/miner:
 	@go test -v core/chain/mainchain/miner/*.go $(ARGS)
+
+.PHONY: test/core/diffing
+test/core/diffing:
+	@go test -v core/diffing/*.go $(ARGS)
 
 # /END CORE
 
