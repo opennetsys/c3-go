@@ -86,12 +86,12 @@ func VerifyTransaction(tx *statechain.Transaction) (bool, error) {
 
 	// 1. tx must have a hash
 	if tx.Props().TxHash == nil {
-		return false, nil
+		return false, ErrInvalidTx
 	}
 
 	// 2. tx must have a sig
 	if tx.Props().Sig == nil {
-		return false, nil
+		return false, ErrInvalidTx
 	}
 
 	// 3. verify the hash
@@ -102,7 +102,7 @@ func VerifyTransaction(tx *statechain.Transaction) (bool, error) {
 
 	// note: already checked for nil hash
 	if *tx.Props().TxHash != tmpHash {
-		return false, nil
+		return false, ErrInvalidTx
 	}
 
 	// 4. the sig must verify
@@ -122,7 +122,12 @@ func VerifyTransaction(tx *statechain.Transaction) (bool, error) {
 		return false, err
 	}
 
-	return c3crypto.Verify(pub, []byte(*tx.Props().TxHash), r, s)
+	ok, err := c3crypto.Verify(pub, []byte(*tx.Props().TxHash), r, s)
+	if !ok || err != nil {
+		return false, ErrInvalidTx
+	}
+
+	return true, nil
 }
 
 // VerifyMinedBlock ...
@@ -1266,7 +1271,7 @@ func isGenesisTransaction(p2pSvc p2p.Interface, prevBlock *mainchain.Block, imag
 			}
 			if prevStateBlock != nil {
 				log.Errorf("[miner] prev state block exists image hash %s", imageHash)
-				return false, nil, nil, errors.New("prev state block exists; can't deploy")
+				return false, tx, nil, ErrInvalidTx
 			}
 
 			return true, tx, append(transactions[:idx], transactions[idx+1:]...), nil

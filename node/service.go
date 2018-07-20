@@ -70,6 +70,7 @@ func (s *Service) spawnNextBlockMiner(prevBlock *mainchain.Block) error {
 		Sandbox:             sandbox.New(nil),
 		EncodedMinerAddress: encMinerAddr,
 		PendingTransactions: pendingTransactions,
+		RemoveTx:            s.props.Store.RemoveTx,
 	})
 	if err != nil {
 		log.Errorf("[node] err building miner\n%v", err)
