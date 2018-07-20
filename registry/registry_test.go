@@ -65,7 +65,7 @@ func TestPullImage(t *testing.T) {
 	t.Parallel()
 
 	client := docker.NewClient()
-	err := client.LoadImageByFilepath("./test_data/hello-world.tar")
+	err := client.PullImage("hello-world")
 	if err != nil {
 		t.Error(err)
 	}

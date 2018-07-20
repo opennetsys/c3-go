@@ -125,16 +125,27 @@ func (registry *Registry) PullImage(ipfsHash string) (string, error) {
 	go server.Run()
 	client := docker.NewClient()
 
-	dockerImageID := fmt.Sprintf("%s:%v/%s", registry.dockerLocalRegistryHost, c3config.DockerRegistryPort, util.DockerizeHash(ipfsHash))
+	dockerizedHash := util.DockerizeHash(ipfsHash)
+	dockerPullImageID := fmt.Sprintf("%s:%v/%s", registry.dockerLocalRegistryHost, c3config.DockerRegistryPort, dockerizedHash)
 
-	log.Printf("[registry] attempting to pull %s", dockerImageID)
-
-	err := client.PullImage(dockerImageID)
+	log.Printf("[registry] attempting to pull %s", dockerPullImageID)
+	err := client.PullImage(dockerPullImageID)
 	if err != nil {
-		return dockerImageID, err
+		return "", err
 	}
 
-	return dockerImageID, nil
+	err = client.TagImage(dockerPullImageID, dockerizedHash)
+	if err != nil {
+		return "", err
+	}
+	log.Printf("[registry] tagged image as %s", dockerizedHash)
+
+	err = client.RemoveImage(dockerPullImageID)
+	if err != nil {
+		return "", err
+	}
+
+	return dockerizedHash, nil
 }
 
 func mktmp() (string, error) {
