@@ -4,6 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+
+	loghooks "github.com/c3systems/c3/logger/hooks"
+	log "github.com/sirupsen/logrus"
 )
 
 // Server ...
@@ -69,4 +72,8 @@ func (client *Client) handleRequest() {
 		client.channel <- []byte(message)
 		client.conn.Write([]byte("Message received.\n"))
 	}
+}
+
+func init() {
+	log.AddHook(loghooks.ContextHook{})
 }

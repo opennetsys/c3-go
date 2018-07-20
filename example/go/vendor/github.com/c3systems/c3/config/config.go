@@ -1,6 +1,9 @@
 package config
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 // ServerHost ...
 const ServerHost = "0.0.0.0"
@@ -25,3 +28,12 @@ const DockerRegistryPort = 5000
 
 // IPFSGateway ...
 const IPFSGateway = "http://127.0.0.1:9001"
+
+// DefaultBlockDifficulty ...
+const DefaultBlockDifficulty = 6
+
+// MinedBlockVerificationTimeout ...
+const MinedBlockVerificationTimeout = 10 * time.Minute
+
+// IPFSTimeout ...
+const IPFSTimeout = 20 * time.Second
