@@ -323,7 +323,7 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 			log.Infof("[miner] invalid tx %v", tx)
 			if tx != nil && tx.Props().TxHash != nil {
 				log.Infof("[miner] removing invalid tx from database %v", tx)
-				if err1 = s.props.RemoveTx(*tx.Props().TxHash); err1 != nil {
+				if err1 := s.props.RemoveTx(*tx.Props().TxHash); err1 != nil {
 					log.Errorf("[miner] err removing invalid tx %v from database %v", tx, err1)
 				}
 			}
