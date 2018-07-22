@@ -289,6 +289,8 @@ func (s *Service) sendMessage(msg []byte, port string) error {
 	conn.Write(msg)
 	conn.Write([]byte("\n"))
 	log.Printf("[sandbox] wrote to %s", host)
+	// TODO: inspect container to see if it's completed the task
+	time.Sleep(5 * time.Second)
 	return nil
 }
 

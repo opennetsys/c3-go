@@ -239,7 +239,6 @@ func (s *Client) RunContainer(imageID string, cmd []string, config *RunContainer
 	if len(config.Volumes) > 0 {
 		for k, v := range config.Volumes {
 			dockerConfig.Volumes[k] = struct{}{}
-
 			hostConfig.Mounts = append(hostConfig.Mounts, mount.Mount{
 				Type:     "bind",
 				Source:   v,
