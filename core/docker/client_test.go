@@ -3,11 +3,9 @@ package docker
 import (
 	"archive/tar"
 	"bytes"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"testing"
 )
 
@@ -308,48 +306,5 @@ func TestDockerVersionFromCLI(t *testing.T) {
 	version := dockerVersionFromCLI()
 	if version == "" {
 		t.Error("expected version to not be empty")
-	}
-}
-
-func untar(tr *tar.Reader, dst string) error {
-	//tr := tar.NewReader(reader)
-
-	for {
-		header, err := tr.Next()
-
-		fmt.Printf("Contents of %v:\n", header)
-		switch {
-		// no more files
-		case err == io.EOF:
-			return nil
-		case err != nil:
-			return err
-		case header == nil:
-			continue
-		}
-
-		target := filepath.Join(dst, header.Name)
-
-		switch header.Typeflag {
-		// create directory if doesn't exit
-		case tar.TypeDir:
-			if _, err := os.Stat(target); err != nil {
-				if err := os.MkdirAll(target, 0755); err != nil {
-					return err
-				}
-			}
-		// create file
-		case tar.TypeReg:
-			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
-			if err != nil {
-				return err
-			}
-			defer f.Close()
-
-			// copy contents to file
-			if _, err := io.Copy(f, tr); err != nil {
-				return err
-			}
-		}
 	}
 }
