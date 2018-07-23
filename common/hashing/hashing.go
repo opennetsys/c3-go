@@ -4,7 +4,7 @@ import (
 	"crypto/sha512"
 	"hash"
 
-	"github.com/c3systems/c3/common/hexutil"
+	"github.com/c3systems/c3-go/common/hexutil"
 )
 
 // New ...

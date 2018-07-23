@@ -4,7 +4,7 @@ all: build
 
 .PHONY: install
 install:
-	@go get -u github.com/c3systems/c3
+	@go get -u github.com/c3systems/c3-go
 
 # /END INSTALL
 

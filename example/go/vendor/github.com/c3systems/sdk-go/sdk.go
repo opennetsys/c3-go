@@ -9,10 +9,10 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/c3systems/c3/common/stringutil"
-	c3config "github.com/c3systems/c3/config"
-	"github.com/c3systems/c3/core/server"
-	loghooks "github.com/c3systems/c3/logger/hooks"
+	"github.com/c3systems/c3-go/common/stringutil"
+	c3config "github.com/c3systems/c3-go/config"
+	"github.com/c3systems/c3-go/core/server"
+	loghooks "github.com/c3systems/c3-go/log/hooks"
 )
 
 var (

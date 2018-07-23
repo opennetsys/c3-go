@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/c3systems/c3/common/c3crypto"
-	"github.com/c3systems/c3/core/chain/statechain"
-	//docker "github.com/c3systems/c3/core/docker"
-	methodTypes "github.com/c3systems/c3/core/types/methods"
-	nodetypes "github.com/c3systems/c3/node/types"
+	"github.com/c3systems/c3-go/common/c3crypto"
+	"github.com/c3systems/c3-go/core/chain/statechain"
+	//docker "github.com/c3systems/c3-go/core/docker"
+	methodTypes "github.com/c3systems/c3-go/core/types/methods"
+	nodetypes "github.com/c3systems/c3-go/node/types"
 	"github.com/davecgh/go-spew/spew"
 )
 

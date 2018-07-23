@@ -5,11 +5,11 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/c3systems/c3/core/chain/mainchain"
-	"github.com/c3systems/c3/core/chain/merkle"
-	"github.com/c3systems/c3/core/chain/statechain"
-	"github.com/c3systems/c3/core/p2p"
-	"github.com/c3systems/c3/core/sandbox"
+	"github.com/c3systems/c3-go/core/chain/mainchain"
+	"github.com/c3systems/c3-go/core/chain/merkle"
+	"github.com/c3systems/c3-go/core/chain/statechain"
+	"github.com/c3systems/c3-go/core/p2p"
+	"github.com/c3systems/c3-go/core/sandbox"
 )
 
 const (

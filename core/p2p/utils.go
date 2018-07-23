@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 
-	"github.com/c3systems/c3/config"
-	"github.com/c3systems/c3/core/chain/mainchain"
-	"github.com/c3systems/c3/core/chain/merkle"
-	"github.com/c3systems/c3/core/chain/statechain"
-	colorlog "github.com/c3systems/c3/log/color"
+	"github.com/c3systems/c3-go/config"
+	"github.com/c3systems/c3-go/core/chain/mainchain"
+	"github.com/c3systems/c3-go/core/chain/merkle"
+	"github.com/c3systems/c3-go/core/chain/statechain"
+	colorlog "github.com/c3systems/c3-go/log/color"
 	log "github.com/sirupsen/logrus"
 
 	bfmt "github.com/ipfs/go-block-format"

@@ -5,7 +5,7 @@
 package mock_docker
 
 import (
-	docker "github.com/c3systems/c3/core/docker"
+	docker "github.com/c3systems/c3-go/core/docker"
 	types "github.com/docker/docker/api/types"
 	gomock "github.com/golang/mock/gomock"
 	io "io"

@@ -4,9 +4,9 @@ import (
 	"context"
 	"crypto/ecdsa"
 
-	"github.com/c3systems/c3/core/p2p"
-	"github.com/c3systems/c3/core/p2p/protobuff"
-	nodestore "github.com/c3systems/c3/node/store"
+	"github.com/c3systems/c3-go/core/p2p"
+	"github.com/c3systems/c3-go/core/p2p/protobuff"
+	nodestore "github.com/c3systems/c3-go/node/store"
 
 	floodsub "github.com/libp2p/go-floodsub"
 	host "github.com/libp2p/go-libp2p-host"

@@ -7,9 +7,9 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/c3systems/c3/common/coder"
-	"github.com/c3systems/c3/common/hexutil"
-	loghooks "github.com/c3systems/c3/log/hooks"
+	"github.com/c3systems/c3-go/common/coder"
+	"github.com/c3systems/c3-go/common/hexutil"
+	loghooks "github.com/c3systems/c3-go/log/hooks"
 
 	"github.com/c3systems/merkletree"
 )

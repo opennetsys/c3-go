@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/c3systems/c3/core/chain/mainchain"
+	"github.com/c3systems/c3-go/core/chain/mainchain"
 
 	bfmt "github.com/ipfs/go-block-format"
 	datastore "github.com/ipfs/go-datastore"

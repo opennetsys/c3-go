@@ -3,9 +3,9 @@ package miner
 import (
 	"testing"
 
-	"github.com/c3systems/c3/common/c3crypto"
-	"github.com/c3systems/c3/core/chain/statechain"
-	methodTypes "github.com/c3systems/c3/core/types/methods"
+	"github.com/c3systems/c3-go/common/c3crypto"
+	"github.com/c3systems/c3-go/core/chain/statechain"
+	methodTypes "github.com/c3systems/c3-go/core/types/methods"
 )
 
 func TestBuildGenesisStateBlock(t *testing.T) {

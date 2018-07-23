@@ -18,13 +18,13 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/c3systems/c3/common/netutil"
-	c3config "github.com/c3systems/c3/config"
-	"github.com/c3systems/c3/core/docker"
-	"github.com/c3systems/c3/core/ipfs"
-	loghooks "github.com/c3systems/c3/log/hooks"
-	"github.com/c3systems/c3/registry/server"
-	"github.com/c3systems/c3/registry/util"
+	"github.com/c3systems/c3-go/common/netutil"
+	c3config "github.com/c3systems/c3-go/config"
+	"github.com/c3systems/c3-go/core/docker"
+	"github.com/c3systems/c3-go/core/ipfs"
+	loghooks "github.com/c3systems/c3-go/log/hooks"
+	"github.com/c3systems/c3-go/registry/server"
+	"github.com/c3systems/c3-go/registry/util"
 )
 
 // Ensure the struct implements the interface

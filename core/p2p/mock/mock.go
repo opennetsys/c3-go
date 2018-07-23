@@ -5,10 +5,10 @@
 package mock_p2p
 
 import (
-	mainchain "github.com/c3systems/c3/core/chain/mainchain"
-	merkle "github.com/c3systems/c3/core/chain/merkle"
-	statechain "github.com/c3systems/c3/core/chain/statechain"
-	p2p "github.com/c3systems/c3/core/p2p"
+	mainchain "github.com/c3systems/c3-go/core/chain/mainchain"
+	merkle "github.com/c3systems/c3-go/core/chain/merkle"
+	statechain "github.com/c3systems/c3-go/core/chain/statechain"
+	p2p "github.com/c3systems/c3-go/core/p2p"
 	gomock "github.com/golang/mock/gomock"
 	go_cid "github.com/ipfs/go-cid"
 	reflect "reflect"

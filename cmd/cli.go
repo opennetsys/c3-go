@@ -6,11 +6,11 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/c3systems/c3/config"
-	loghooks "github.com/c3systems/c3/logger/hooks"
-	"github.com/c3systems/c3/node"
-	nodetypes "github.com/c3systems/c3/node/types"
-	"github.com/c3systems/c3/registry"
+	"github.com/c3systems/c3-go/config"
+	loghooks "github.com/c3systems/c3-go/log/hooks"
+	"github.com/c3systems/c3-go/node"
+	nodetypes "github.com/c3systems/c3-go/node/types"
+	"github.com/c3systems/c3-go/registry"
 	"github.com/spf13/cobra"
 )
 
@@ -38,7 +38,7 @@ func Build() *cobra.Command {
 		Use:   "c3",
 		Short: "C3 command line interface",
 		Long: `The command line interface for C3
-For more info visit: https://github.com/c3systems/c3,
+For more info visit: https://github.com/c3systems/c3-go,
 		`,
 		Run: func(cmd *cobra.Command, args []string) {
 			cmd.Help()

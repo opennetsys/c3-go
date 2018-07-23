@@ -3,11 +3,11 @@ package miner
 import (
 	"errors"
 
-	"github.com/c3systems/c3/common/coder"
-	"github.com/c3systems/c3/common/hexutil"
-	"github.com/c3systems/c3/core/chain/mainchain"
-	"github.com/c3systems/c3/core/chain/merkle"
-	"github.com/c3systems/c3/core/chain/statechain"
+	"github.com/c3systems/c3-go/common/coder"
+	"github.com/c3systems/c3-go/common/hexutil"
+	"github.com/c3systems/c3-go/core/chain/mainchain"
+	"github.com/c3systems/c3-go/core/chain/merkle"
+	"github.com/c3systems/c3-go/core/chain/statechain"
 )
 
 // Serialize ...

@@ -1,7 +1,7 @@
 package chain
 
 import (
-	"github.com/c3systems/c3/core/p2p"
+	"github.com/c3systems/c3-go/core/p2p"
 )
 
 // Props ...

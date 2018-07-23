@@ -8,10 +8,10 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/c3systems/c3/core/chain/statechain"
-	"github.com/c3systems/c3/core/miner"
-	pb "github.com/c3systems/c3/core/p2p/protobuff/pb"
-	nodetypes "github.com/c3systems/c3/node/types"
+	"github.com/c3systems/c3-go/core/chain/statechain"
+	"github.com/c3systems/c3-go/core/miner"
+	pb "github.com/c3systems/c3-go/core/p2p/protobuff/pb"
+	nodetypes "github.com/c3systems/c3-go/node/types"
 
 	inet "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"

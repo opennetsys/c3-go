@@ -11,12 +11,12 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/c3systems/c3/common/c3crypto"
+	"github.com/c3systems/c3-go/common/c3crypto"
 
-	"github.com/c3systems/c3/common/hexutil"
-	"github.com/c3systems/c3/core/chain/mainchain"
-	"github.com/c3systems/c3/core/chain/statechain"
-	"github.com/c3systems/c3/core/p2p/mock"
+	"github.com/c3systems/c3-go/common/hexutil"
+	"github.com/c3systems/c3-go/core/chain/mainchain"
+	"github.com/c3systems/c3-go/core/chain/statechain"
+	"github.com/c3systems/c3-go/core/p2p/mock"
 
 	"github.com/golang/mock/gomock"
 )

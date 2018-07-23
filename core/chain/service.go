@@ -3,9 +3,9 @@ package chain
 import (
 	"errors"
 
-	mainchain "github.com/c3systems/c3/core/chain/mainchain"
-	statechain "github.com/c3systems/c3/core/chain/statechain"
-	loghooks "github.com/c3systems/c3/log/hooks"
+	mainchain "github.com/c3systems/c3-go/core/chain/mainchain"
+	statechain "github.com/c3systems/c3-go/core/chain/statechain"
+	loghooks "github.com/c3systems/c3-go/log/hooks"
 	cid "github.com/ipfs/go-cid"
 	log "github.com/sirupsen/logrus"
 )
