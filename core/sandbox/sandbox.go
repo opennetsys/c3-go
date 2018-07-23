@@ -136,6 +136,7 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 			return nil, err
 		}
 	}
+	log.Println(tmpdir)
 
 	log.Println("[sandbox] state loaded in tmp dir", tmpdir)
 
@@ -154,6 +155,8 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	log.Println("foo")
 
 	s.runningContainers[containerID] = true
 
