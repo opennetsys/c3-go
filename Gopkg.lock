@@ -30,10 +30,27 @@
   revision = "86fed781132ac890ee03e906e4ecd5d6fa180c64"
 
 [[projects]]
+  branch = "develop"
+  name = "github.com/c3systems/c3"
+  packages = [
+    "common/stringutil",
+    "config",
+    "core/server",
+    "log/hooks"
+  ]
+  revision = "82f1278064223c4614466f74f7e412fe545f2687"
+
+[[projects]]
   name = "github.com/c3systems/merkletree"
   packages = ["."]
   revision = "fc8fe74abaaa7a9c041d0adad328aa84a1b3c591"
   version = "v0.1.0"
+
+[[projects]]
+  branch = "develop"
+  name = "github.com/c3systems/sdk-go"
+  packages = ["."]
+  revision = "b357252f880974e358b551c595a5ad7d557173e1"
 
 [[projects]]
   name = "github.com/coreos/go-semver"
@@ -991,6 +1008,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2d4c6ad8179500cfc9e543b772c9db30e039f1e68cc3d36a5c66c072f64552f3"
+  inputs-digest = "a9a5ef520c7529c16da6b0133eebead90ead99312e4b0b530a6a9d94430708ca"
   solver-name = "gps-cdcl"
   solver-version = 1
