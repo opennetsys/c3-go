@@ -14,7 +14,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/c3systems/c3/common/hexutil"
+	"github.com/c3systems/c3-go/common/hexutil"
 	"github.com/obscuren/ecies"
 )
 

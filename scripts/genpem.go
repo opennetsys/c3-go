@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/c3systems/c3/common/c3crypto"
+	"github.com/c3systems/c3-go/common/c3crypto"
 )
 
 // Generates ECDA key in PEM format

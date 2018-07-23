@@ -7,7 +7,7 @@ import (
 	"hash"
 	"testing"
 
-	"github.com/c3systems/c3/common/hexutil"
+	"github.com/c3systems/c3-go/common/hexutil"
 )
 
 func TestNew(t *testing.T) {

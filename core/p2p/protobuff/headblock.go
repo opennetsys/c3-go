@@ -10,8 +10,8 @@ import (
 	inet "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
 
-	"github.com/c3systems/c3/core/chain/mainchain"
-	pb "github.com/c3systems/c3/core/p2p/protobuff/pb"
+	"github.com/c3systems/c3-go/core/chain/mainchain"
+	pb "github.com/c3systems/c3-go/core/p2p/protobuff/pb"
 	protobufCodec "github.com/multiformats/go-multicodec/protobuf"
 	uuid "github.com/satori/go.uuid"
 )

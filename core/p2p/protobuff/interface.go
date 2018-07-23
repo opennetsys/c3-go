@@ -1,7 +1,7 @@
 package protobuff
 
 import (
-	pb "github.com/c3systems/c3/core/p2p/protobuff/pb"
+	pb "github.com/c3systems/c3-go/core/p2p/protobuff/pb"
 	peer "github.com/libp2p/go-libp2p-peer"
 )
 

@@ -16,13 +16,13 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/c3systems/c3/common/netutil"
-	"github.com/c3systems/c3/common/stringutil"
-	c3config "github.com/c3systems/c3/config"
-	"github.com/c3systems/c3/core/docker"
-	loghooks "github.com/c3systems/c3/log/hooks"
-	"github.com/c3systems/c3/registry"
-	regutil "github.com/c3systems/c3/registry/util"
+	"github.com/c3systems/c3-go/common/netutil"
+	"github.com/c3systems/c3-go/common/stringutil"
+	c3config "github.com/c3systems/c3-go/config"
+	"github.com/c3systems/c3-go/core/docker"
+	loghooks "github.com/c3systems/c3-go/log/hooks"
+	"github.com/c3systems/c3-go/registry"
+	regutil "github.com/c3systems/c3-go/registry/util"
 )
 
 // Ensure the service implements the interface
@@ -136,6 +136,7 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 			return nil, err
 		}
 	}
+	log.Println(tmpdir)
 
 	log.Println("[sandbox] state loaded in tmp dir", tmpdir)
 
@@ -154,6 +155,8 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	log.Println("foo")
 
 	s.runningContainers[containerID] = true
 

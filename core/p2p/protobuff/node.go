@@ -7,10 +7,10 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/c3systems/c3/core/chain/mainchain"
-	"github.com/c3systems/c3/core/chain/statechain"
-	pb "github.com/c3systems/c3/core/p2p/protobuff/pb"
-	nodetypes "github.com/c3systems/c3/node/types"
+	"github.com/c3systems/c3-go/core/chain/mainchain"
+	"github.com/c3systems/c3-go/core/chain/statechain"
+	pb "github.com/c3systems/c3-go/core/p2p/protobuff/pb"
+	nodetypes "github.com/c3systems/c3-go/node/types"
 
 	"github.com/gogo/protobuf/proto"
 	crypto "github.com/libp2p/go-libp2p-crypto"

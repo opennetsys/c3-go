@@ -4,8 +4,8 @@ import (
 	"errors"
 	"log"
 
-	"github.com/c3systems/c3/core/chain/mainchain"
-	"github.com/c3systems/c3/core/chain/statechain"
+	"github.com/c3systems/c3-go/core/chain/mainchain"
+	"github.com/c3systems/c3-go/core/chain/statechain"
 	redis "github.com/gomodule/redigo/redis"
 )
 

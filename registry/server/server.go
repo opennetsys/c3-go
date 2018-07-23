@@ -9,8 +9,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	c3config "github.com/c3systems/c3/config"
-	"github.com/c3systems/c3/registry/util"
+	c3config "github.com/c3systems/c3-go/config"
+	"github.com/c3systems/c3-go/registry/util"
 )
 
 var listener net.Listener
@@ -35,7 +35,7 @@ func Run() error {
 		log.Printf("[registry] %s", uri)
 
 		if uri == "/v2/" {
-			jsonstr := []byte(fmt.Sprintf(`{"what": "a registry", "gateway":%q, "handles": [%q, %q], "problematic": ["version 1 registries"], "project": "https://github.com/c3systems/c3"}`, gw, contentTypes["manifestListV2Schema"], contentTypes["manifestV2Schema"]))
+			jsonstr := []byte(fmt.Sprintf(`{"what": "a registry", "gateway":%q, "handles": [%q, %q], "problematic": ["version 1 registries"], "project": "https://github.com/c3systems/c3-go"}`, gw, contentTypes["manifestListV2Schema"], contentTypes["manifestV2Schema"]))
 
 			w.Header().Set("Docker-Distribution-API-Version", "registry/2.0")
 			fmt.Fprintln(w, string(jsonstr))

@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/c3systems/c3/core/docker"
+	"github.com/c3systems/c3-go/core/docker"
 )
 
 func TestNew(t *testing.T) {

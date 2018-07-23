@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/c3systems/c3/common/coder"
-	"github.com/c3systems/c3/common/hashing"
-	"github.com/c3systems/c3/common/hexutil"
+	"github.com/c3systems/c3-go/common/coder"
+	"github.com/c3systems/c3-go/common/hashing"
+	"github.com/c3systems/c3-go/common/hexutil"
 	"github.com/c3systems/merkletree"
 )
 

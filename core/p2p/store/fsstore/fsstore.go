@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/c3systems/c3/core/p2p/store"
+	"github.com/c3systems/c3-go/core/p2p/store"
 
 	flatfs "github.com/ipfs/go-ds-flatfs"
 )

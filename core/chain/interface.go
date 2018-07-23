@@ -1,8 +1,8 @@
 package chain
 
 import (
-	mainchain "github.com/c3systems/c3/core/chain/mainchain"
-	statechain "github.com/c3systems/c3/core/chain/statechain"
+	mainchain "github.com/c3systems/c3-go/core/chain/mainchain"
+	statechain "github.com/c3systems/c3-go/core/chain/statechain"
 
 	cid "github.com/ipfs/go-cid"
 )

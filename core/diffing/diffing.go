@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/c3systems/c3/common/command"
+	"github.com/c3systems/c3-go/common/command"
 	log "github.com/sirupsen/logrus"
 )
 

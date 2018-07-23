@@ -1,8 +1,8 @@
 package disk
 
 import (
-	"github.com/c3systems/c3/core/chain/mainchain"
-	"github.com/c3systems/c3/core/chain/statechain"
+	"github.com/c3systems/c3-go/core/chain/mainchain"
+	"github.com/c3systems/c3-go/core/chain/statechain"
 )
 
 // TODO: everything...

@@ -3,7 +3,7 @@ package bootstrap
 import (
 	log "github.com/sirupsen/logrus"
 
-	"github.com/c3systems/c3/core/ipfs"
+	"github.com/c3systems/c3-go/core/ipfs"
 )
 
 // Bootstrap ...

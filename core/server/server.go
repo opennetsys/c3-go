@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net"
 
-	loghooks "github.com/c3systems/c3/log/hooks"
+	loghooks "github.com/c3systems/c3-go/log/hooks"
 	log "github.com/sirupsen/logrus"
 )
 

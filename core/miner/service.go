@@ -12,17 +12,17 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/c3systems/c3/common/hashing"
-	"github.com/c3systems/c3/common/hexutil"
-	"github.com/c3systems/c3/core/chain/mainchain"
-	"github.com/c3systems/c3/core/chain/merkle"
-	"github.com/c3systems/c3/core/chain/statechain"
-	"github.com/c3systems/c3/core/diffing"
-	"github.com/c3systems/c3/core/p2p"
-	"github.com/c3systems/c3/core/sandbox"
-	methodTypes "github.com/c3systems/c3/core/types/methods"
-	colorlog "github.com/c3systems/c3/log/color"
-	loghooks "github.com/c3systems/c3/log/hooks"
+	"github.com/c3systems/c3-go/common/hashing"
+	"github.com/c3systems/c3-go/common/hexutil"
+	"github.com/c3systems/c3-go/core/chain/mainchain"
+	"github.com/c3systems/c3-go/core/chain/merkle"
+	"github.com/c3systems/c3-go/core/chain/statechain"
+	"github.com/c3systems/c3-go/core/diffing"
+	"github.com/c3systems/c3-go/core/p2p"
+	"github.com/c3systems/c3-go/core/sandbox"
+	methodTypes "github.com/c3systems/c3-go/core/types/methods"
+	colorlog "github.com/c3systems/c3-go/log/color"
+	loghooks "github.com/c3systems/c3-go/log/hooks"
 	"github.com/c3systems/merkletree"
 )
 

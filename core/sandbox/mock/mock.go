@@ -5,7 +5,7 @@
 package mock_sandbox
 
 import (
-	sandbox "github.com/c3systems/c3/core/sandbox"
+	sandbox "github.com/c3systems/c3-go/core/sandbox"
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
 )
