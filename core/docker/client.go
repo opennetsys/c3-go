@@ -346,6 +346,7 @@ func (s *Client) LoadImage(input io.Reader) error {
 func (s *Client) LoadImageByFilepath(filepath string) error {
 	input, err := os.Open(filepath)
 	if err != nil {
+		log.Printf("[docker] load image by filepath error; %v", err)
 		return err
 	}
 	return s.LoadImage(input)
@@ -359,6 +360,31 @@ func dockerVersionFromCLI() string {
 	}
 
 	return strings.TrimSpace(string(out))
+}
+
+// CopyToContainer ...
+func (s *Client) CopyToContainer(containerID, dstpath string, data io.Reader) error {
+	err := s.client.CopyToContainer(context.Background(), containerID, dstpath, data, types.CopyToContainerOptions{
+		AllowOverwriteDirWithFile: true,
+	})
+	if err != nil {
+		log.Errorf("[docker] copy to container error; %v", err)
+		return err
+	}
+
+	return nil
+}
+
+// CopyFromContainer ...
+func (s *Client) CopyFromContainer(containerID, srcpath string) (io.ReadCloser, error) {
+	reader, pathstat, err := s.client.CopyFromContainer(context.Background(), containerID, srcpath)
+	if err != nil {
+		log.Errorf("[docker] error copying from container; %v", err)
+		return nil, err
+	}
+
+	_ = pathstat // might need this
+	return reader, nil
 }
 
 func init() {
