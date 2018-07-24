@@ -1,8 +1,15 @@
 package sandbox
 
 import (
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
 	"os"
+	"reflect"
 	"testing"
+
+	"github.com/c3systems/c3-go/common/hexutil"
+	"github.com/c3systems/c3-go/common/txparamcoder"
 )
 
 // Docker file found in /example
@@ -28,16 +35,29 @@ func TestNew(t *testing.T) {
 func TestPayload(t *testing.T) {
 	t.Parallel()
 	sb := New(nil)
+
+	payload := txparamcoder.ToJSONArray(
+		txparamcoder.EncodeMethodName("setItem"),
+		txparamcoder.EncodeParam("foo"),
+		txparamcoder.EncodeParam("bar"),
+	)
+
 	newState, err := sb.Play(&PlayConfig{
 		ImageID: imageID,
-		Payload: []byte(`["setItem", "foo", "bar"]`),
+		Payload: payload,
 	})
 
 	if err != nil {
 		t.Error(err)
 	}
 
-	if string(newState) != `{"foo":"bar"}` {
+	expectedStateMap := map[string]string{
+		hexutil.EncodeToString([]byte("foo")): hexutil.EncodeToString([]byte("bar")),
+	}
+
+	expectedState, err := json.Marshal(expectedStateMap)
+
+	if !reflect.DeepEqual(newState, expectedState) {
 		t.Error("expected new state")
 	}
 }
@@ -45,17 +65,41 @@ func TestPayload(t *testing.T) {
 func TestInitialState(t *testing.T) {
 	t.Parallel()
 	sb := New(nil)
+	payload := txparamcoder.ToJSONArray(
+		txparamcoder.EncodeMethodName("setItem"),
+		txparamcoder.EncodeParam("foo"),
+		txparamcoder.EncodeParam("bar"),
+	)
+	initialStateMap := map[string]string{
+		hexutil.EncodeToString([]byte("hello")): hexutil.EncodeToString([]byte("world")),
+	}
+
+	initialState, err := json.Marshal(initialStateMap)
+	if err != nil {
+		t.Error(err)
+	}
+
 	newState, err := sb.Play(&PlayConfig{
 		ImageID:      imageID,
-		Payload:      []byte(`["setItem", "foo", "bar"]`),
-		InitialState: []byte(`{"hello":"world"}`),
+		Payload:      payload,
+		InitialState: initialState,
 	})
 
 	if err != nil {
 		t.Error(err)
 	}
 
-	if string(newState) != `{"foo":"bar","hello":"world"}` {
+	expectedStateMap := map[string]string{
+		hexutil.EncodeToString([]byte("foo")):   hexutil.EncodeToString([]byte("bar")),
+		hexutil.EncodeToString([]byte("hello")): hexutil.EncodeToString([]byte("world")),
+	}
+
+	expectedState, err := json.Marshal(expectedStateMap)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !reflect.DeepEqual(newState, expectedState) {
 		t.Errorf("expected new state; got %s", string(newState))
 	}
 }
@@ -63,17 +107,40 @@ func TestInitialState(t *testing.T) {
 func TestMultipleInputs(t *testing.T) {
 	t.Parallel()
 	sb := New(nil)
+	payload := txparamcoder.AppendJSONArrays(
+		txparamcoder.ToJSONArray(
+			txparamcoder.EncodeMethodName("setItem"),
+			txparamcoder.EncodeParam("foo"),
+			txparamcoder.EncodeParam("bar"),
+		),
+		txparamcoder.ToJSONArray(
+			txparamcoder.EncodeMethodName("setItem"),
+			txparamcoder.EncodeParam("hello"),
+			txparamcoder.EncodeParam("mars"),
+		),
+	)
+	initialState := []byte(fmt.Sprintf(`{%q:%q}`, hexutil.EncodeToString([]byte("hello")), hex.EncodeToString([]byte("world"))))
 	newState, err := sb.Play(&PlayConfig{
 		ImageID:      imageID,
-		Payload:      []byte(`[["setItem", "foo", "bar"],["setItem", "hello", "mars"]]`),
-		InitialState: []byte(`{"hello":"world"}`),
+		Payload:      payload,
+		InitialState: initialState,
 	})
 
 	if err != nil {
 		t.Error(err)
 	}
 
-	if string(newState) != `{"foo":"bar","hello":"mars"}` {
+	expectedStateMap := map[string]string{
+		hexutil.EncodeToString([]byte("foo")):   hexutil.EncodeToString([]byte("bar")),
+		hexutil.EncodeToString([]byte("hello")): hexutil.EncodeToString([]byte("mars")),
+	}
+
+	expectedState, err := json.Marshal(expectedStateMap)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !reflect.DeepEqual(newState, expectedState) {
 		t.Errorf("expected new state; got %s", string(newState))
 	}
 }

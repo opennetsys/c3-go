@@ -26,8 +26,8 @@
 
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/c3systems/c3"
+  name = "github.com/c3systems/c3-sdk-go"
+	branch = "develop"
 
 [prune]
   go-tests = true

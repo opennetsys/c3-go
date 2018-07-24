@@ -167,14 +167,14 @@ func TestRemoveAllImages(t *testing.T) {
 	}
 }
 
-func TestRunContainer(t *testing.T) {
+func TestCreateContainer(t *testing.T) {
 	t.Parallel()
 	client := NewClient()
 	err := client.PullImage(testImage)
 	if err != nil {
 		t.Error(err)
 	}
-	containerID, err := client.RunContainer(testImage, []string{}, nil)
+	containerID, err := client.CreateContainer(testImage, []string{}, nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -191,7 +191,11 @@ func TestStopContainer(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	containerID, err := client.RunContainer(testImage, []string{}, nil)
+	containerID, err := client.CreateContainer(testImage, []string{}, nil)
+	if err != nil {
+		t.Error(err)
+	}
+	err = client.StopContainer(containerID)
 	if err != nil {
 		t.Error(err)
 	}
@@ -209,7 +213,11 @@ func TestInspectContainer(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	containerID, err := client.RunContainer(testImage, []string{}, nil)
+	containerID, err := client.CreateContainer(testImage, []string{}, nil)
+	if err != nil {
+		t.Error(err)
+	}
+	err = client.StopContainer(containerID)
 	if err != nil {
 		t.Error(err)
 	}
@@ -259,11 +267,16 @@ func TestCopyToContainerAndCopyFromContainer(t *testing.T) {
 	defer tw.Close()
 
 	r := bytes.NewReader(buf.Bytes())
-	containerID, err := client.RunContainer(imageName, []string{"tail", "-f", "/dev/null"}, nil)
+	containerID, err := client.CreateContainer(imageName, []string{"tail", "-f", "/dev/null"}, nil)
 	if err != nil {
 		t.Error(err)
 	}
 	err = client.CopyToContainer(containerID, "/tmp", r)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = client.StartContainer(containerID)
 	if err != nil {
 		t.Error(err)
 	}

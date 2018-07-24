@@ -290,7 +290,7 @@ docker/example/cat:
 
 .PHONY: docker/example/send
 docker/example/send:
-	@echo '["setItem", "foo", "bar"]' | nc localhost 32776
+	@echo '["0x1e51aea686ccbea473b94a662b980644601831cf1a390a4fb08b1793bc6c6463","0x666f6f","0x626172"]' | nc localhost 3333
 
 .PHONY: docker/build/example/bash
 docker/build/example/bash:

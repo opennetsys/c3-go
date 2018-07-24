@@ -3,32 +3,34 @@
 
 [[projects]]
   branch = "develop"
-  name = "github.com/c3systems/c3"
+  name = "github.com/c3systems/c3-go"
   packages = [
+    "common/hashing",
+    "common/hexutil",
     "common/stringutil",
     "config",
     "core/server",
-    "logger/hooks"
+    "log/hooks"
   ]
-  revision = "a35b850217d9af710cb753de5f6f5364ef54f95a"
+  revision = "4804a49999d9680a94cc3dab7fbb580992a9ff7d"
 
 [[projects]]
-  name = "github.com/c3systems/sdk-go"
+  branch = "develop"
+  name = "github.com/c3systems/c3-sdk-go"
   packages = ["."]
-  revision = "ee8d0cf6585bbba07a7c94bda6b9900ec2f979fe"
-  version = "v0.0.3"
+  revision = "e636b9184714b63cc0becd6d918da718e05880cb"
 
 [[projects]]
   name = "github.com/sirupsen/logrus"
   packages = ["."]
-  revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
-  version = "v1.0.5"
+  revision = "3e01752db0189b9157070a0e1668a620f9a85da2"
+  version = "v1.0.6"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "a2144134853fc9a27a7b1e3eb4f19f1a76df13c9"
+  revision = "c126467f60eb25f8f27e5a981f32a87e3965053f"
 
 [[projects]]
   branch = "master"
@@ -42,6 +44,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7550c767d50488a870ff26cac5c67c10b41b9eadf7c257324b2c51e0a98e80e5"
+  inputs-digest = "66dbe5d8448f437748c23f594c9feca76de5e2ec6d7f9fc82ad375e5e5c84bee"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -206,17 +206,17 @@ func (s *Client) RemoveAllImages() error {
 	return nil
 }
 
-// RunContainerConfig ...
-type RunContainerConfig struct {
+// CreateContainerConfig ...
+type CreateContainerConfig struct {
 	// container:host
 	Volumes map[string]string
 	Ports   map[string]string
 }
 
-// RunContainer ...
-func (s *Client) RunContainer(imageID string, cmd []string, config *RunContainerConfig) (string, error) {
+// CreateContainer ...
+func (s *Client) CreateContainer(imageID string, cmd []string, config *CreateContainerConfig) (string, error) {
 	if config == nil {
-		config = &RunContainerConfig{}
+		config = &CreateContainerConfig{}
 	}
 
 	dockerConfig := &container.Config{
@@ -269,15 +269,22 @@ func (s *Client) RunContainer(imageID string, cmd []string, config *RunContainer
 		return "", err
 	}
 
-	err = s.client.ContainerStart(context.Background(), resp.ID, types.ContainerStartOptions{})
-
-	if err != nil {
-		return "", err
-	}
-
-	log.Printf("[docker] running container %s", resp.ID)
+	log.Printf("[docker] container %s is ready", resp.ID)
 
 	return resp.ID, nil
+}
+
+// StartContainer ...
+func (s *Client) StartContainer(containerID string) error {
+	err := s.client.ContainerStart(context.Background(), containerID, types.ContainerStartOptions{})
+
+	if err != nil {
+		log.Printf("[docker] error starting container %s; %v", containerID, err)
+		return err
+	}
+
+	log.Printf("[docker] running container %s", containerID)
+	return nil
 }
 
 // StopContainer ...

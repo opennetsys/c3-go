@@ -15,7 +15,8 @@ type Interface interface {
 	PushImage(imageID string) error
 	RemoveImage(imageID string) error
 	RemoveAllImages() error
-	RunContainer(imageID string, cmd []string, config *RunContainerConfig) (string, error)
+	CreateContainer(imageID string, cmd []string, config *CreateContainerConfig) (string, error)
+	StartContainer(containerID string) error
 	StopContainer(containerID string) error
 	InspectContainer(containerID string) (types.ContainerJSON, error)
 	ContainerExec(containerID string, cmd []string) (io.Reader, error)

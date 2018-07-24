@@ -1,6 +1,8 @@
 package sandbox
 
 import (
+	"archive/tar"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -122,31 +124,13 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 		return nil, err
 	}
 
-	tmpdir, err := ioutil.TempDir("/tmp", "")
-	if err != nil {
-		return nil, err
-	}
-
-	hostStateFilePath := fmt.Sprintf("%s/%s", tmpdir, c3config.TempContainerStateFileName)
-
-	// don't write empty file
-	if config.InitialState != nil && len(config.InitialState) > 0 {
-		err := ioutil.WriteFile(hostStateFilePath, config.InitialState, 0600)
-		if err != nil {
-			return nil, err
-		}
-	}
-	log.Println(tmpdir)
-
-	log.Println("[sandbox] state loaded in tmp dir", tmpdir)
-
 	hostPort := strconv.Itoa(hp)
-	containerID, err := s.docker.RunContainer(dockerImageID, nil, &docker.RunContainerConfig{
+	containerID, err := s.docker.CreateContainer(dockerImageID, nil, &docker.CreateContainerConfig{
 		Volumes: map[string]string{
-			// sock binding will be required for spawning sibling containers
-			// container:host
-			//"/var/run/docker.sock": "/var/run/docker.sock",
-			"/tmp": tmpdir,
+		// sock binding will be required for spawning sibling containers
+		// container:host
+		//"/var/run/docker.sock": "/var/run/docker.sock",
+		//"/tmp": tmpdir,
 		},
 		Ports: map[string]string{
 			"3333": hostPort,
@@ -156,9 +140,34 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 		return nil, err
 	}
 
-	log.Println("foo")
+	var buf bytes.Buffer
+	body := config.InitialState
+	tw := tar.NewWriter(&buf)
+	hdr := &tar.Header{
+		Name: c3config.TempContainerStateFileName,
+		Mode: 0600,
+		Size: int64(len(body)),
+	}
+	if err := tw.WriteHeader(hdr); err != nil {
+		return nil, err
+	}
+	if _, err := tw.Write([]byte(body)); err != nil {
+		return nil, err
+	}
+	defer tw.Close()
 
 	s.runningContainers[containerID] = true
+
+	r := bytes.NewReader(buf.Bytes())
+	err = s.docker.CopyToContainer(containerID, "/tmp", r)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.docker.StartContainer(containerID)
+	if err != nil {
+		return nil, err
+	}
 
 	done := make(chan bool)
 	timedout := make(chan bool)

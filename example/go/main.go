@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	c3 "github.com/c3systems/sdk-go"
+	c3 "github.com/c3systems/c3-sdk-go"
 )
 
 var client = c3.NewC3()
@@ -13,12 +13,17 @@ type App struct {
 }
 
 func (s *App) setItem(key, value string) error {
-	client.State().Set(key, value)
+	client.State().Set([]byte(key), []byte(value))
 	return nil
 }
 
 func (s *App) getItem(key string) string {
-	return client.State().Get(key)
+	v, found := client.State().Get([]byte(key))
+	if !found {
+		return ""
+	}
+
+	return string(v)
 }
 
 func main() {
