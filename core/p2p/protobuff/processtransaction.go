@@ -181,7 +181,7 @@ func (p *ProcessTransaction) onProcessTransactionResponse(s inet.Stream) {
 }
 
 // SendTransaction ...
-func (p *ProcessTransaction) SendTransaction(peerID peer.ID, resp chan interface{}) error {
+func (p *ProcessTransaction) SendTransaction(peerID peer.ID, txBytes []byte, resp chan interface{}) error {
 	// log.Printf("[p2p] %s: Sending process transaction to: %s....", e.node.ID(), peerID)
 
 	// create message data
@@ -192,6 +192,7 @@ func (p *ProcessTransaction) SendTransaction(peerID peer.ID, resp chan interface
 
 	req := &pb.ProcessTransactionRequest{
 		MessageData: p.node.NewMessageData(id.String(), false),
+		TxBytes:     txBytes,
 	}
 
 	signature, err := p.node.signProtoMessage(req)
@@ -203,7 +204,7 @@ func (p *ProcessTransaction) SendTransaction(peerID peer.ID, resp chan interface
 	// add the signature to the message
 	req.MessageData.Sign = string(signature)
 
-	s, err := p.node.NewStream(context.Background(), peerID, headBlockRequest)
+	s, err := p.node.NewStream(context.Background(), peerID, processTransactionRequest)
 	if err != nil {
 		log.Errorf("[p2p] %s", err)
 		return err
