@@ -10,5 +10,5 @@ type Interface interface {
 	NewMessageData(messageID string, gossip bool) *pb.MessageData
 	SendEcho(peerID peer.ID, resp chan interface{}) error
 	FetchHeadBlock(peerID peer.ID, resp chan interface{}) error
-	SendTransaction(peerID peer.ID, resp chan interface{}) error
+	SendTransaction(peerID peer.ID, txBytes []byte, resp chan interface{}) error
 }

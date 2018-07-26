@@ -2,7 +2,6 @@ package miner
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -726,27 +725,11 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, sbSvc sandbox.Interface, 
 	if tx.Props().Method == methodTypes.InvokeMethod {
 		payload := tx.Props().Payload
 
-		var parsed []string
-		if err := json.Unmarshal(payload, &parsed); err != nil {
-			return nil, nil, nil, err
-		}
-
-		inputsJSON, err := json.Marshal(struct {
-			Method string   `json:"method"`
-			Params []string `json:"params"`
-		}{
-			Method: parsed[0],
-			Params: parsed[1:],
-		})
-		if err != nil {
-			return nil, nil, nil, err
-		}
-
 		// run container, passing the tx inputs
 		// note: certain err's, here, should remove the tx from the pending tx pool
 		nextState, err = sbSvc.Play(&sandbox.PlayConfig{
 			ImageID:      tx.Props().ImageHash,
-			Payload:      inputsJSON,
+			Payload:      payload,
 			InitialState: prevState,
 		})
 

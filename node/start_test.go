@@ -1,12 +1,16 @@
 package node
 
 import (
+	"encoding/hex"
+	"io/ioutil"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/c3systems/c3-go/common/c3crypto"
+	"github.com/c3systems/c3-go/common/txparamcoder"
 	"github.com/c3systems/c3-go/core/chain/statechain"
+	log "github.com/sirupsen/logrus"
 	//docker "github.com/c3systems/c3-go/core/docker"
 	methodTypes "github.com/c3systems/c3-go/core/types/methods"
 	nodetypes "github.com/c3systems/c3-go/node/types"
@@ -14,7 +18,7 @@ import (
 )
 
 func TestBroadcast(t *testing.T) {
-	imageHash := "Qmf9XFxbFDGv4yssc7YvAisxxUBU89BFbimAAYgT33ZTAf"
+	imageHash := "QmWowiLK125tWe9j9rqCTMj7Kh86L9VaAzfnZdQpFiBi4D"
 	//imageHash := "e8758b300c09"
 	/*
 			dockerclient := docker.NewClient()
@@ -78,18 +82,30 @@ func TestBroadcast(t *testing.T) {
 	tx1 := statechain.NewTransaction(&statechain.TransactionProps{
 		ImageHash: imageHash,
 		Method:    methodTypes.Deploy,
-		Payload:   []byte(`{"hello": "world"}`),
-		From:      encodedPub,
+		//Payload:   []byte(`{"hello": "world"}`),
+		Payload: []byte(`{"k":"b"}`),
+		From:    encodedPub,
 	})
+
+	fileBytes, err := ioutil.ReadFile("../../example-go-image-recognition/images/cat/cat.jpg")
+	if err != nil {
+		log.Error(err)
+	}
+
+	payload := txparamcoder.ToJSONArray(
+		txparamcoder.EncodeMethodName("processImage"),
+		txparamcoder.EncodeParam(hex.EncodeToString(fileBytes)),
+		txparamcoder.EncodeParam("jpg"),
+	)
 
 	tx2 := statechain.NewTransaction(&statechain.TransactionProps{
 		ImageHash: imageHash,
 		Method:    methodTypes.InvokeMethod,
-		Payload:   []byte(`["setItem", "foo", "qux"]`),
+		Payload:   payload,
 		From:      encodedPub,
 	})
 
-	tx := tx1
+	tx := tx2
 	_ = tx1
 	_ = tx2
 
