@@ -309,6 +309,7 @@ func (s *Service) BroadcastMinedBlock(minedBlock *miner.MinedBlock) error {
 // BroadcastTransaction ...
 func (s *Service) BroadcastTransaction(tx *statechain.Transaction) (*nodetypes.SendTxResponse, error) {
 	if tx == nil {
+		log.Errorln("error; cannot broadcast nil transaction")
 		return nil, errors.New("cannot broadcast nil transaction")
 	}
 
@@ -327,6 +328,7 @@ func (s *Service) BroadcastTransaction(tx *statechain.Transaction) (*nodetypes.S
 
 	res.TxHash = tx.Props().TxHash
 
+	log.Printf("[node] transaction %s broadcasted", *tx.Props().TxHash)
 	return &res, nil
 }
 
@@ -414,7 +416,7 @@ func (s *Service) handleReceiptOfMinedBlock(minedBlock *miner.MinedBlock) {
 
 	// TODO: if delta(local, received) > 1 then we need to backfill our missing blocks
 	if localBlockHeight >= receivedBlockHeight {
-		log.Errorf("[node] local block height is %v and received is %v, therefore, not adding block to chain", localBlockHeight, receivedBlockHeight)
+		log.Warnf("[node] local block height is %v and received is %v, therefore, not adding block to chain", localBlockHeight, receivedBlockHeight)
 		return
 	}
 
@@ -463,6 +465,7 @@ func (s *Service) handleReceiptOfMinedBlock(minedBlock *miner.MinedBlock) {
 
 func (s *Service) handleReceiptOfStatechainTransaction(tx *statechain.Transaction) {
 	if tx == nil {
+		log.Errorln("[node] received nil tx")
 		return
 	}
 
@@ -493,7 +496,7 @@ func (s *Service) handleReceiptOfStatechainTransaction(tx *statechain.Transactio
 			return
 		}
 
-		log.Errorf(colorlog.Magenta("[node] tx new added to mempool; tx hash: %s", *tx.Props().TxHash))
+		log.Printf(colorlog.Magenta("[node] tx new added to mempool; tx hash: %s", *tx.Props().TxHash))
 	}
 
 	if err != nil {

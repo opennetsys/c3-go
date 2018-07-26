@@ -332,7 +332,7 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 		return err
 	}
 	if isGenesisTx {
-		log.Errorf("[miner] is genesis tx for image hash %s", imageHash)
+		log.Printf("[miner] is genesis tx for image hash %s", imageHash)
 		genesisBlock, diff, err := buildGenesisStateBlock(imageHash, tx)
 		if err != nil {
 			return err

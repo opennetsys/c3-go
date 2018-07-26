@@ -18,8 +18,7 @@ import (
 )
 
 func TestBroadcast(t *testing.T) {
-	imageHash := "QmWowiLK125tWe9j9rqCTMj7Kh86L9VaAzfnZdQpFiBi4D"
-	//imageHash := "e8758b300c09"
+	imageHash := os.Getenv("IMAGEID")
 	/*
 			dockerclient := docker.NewClient()
 			err := dockerclient.LoadImageByFilepath("./test_data/go_example_image.tar")
@@ -36,7 +35,7 @@ func TestBroadcast(t *testing.T) {
 
 	privPEM := "./test_data/priv.pem"
 	nodeURI := "/ip4/0.0.0.0/tcp/9004"
-	peer := os.Getenv("PEER")
+	peer := os.Getenv("PEERID")
 	dataDir := "~/.c3"
 	n := new(Service)
 	ready := make(chan bool)
@@ -83,7 +82,7 @@ func TestBroadcast(t *testing.T) {
 		ImageHash: imageHash,
 		Method:    methodTypes.Deploy,
 		//Payload:   []byte(`{"hello": "world"}`),
-		Payload: []byte(`{"k":"b"}`),
+		Payload: []byte(``),
 		From:    encodedPub,
 	})
 
@@ -106,8 +105,9 @@ func TestBroadcast(t *testing.T) {
 	})
 
 	tx := tx2
-	_ = tx1
-	_ = tx2
+	if os.Getenv("METHOD") == "deploy" {
+		tx = tx1
+	}
 
 	err = tx.SetHash()
 	if err != nil {
@@ -129,4 +129,5 @@ func TestBroadcast(t *testing.T) {
 	}
 
 	spew.Dump(resp)
+	time.Sleep(5 * time.Second) // needed
 }

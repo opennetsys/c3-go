@@ -249,7 +249,7 @@ func (s Service) FetchMostRecentStateBlock(imageHash string, block *mainchain.Bl
 		// TODO: use go routines
 		log.Printf("[p2p] tree hash count %v for image hash %v", len(tree.Props().Hashes), imageHash)
 		for _, stateBlockHash := range tree.Props().Hashes {
-			log.Errorf("[p2p] getting cid for state chain block by state block hash %s", stateBlockHash)
+			log.Printf("[p2p] getting cid for state chain block by state block hash %s", stateBlockHash)
 			stateBlockCID, err := GetCIDByHash(stateBlockHash)
 			if err != nil {
 				log.Printf("[p2p] error getting cid by hash for state block hash %s for image hash %s", stateBlockHash, imageHash)

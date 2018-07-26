@@ -164,7 +164,7 @@ func (s *Service) GatherPendingTransactions() ([]*statechain.Transaction, error)
 
 	log.Printf("[mempool] tx pool size; %v", len(s.txPoolMut.pool))
 	for _, byteStr := range s.txPoolMut.pool {
-		log.Printf("[mempool] tx pool %s", byteStr)
+		log.Printf("[mempool] tx pool byte str size is %v", len(byteStr))
 		tx := new(statechain.Transaction)
 		if err := tx.DeserializeString(byteStr); err != nil {
 			return nil, err

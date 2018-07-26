@@ -210,7 +210,7 @@ test/registry/server:
 
 .PHONY: test/node
 test/node:
-	@go test -v node/*.go $(ARGS)
+	@IMAGEID="$(IMAGEID)" PEERID="$(PEERID)" METHOD="$(METHOD)" go test -v node/*.go $(ARGS)
 
 # /END REGISTRY
 

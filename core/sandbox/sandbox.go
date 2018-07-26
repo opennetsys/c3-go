@@ -290,7 +290,7 @@ func parseNewState(reader io.Reader) ([]byte, error) {
 func (s *Service) sendMessage(msg []byte, port string) error {
 	// TODO: communicate over IPC
 	host := fmt.Sprintf("%s:%s", s.localIP, port)
-	log.Printf("[sandbox] sending message to container on host %s; message: %s", host, msg)
+	log.Printf("[sandbox] sending message to container on host %s", host)
 	conn, err := net.Dial("tcp", host)
 	if err != nil {
 		log.Errorf("[sandbox] error sending message; %v", err)
