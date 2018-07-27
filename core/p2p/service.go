@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 
+	"github.com/c3systems/c3-go/common/hexutil"
 	"github.com/c3systems/c3-go/core/chain/mainchain"
 	"github.com/c3systems/c3-go/core/chain/merkle"
 	"github.com/c3systems/c3-go/core/chain/statechain"
 	loghooks "github.com/c3systems/c3-go/log/hooks"
-	"github.com/c3systems/c3/common/hexutil"
 	log "github.com/sirupsen/logrus"
 
 	cid "github.com/ipfs/go-cid"
