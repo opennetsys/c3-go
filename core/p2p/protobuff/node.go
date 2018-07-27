@@ -28,6 +28,7 @@ type Props struct {
 	Host                   host.Host
 	GetHeadBlockFN         func() (mainchain.Block, error)
 	BroadcastTransactionFN func(tx *statechain.Transaction) (*nodetypes.SendTxResponse, error)
+	AddPendingTxFN         func(tx *statechain.Transaction) error
 }
 
 // Node type - a p2p host implementing one or more p2p protocols
@@ -48,7 +49,7 @@ func NewNode(props *Props) (*Node, error) {
 	node := &Node{Host: props.Host}
 	node.Echo = NewEcho(node)
 	node.HeadBlock = NewHeadBlock(node, props.GetHeadBlockFN)
-	node.ProcessTransaction = NewProcessTransaction(node, props.BroadcastTransactionFN)
+	node.ProcessTransaction = NewProcessTransaction(node, props.BroadcastTransactionFN, props.AddPendingTxFN)
 	return node, nil
 }
 

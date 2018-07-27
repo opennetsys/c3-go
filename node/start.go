@@ -200,6 +200,7 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 		Host:                   newNode,
 		GetHeadBlockFN:         memPool.GetHeadBlock,
 		BroadcastTransactionFN: n.BroadcastTransaction,
+		AddPendingTxFN:         memPool.AddTx,
 	})
 	if err != nil {
 		return fmt.Errorf("error starting protobuff node\n%v", err)

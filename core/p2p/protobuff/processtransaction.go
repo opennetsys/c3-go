@@ -33,14 +33,16 @@ type ProcessTransaction struct {
 	node                   *Node                                        // local host
 	requests               map[string]*processTransactionRequestWrapper // used to access request data from response handlers
 	broadcastTransactionFN func(tx *statechain.Transaction) (*nodetypes.SendTxResponse, error)
+	addPendingTxFN         func(tx *statechain.Transaction) error
 }
 
 // NewProcessTransaction ...
-func NewProcessTransaction(node *Node, broadcastTransactionFN func(tx *statechain.Transaction) (*nodetypes.SendTxResponse, error)) *ProcessTransaction {
+func NewProcessTransaction(node *Node, broadcastTransactionFN func(tx *statechain.Transaction) (*nodetypes.SendTxResponse, error), addPendingTxFN func(tx *statechain.Transaction) error) *ProcessTransaction {
 	p := ProcessTransaction{
 		node:                   node,
 		requests:               make(map[string]*processTransactionRequestWrapper),
 		broadcastTransactionFN: broadcastTransactionFN,
+		addPendingTxFN:         addPendingTxFN,
 	}
 	node.SetStreamHandler(processTransactionRequest, p.onProcessTransactionRequest)
 	node.SetStreamHandler(processTransactionResponse, p.onProcessTransactionResponse)
@@ -117,6 +119,10 @@ func (p *ProcessTransaction) onProcessTransactionRequest(s inet.Stream) {
 
 		p.sendResp(resp, s)
 		return
+	}
+
+	if err := p.addPendingTxFN(tx); err != nil {
+		log.Errorf("err adding pending tx\n%v", err)
 	}
 
 	resp.Success = true

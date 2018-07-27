@@ -335,6 +335,7 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 		log.Printf("[miner] is genesis tx for image hash %s", imageHash)
 		genesisBlock, diff, err := buildGenesisStateBlock(imageHash, tx)
 		if err != nil {
+			log.Println("[miner] err buildingGenesisStateBlock\n%v", err)
 			return err
 		}
 
@@ -356,7 +357,7 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 		}
 
 		if prevStateBlock == nil {
-			fmt.Println("[miner] prev block is nil")
+			log.Println("[miner] prev block is nil")
 			return errors.New("prev block is nil")
 		}
 

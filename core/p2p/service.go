@@ -8,6 +8,7 @@ import (
 	"github.com/c3systems/c3-go/core/chain/merkle"
 	"github.com/c3systems/c3-go/core/chain/statechain"
 	loghooks "github.com/c3systems/c3-go/log/hooks"
+	"github.com/c3systems/c3/common/hexutil"
 	log "github.com/sirupsen/logrus"
 
 	cid "github.com/ipfs/go-cid"
@@ -163,7 +164,7 @@ func (s Service) FetchMostRecentStateBlock(imageHash string, block *mainchain.Bl
 
 	log.Printf("[p2p] block merkle hash for block %s is %q for image hash %s", *block.Props().BlockHash, merkleHash, imageHash)
 
-	if merkleHash != "" {
+	if merkleHash != hexutil.EncodeString("") {
 		log.Printf("[p2p] merkle hash is empty; %s", block.Props().StateBlocksMerkleHash)
 
 		// 1. search the current block
@@ -228,8 +229,8 @@ func (s Service) FetchMostRecentStateBlock(imageHash string, block *mainchain.Bl
 
 		log.Printf("[p2p] block merkle hash for block %s is %q for image hash %s", *block.Props().BlockHash, merkleHash, imageHash)
 
-		if merkleHash == "" {
-			log.Errorf("[p2p] merkle hash for block %s is empty for image hash %s, continuing", *prevBlock.Props().BlockHash, imageHash)
+		if merkleHash == hexutil.EncodeString("") {
+			log.Warnf("[p2p] merkle hash for block %s is empty for image hash %s, continuing", *prevBlock.Props().BlockHash, imageHash)
 			continue
 		}
 
