@@ -3,27 +3,33 @@ package main
 import (
 	"fmt"
 
-	"github.com/c3systems/c3/c3"
+	c3 "github.com/c3systems/c3-sdk-go"
 )
 
-// Data ...
-type Data struct {
-	items map[string]string
+var client = c3.NewC3()
+
+// App ...
+type App struct {
 }
 
-func (s *Data) setItem(key, value string) error {
-	s.items[key] = value
+func (s *App) setItem(key, value string) error {
+	client.State().Set([]byte(key), []byte(value))
 	return nil
 }
 
-func (s *Data) getItem(key string) string {
-	return s.items[key]
+func (s *App) getItem(key string) string {
+	v, found := client.State().Get([]byte(key))
+	if !found {
+		return ""
+	}
+
+	return string(v)
 }
 
 func main() {
 	fmt.Println("running")
-	client := c3.New()
-	data := &Data{}
+	data := &App{}
 	client.RegisterMethod("setItem", []string{"string", "string"}, data.setItem)
 	client.RegisterMethod("getItem", []string{"string"}, data.getItem)
+	client.Serve()
 }

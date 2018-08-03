@@ -19,8 +19,8 @@ type Daemon struct {
 	daemon *daemon.Daemon
 }
 
-// New ...
-func New() *Daemon {
+// NewDaemon ...
+func NewDaemon() *Daemon {
 	cfg := config.New()
 	fmt.Println(cfg)
 	registryService, err := registry.NewService(registry.ServiceOptions{})

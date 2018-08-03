@@ -2,12 +2,31 @@ package server
 
 import (
 	"testing"
+	"time"
+)
+
+var (
+	Host = "localhost"
+	Port = 3333
 )
 
 func TestNew(t *testing.T) {
-	server := New(&Config{
-		Host: "localhost",
-		Port: 3333,
+	t.Parallel()
+	server := NewServer(&Config{
+		Host: Host,
+		Port: Port,
 	})
-	server.Run()
+	if server == nil {
+		t.Error("expected instance")
+	}
+}
+
+func TestRun(t *testing.T) {
+	t.Parallel()
+	server := NewServer(&Config{
+		Host: Host,
+		Port: Port,
+	})
+	go server.Run()
+	time.Sleep(1 * time.Second)
 }
