@@ -2,10 +2,12 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"os"
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/c3systems/c3-go/common/c3crypto"
 	"github.com/c3systems/c3-go/config"
 	loghooks "github.com/c3systems/c3-go/log/hooks"
 	"github.com/c3systems/c3-go/node"
@@ -19,6 +21,8 @@ var (
 	ErrImageIDRequired = errors.New("image hash or name is required")
 	// ErrOnlyOneArgumentRequired ...
 	ErrOnlyOneArgumentRequired = errors.New("only one argument is required")
+	// ErrSubCommandRequired ...
+	ErrSubCommandRequired = errors.New("sub command is required")
 )
 
 // Build ...
@@ -29,10 +33,9 @@ func Build() *cobra.Command {
 		peer       string
 		pem        string
 		password   string
+		outputPath string
 		difficulty int
 	)
-
-	dit := registry.NewRegistry(&registry.Config{})
 
 	rootCmd := &cobra.Command{
 		Use:   "c3",
@@ -48,8 +51,7 @@ For more info visit: https://github.com/c3systems/c3-go,
 	pushCmd := &cobra.Command{
 		Use:   "push",
 		Short: "Push image to registry",
-		Long: `Push the docker image to the decentralized registry on IPFS
-		`,
+		Long:  "Push the docker image to the decentralized registry on IPFS",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return ErrImageIDRequired
@@ -61,7 +63,8 @@ For more info visit: https://github.com/c3systems/c3-go,
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			hash, err := dit.PushImageByID(args[0])
+			reg := registry.NewRegistry(&registry.Config{})
+			hash, err := reg.PushImageByID(args[0])
 			if err != nil {
 				return err
 			}
@@ -74,8 +77,7 @@ For more info visit: https://github.com/c3systems/c3-go,
 	pullCmd := &cobra.Command{
 		Use:   "pull",
 		Short: "Pull image from registry",
-		Long: `Pull the docker image from the decentralized registry on IPFS
-		`,
+		Long:  "Pull the docker image from the decentralized registry on IPFS",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return ErrImageIDRequired
@@ -87,7 +89,8 @@ For more info visit: https://github.com/c3systems/c3-go,
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			_, err := dit.PullImage(args[0])
+			reg := registry.NewRegistry(&registry.Config{})
+			_, err := reg.PullImage(args[0])
 			return err
 		},
 	}
@@ -95,7 +98,7 @@ For more info visit: https://github.com/c3systems/c3-go,
 	deployCmd := &cobra.Command{
 		Use:   "deploy",
 		Short: "Deploy image to the blockchain",
-		Long:  `Deploys the docker image to the decentralized registry on IPFS and broadcasts a transaction to the blockchain for it to be mined`,
+		Long:  "Deploys the docker image to the decentralized registry on IPFS and broadcasts a transaction to the blockchain for it to be mined",
 		Args: func(cmd *cobra.Command, args []string) error {
 			// c3 deploy {imageID} "foo" "bar"
 
@@ -145,9 +148,62 @@ For more info visit: https://github.com/c3systems/c3-go,
 
 	startSubCmd.MarkFlagRequired("pem")
 	// TODO: add more flags for blockstore and nodestore, etc.
-
 	nodeCmd.AddCommand(startSubCmd)
-	rootCmd.AddCommand(pushCmd, pullCmd, deployCmd, nodeCmd)
+
+	generateCmd := &cobra.Command{
+		Use:   "generate [OPTIONS] [COMMANDS]",
+		Short: "Generate command",
+		Long:  "Generate command requires a sub command",
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return ErrSubCommandRequired
+			}
+
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return nil
+		},
+	}
+
+	generateKeyCmd := &cobra.Command{
+		Use:   "key",
+		Short: "Generate new private key",
+		Long:  "Generates a new private key in PEM format",
+		Args: func(cmd *cobra.Command, args []string) error {
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			fmt.Println("FOO", outputPath)
+
+			priv, err := c3crypto.NewPrivateKey()
+			if err != nil {
+				return err
+			}
+
+			var pwd *string
+			if password == "" {
+				log.Println("creating pem file...")
+			} else {
+				pwd = &password
+				log.Println("creating pem file with password...")
+			}
+
+			if err := c3crypto.WritePrivateKeyToPemFile(priv, pwd, outputPath); err != nil {
+				return err
+			}
+
+			log.Printf("private key saved in %s", outputPath)
+			return nil
+		},
+	}
+
+	generateKeyCmd.Flags().StringVarP(&outputPath, "output", "o", "priv.pem", "Output file path")
+	generateKeyCmd.Flags().StringVarP(&password, "password", "p", "", "Password for private key")
+	startSubCmd.MarkFlagRequired("output")
+	generateCmd.AddCommand(generateKeyCmd)
+
+	rootCmd.AddCommand(pushCmd, pullCmd, deployCmd, nodeCmd, generateCmd)
 
 	return rootCmd
 }
