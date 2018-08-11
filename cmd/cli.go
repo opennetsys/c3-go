@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 	"os"
 
 	log "github.com/sirupsen/logrus"
@@ -174,8 +173,6 @@ For more info visit: https://github.com/c3systems/c3-go,
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Println("FOO", outputPath)
-
 			priv, err := c3crypto.NewPrivateKey()
 			if err != nil {
 				return err
