@@ -27,13 +27,14 @@ var (
 // Build ...
 func Build() *cobra.Command {
 	var (
-		nodeURI    string
-		dataDir    string
-		peer       string
-		pem        string
-		password   string
-		outputPath string
-		difficulty int
+		nodeURI                 string
+		dataDir                 string
+		peer                    string
+		pem                     string
+		password                string
+		outputPath              string
+		dockerLocalRegistryHost string
+		difficulty              int
 	)
 
 	rootCmd := &cobra.Command{
@@ -62,7 +63,9 @@ For more info visit: https://github.com/c3systems/c3-go,
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			reg := registry.NewRegistry(&registry.Config{})
+			reg := registry.NewRegistry(&registry.Config{
+				DockerLocalRegistryHost: dockerLocalRegistryHost,
+			})
 			hash, err := reg.PushImageByID(args[0])
 			if err != nil {
 				return err
@@ -88,11 +91,15 @@ For more info visit: https://github.com/c3systems/c3-go,
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			reg := registry.NewRegistry(&registry.Config{})
+			reg := registry.NewRegistry(&registry.Config{
+				DockerLocalRegistryHost: dockerLocalRegistryHost,
+			})
 			_, err := reg.PullImage(args[0])
 			return err
 		},
 	}
+
+	pullCmd.Flags().StringVarP(&dockerLocalRegistryHost, "host", "", "", "Docker local registry host")
 
 	deployCmd := &cobra.Command{
 		Use:   "deploy",
