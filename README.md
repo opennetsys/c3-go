@@ -77,4 +77,4 @@ Tests require docker daemon and IPFS daemon to be running
 
 ## License
 
-[Apache 2.0](LICENSE)
+[GNU AGPL 3.0](LICENSE)
