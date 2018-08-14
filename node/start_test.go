@@ -34,7 +34,7 @@ func TestBroadcast(t *testing.T) {
 	*/
 
 	privPEM := "./test_data/priv.pem"
-	nodeURI := "/ip4/0.0.0.0/tcp/9004"
+	nodeURI := "/ip4/0.0.0.0/tcp/3332"
 	peer := os.Getenv("PEERID")
 	dataDir := "~/.c3"
 	n := new(Service)
