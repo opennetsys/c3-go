@@ -50,12 +50,18 @@ $ c3 pull {ipfsHash}
 
 ## Docker config
 
-Configure `daemon.json` to include the private registry as insecured (momentarily).
+Set up a localhost proxy route to `123.123.123.123`
+
+```bash
+make localhostproxy
+```
+
+Configure `daemon.json` to include the private registry as insecured (because it's localhost).
 
 ```json
 {
   "insecure-registries" : [
-    "{YOUR_LOCAL_IP}:5000"
+    "123.123.123.123:5000"
   ]
 }
 ```

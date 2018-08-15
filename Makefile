@@ -317,9 +317,9 @@ ipfs/daemon:
 
 # MISC
 
+# proxy localhost to 123.123.123.123 required so that docker container can communicate with host machine
 .PHONY: localhostproxy
 localhostproxy:
-	# proxy localhost to 123.123.123.123 required so that docker container can communicate with host machine
-	@sudo ifconfig lo0 alias 123.123.123.123/24
+	@sudo ifconfig $$(ifconfig | grep LOOPBACK | awk '{print $1}' | sed -E 's/[^a-zA-Z0-9]+//g') 123.123.123.123/24
 
 # /END MISC

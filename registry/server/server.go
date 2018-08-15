@@ -10,6 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	c3config "github.com/c3systems/c3-go/config"
+	"github.com/c3systems/c3-go/core/ipfs"
 	"github.com/c3systems/c3-go/registry/util"
 )
 
@@ -127,5 +128,10 @@ func Close() {
 }
 
 func ipfsURL(hash string) string {
-	return c3config.IPFSGateway + "/ipfs/" + hash
+	url, err := ipfs.GatewayURL()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return fmt.Sprintf("%s/ipfs/%s", url, hash)
 }

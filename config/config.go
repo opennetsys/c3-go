@@ -26,9 +26,6 @@ var TempContainerStateFilePath = fmt.Sprintf("%s/%s", TempContainerStatePath, Te
 // DockerRegistryPort ...
 const DockerRegistryPort = 5000
 
-// IPFSGateway ...
-const IPFSGateway = "http://127.0.0.1:8080"
-
 // DefaultBlockDifficulty ...
 const DefaultBlockDifficulty = 6
 

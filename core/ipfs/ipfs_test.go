@@ -1,6 +1,8 @@
 package ipfs
 
-import "testing"
+import (
+	"testing"
+)
 
 // TODO: table tests
 
@@ -20,5 +22,29 @@ func TestAddDir(t *testing.T) {
 
 	if hash == "" {
 		t.Error("expected hash to not be empty")
+	}
+}
+
+func TestGatewayURL(t *testing.T) {
+	url, err := GatewayURL()
+	if err != nil {
+		t.Error(err)
+	}
+
+	expected := "http://127.0.0.1:8080"
+	if url != expected {
+		t.Fatalf("expected: %s; got: %s", expected, url)
+	}
+}
+
+func TestGetIpfsGatewayPort(t *testing.T) {
+	port, err := getIpfsGatewayPort()
+	if err != nil {
+		t.Error(err)
+	}
+
+	expected := "8080"
+	if port != expected {
+		t.Fatalf("expected: %s; got: %s", expected, port)
 	}
 }

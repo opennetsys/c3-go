@@ -2,6 +2,7 @@ package ipfs
 
 import (
 	"errors"
+	"fmt"
 	"os/exec"
 	"strings"
 	"time"
@@ -97,6 +98,16 @@ func spawnIpfsDaemon(ready chan bool) error {
 	return nil
 }
 
+// GatewayURL returns IPFS gateway URL
+func GatewayURL() (string, error) {
+	port, err := getIpfsGatewayPort()
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("http://127.0.0.1:%s", port), nil
+}
+
 func getIpfsAPIURL() (string, error) {
 	out, err := exec.Command("ipfs", "config", "Addresses.API").Output()
 	if err != nil {
@@ -104,6 +115,21 @@ func getIpfsAPIURL() (string, error) {
 	}
 
 	return strings.TrimSpace(string(out)), nil
+}
+
+func getIpfsGatewayPort() (string, error) {
+	out, err := exec.Command("ipfs", "config", "Addresses.Gateway").Output()
+	if err != nil {
+		return "", err
+	}
+
+	ipld := strings.TrimSpace(string(out))
+	parts := strings.Split(ipld, "/")
+
+	if len(parts) == 0 {
+		return "", errors.New("[ipfs] gateway config not found")
+	}
+	return parts[len(parts)-1], nil
 }
 
 func init() {
