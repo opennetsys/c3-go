@@ -149,5 +149,6 @@ func StripLeader(hexStr string) (string, error) {
 
 // AddLeader ...
 func AddLeader(str string) string {
+	// note: should check if leader is already present?
 	return fmt.Sprintf("%s%s", Leader, str)
 }

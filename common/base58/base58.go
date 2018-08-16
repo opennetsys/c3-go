@@ -1,8 +1,3 @@
-// Copyright (c) 2013-2014 Conformal Systems LLC.
-// Use of this source code is governed by an ISC
-// license that can be found in the LICENSE file.
-// Modified by Juan Benet (juan@benet.ai)
-
 package base58
 
 import (
