@@ -40,11 +40,11 @@ func testBase58(t *testing.T) {
 	//}
 
 	//// Base58Decode with invalid input
-	//for x, test := range invalidStringTests {
-	//if res := Decode(test.in); string(res) != test.out {
-	//t.Errorf("Base58Decode invalidString test #%d failed: got: %q want: %q",
-	//x, res, test.out)
-	//continue
-	//}
-	//}
+	for x, test := range invalidStringTests {
+		if res := Decode(test.in); string(res) != test.out {
+			t.Errorf("Base58Decode invalidString test #%d failed: got: %q want: %q",
+				x, res, test.out)
+			continue
+		}
+	}
 }
