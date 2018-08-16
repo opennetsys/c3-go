@@ -12,6 +12,7 @@
 *.exe~
 *.dll
 *.so
+*.h
 *.dylib
 bin/
 build/

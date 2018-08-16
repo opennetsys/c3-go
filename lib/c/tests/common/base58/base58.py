@@ -1,7 +1,11 @@
+# Copyright (c) 2013-2014 Conformal Systems LLC.
+# Use of this source code is governed by an ISC
+# license that can be found in the LICENSE file.
+
 import unittest
 from ctypes import *
-import numpy
 
+# note: this file must first be built. see the make file
 base58 = CDLL('../../../common/base58/base58.so')
 
 class StringTest():
@@ -11,7 +15,7 @@ class StringTest():
 
 class CollectionOfStringTests():
     def __init__(self, StringTestObjects):
-        self.tests = list(StringTestObjects) #the cast here is to indicate that some checks would be nice
+        self.collection = list(StringTestObjects) #the cast here is to indicate that some checks would be nice
 
 StringTests = CollectionOfStringTests([
     StringTest("", ""),
@@ -64,16 +68,16 @@ base58.Decode.restype = DecodeResponse
 
 class TestBase58(unittest.TestCase):
     def test_encode(self):
-        for t in StringTests.tests:
+        for t in StringTests.collection:
             b = bytearray()
             b.extend(map(ord, t.inp))
             arr = (c_byte * len(b))(*b)
 
-            actual = c_char_p(base58.Encode(arr, c_int(len(b)))).value.decode('UTF-8')
+            actual = c_char_p(base58.Encode(arr, c_int(len(b)))).value.decode('utf-8')
             self.assertEqual(actual, t.exp)
 
     def test_decode(self):
-        for t in HexTests.tests:
+        for t in HexTests.collection:
             res = base58.Decode(c_char_p(t.inp.encode('utf-8')))
             ArrayType = c_ubyte*(c_int(res.r1).value)
             pa = cast(c_void_p(res.r0), POINTER(ArrayType))
@@ -83,7 +87,7 @@ class TestBase58(unittest.TestCase):
             self.assertEqual("".join(map(chr, pa.contents[:])), arr.decode("latin-1"))
 
     def test_invalid_strings(self):
-        for t in InvalidStringTests.tests:
+        for t in InvalidStringTests.collection:
             res = base58.Decode(c_char_p(t.inp.encode('utf-8')))
             ArrayType = c_ubyte*(c_int(res.r1).value)
             pa = cast(c_void_p(res.r0), POINTER(ArrayType))

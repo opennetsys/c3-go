@@ -1,8 +1,11 @@
 package main
 
 /*
+#ifndef _ALPHA
+#define _ALPHA
 #define BTCAlphabet '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 #define FlickrAlphabet '123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ'
+#endif
 */
 import (
 	"C"
