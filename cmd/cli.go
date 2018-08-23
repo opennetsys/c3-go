@@ -101,26 +101,6 @@ For more info visit: https://github.com/c3systems/c3-go,
 
 	pullCmd.Flags().StringVarP(&dockerLocalRegistryHost, "host", "", "", "Docker local registry host")
 
-	deployCmd := &cobra.Command{
-		Use:   "deploy",
-		Short: "Deploy image to the blockchain",
-		Long:  "Deploys the docker image to the decentralized registry on IPFS and broadcasts a transaction to the blockchain for it to be mined",
-		Args: func(cmd *cobra.Command, args []string) error {
-			// c3 deploy {imageID} "foo" "bar"
-
-			if len(args) == 0 {
-				return ErrImageIDRequired
-			}
-
-			return nil
-		},
-		RunE: func(cmd *cobra.Command, args []string) error {
-			// broadcast transaction as grpc
-
-			return nil
-		},
-	}
-
 	nodeCmd := &cobra.Command{
 		Use:              "node [OPTIONS] [COMMANDS] [OPTIONS]",
 		Short:            "c3 node commands",
@@ -207,7 +187,7 @@ For more info visit: https://github.com/c3systems/c3-go,
 	startSubCmd.MarkFlagRequired("output")
 	generateCmd.AddCommand(generateKeyCmd)
 
-	rootCmd.AddCommand(pushCmd, pullCmd, deployCmd, nodeCmd, generateCmd)
+	rootCmd.AddCommand(pushCmd, pullCmd, deployCmd(), invokeMethodCmd(), encodeCmd(), nodeCmd, generateCmd)
 
 	return rootCmd
 }

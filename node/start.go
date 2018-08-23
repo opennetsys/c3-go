@@ -18,6 +18,7 @@ import (
 	"github.com/c3systems/c3-go/core/p2p/protobuff"
 	pb "github.com/c3systems/c3-go/core/p2p/protobuff/pb"
 	"github.com/c3systems/c3-go/core/p2p/store/leveldbstore"
+	colorlog "github.com/c3systems/c3-go/log/color"
 	loghooks "github.com/c3systems/c3-go/log/hooks"
 	"github.com/c3systems/c3-go/node/store/safemempool"
 	nodetypes "github.com/c3systems/c3-go/node/types"
@@ -148,7 +149,7 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 	}
 
 	for i, addr := range newNode.Addrs() {
-		log.Printf("[node] %d: %s/ipfs/%s\n", i, addr, newNode.ID().Pretty())
+		log.Printf(colorlog.Green("[node] %d: %s/ipfs/%s\n", i, addr, newNode.ID().Pretty()))
 	}
 
 	if cfg.Peer != "" {
