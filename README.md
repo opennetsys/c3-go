@@ -91,7 +91,7 @@ $ c3-go push $(docker images -q | grep -m1 "")
   source="registry.go:101:registry.(*Registry).PushImage"
 ```
 
-5. Deploy the image to the local C3 blockchain
+5. Deploy the image to the local C3 testnet (update `image` and `peer` to your own values)
 
 ```bash
 c3-go deploy --priv priv.pem --genesis '' --image QmWJF5MYtnjb76P1CXQsn8MHpT26tjdBcs6CzKfR7zjRBm --peer "/ip4/127.0.0.1/tcp/3330/ipfs/QmZQ3cJMMjA7HUyEvsMXmN73LZ7fKsrQUmyKwsxrpecb7Z"
@@ -101,13 +101,15 @@ c3-go deploy --priv priv.pem --genesis '' --image QmWJF5MYtnjb76P1CXQsn8MHpT26tj
 - The peer multihash was derived from step 2.
 - The image hash was derived from step 4.
 
-6. Invoke a method on the dApp
+6. Invoke a method on the dApp (update `image` and `peer` to your own values from the previous step)
 
 ```bash
 go run main.go invokeMethod --priv priv.pem --payload '["setItem", "foo", "bar"]' --image QmWJF5MYtnjb76P1CXQsn8MHpT26tjdBcs6CzKfR7zjRBm --peer "/ip4/127.0.0.1/tcp/3330/ipfs/QmZQ3cJMMjA7HUyEvsMXmN73LZ7fKsrQUmyKwsxrpecb7Z"
 ```
 
-- In this example we're invoking the `setItem` method which accepts two arguments; the values are `foo` and `bar`. The example code is found [here](https://github.com/c3systems/c3-sdk-go-example-hello-world/blob/master/main.go).
+- In this example we're invoking the `setItem` method which accepts two arguments; the values are `foo` and `bar`. The example dApp code is found [here](https://github.com/c3systems/c3-sdk-go-example-hello-world/blob/master/main.go).
+
+7. That's it; you've just deployed a dApp and invoked a method by broadcasting a transaction.
 
 ### CLI commands
 
