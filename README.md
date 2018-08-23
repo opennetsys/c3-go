@@ -1,5 +1,5 @@
 <p align="center">
-	<img src="https://user-images.githubusercontent.com/168240/42129996-3bd8e646-7c8a-11e8-940d-89cea5ef87b8.png" width="250" alt="sandbox" />
+	<img src="https://user-images.githubusercontent.com/168240/44509676-396bab80-a667-11e8-89d1-69e8599af9af.png" width="250" alt="sandbox" />
 	<br>
 	<br>
 </p>
@@ -22,7 +22,7 @@
   - MacOS
     - `brew install patchutils`
 
-##### Docker config
+#### Docker config
 
 Set up a localhost proxy route to `123.123.123.123`
 
@@ -47,7 +47,7 @@ Then configure `daemon.json` to include the private registry as insecured (becau
 
 Restart the docker daemon after configuring `daemon.json`
 
-#### Install c3-go
+### Install c3-go
 
 Install using `go get` (must have [Go](https://golang.org/doc/install) installed).
 
@@ -56,6 +56,8 @@ go get -u github.com/c3systems/c3
 ```
 
 ## Hello world tutorial
+
+Warning: Tutorial is not the most intuitive. Please bear with me as we're still in the proof-of-concept stage.
 
 1. Generate a new private key
 
