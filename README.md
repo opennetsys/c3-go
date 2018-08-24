@@ -109,9 +109,13 @@ go run main.go invokeMethod --priv priv.pem --payload '["setItem", "foo", "bar"]
 
 - In this example we're invoking the `setItem` method which accepts two arguments; the values are `foo` and `bar`. The example dApp code is found [here](https://github.com/c3systems/c3-sdk-go-example-hello-world/blob/master/main.go).
 
+- The private key was derived from step 1.
+- The peer multihash was derived from step 2.
+- The image hash was derived from step 4.
+
 7. That's it; you've just deployed a dApp and invoked a method by broadcasting a transaction.
 
-### CLI commands
+## CLI commands
 
 Show help for C3
 
