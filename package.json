@@ -4,7 +4,7 @@
     "url": "developers@c3labs.io"
   },
   "gx": {
-    "dvcsimport": "github.com/c3systems/c3"
+    "dvcsimport": "github.com/c3systems/c3-go"
   },
   "gxDependencies": [
     {

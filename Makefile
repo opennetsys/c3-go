@@ -14,7 +14,7 @@ install:
 deps:
 	@rm -rf ./vendor && \
 		echo "running dep ensure..." && \
-		dep ensure && \
+		dep ensure -v && \
 		$(MAKE) gxundo && \
 		(cd vendor/github.com/libp2p/go-libp2p-pubsub/pb \
 		&& rm rpc.pb.go && rm rpc.proto \
