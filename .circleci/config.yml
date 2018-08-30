@@ -8,7 +8,7 @@ jobs:
     machine:
       image: *c3-build-image
 
-    working_directory: /home/circleci/.go_workspace/src/github.com/c3systems/c3
+    working_directory: /home/circleci/.go_workspace/src/github.com/c3systems/c3-go
     steps:
       - run:
           name: Install Golang
