@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/c3systems/c3-go/common/c3crypto"
-	"github.com/c3systems/c3-go/common/hashing"
+	"github.com/c3systems/c3-go/common/hashutil"
 	"github.com/c3systems/c3-go/common/hexutil"
 	"github.com/c3systems/c3-go/core/chain/mainchain"
 	"github.com/c3systems/c3-go/core/chain/merkle"
@@ -504,7 +504,7 @@ func VerifyStateBlocksFromMinedBlock(ctx context.Context, p2pSvc p2p.Interface, 
 
 				return
 			}
-			prevStateHash := hashing.HashToHexString(prevState)
+			prevStateHash := hashutil.HashToHexString(prevState)
 			if prevStateHash != prevBlock.Props().StateCurrentHash {
 				ch <- false
 
@@ -774,7 +774,7 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, sbSvc sandbox.Interface, 
 		}
 		prevBlockNumber++
 
-		nextStateHashBytes := hashing.Hash(nextState)
+		nextStateHashBytes := hashutil.Hash(nextState)
 		nextStateHash := hexutil.EncodeToString(nextStateHashBytes[:])
 		log.Printf("[miner] state prev diff hash: %s", *diffStruct.Props().DiffHash)
 		log.Printf("[miner] state current hash: %s", nextStateHash)
@@ -870,7 +870,7 @@ func buildGenesisStateBlock(imageHash string, tx *statechain.Transaction) (*stat
 		return nil, nil, err
 	}
 
-	nextStateHashBytes := hashing.Hash(nextState)
+	nextStateHashBytes := hashutil.Hash(nextState)
 	nextStateHash := hexutil.EncodeToString(nextStateHashBytes[:])
 	log.Printf("[miner] state prev diff hash: %s", *diffStruct.Props().DiffHash)
 	log.Printf("[miner] state current hash: %s", nextStateHash)

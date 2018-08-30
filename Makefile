@@ -123,7 +123,7 @@ test/config:
 # COMMON
 
 .PHONY: test/common
-test/common: test/common/netutil test/common/stringutil test/common/hexutil test/common/hashing test/common/c3crypto
+test/common: test/common/netutil test/common/stringutil test/common/hexutil test/common/hashutil test/common/c3crypto
 
 .PHONY: test/common/netutil
 test/common/netutil:
@@ -137,9 +137,9 @@ test/common/stringutil:
 test/common/hexutil:
 	@go test -v common/hexutil/*.go $(ARGS)
 
-.PHONY: test/common/hashing
-test/common/hashing:
-	@go test -v common/hashing/*.go $(ARGS)
+.PHONY: test/common/hashutil
+test/common/hashutil:
+	@go test -v common/hashutil/*.go $(ARGS)
 
 .PHONY: test/common/command
 test/common/command:

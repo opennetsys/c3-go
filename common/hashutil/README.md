@@ -1,3 +1,3 @@
-# hashing
+# hashutil
 
 > Various hashing utility functions

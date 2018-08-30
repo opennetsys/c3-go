@@ -1,4 +1,4 @@
-package hashing
+package hashutil
 
 import (
 	"crypto/sha512"

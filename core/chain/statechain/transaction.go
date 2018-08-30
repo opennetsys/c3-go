@@ -7,7 +7,7 @@ import (
 
 	"github.com/c3systems/c3-go/common/c3crypto"
 	"github.com/c3systems/c3-go/common/coder"
-	"github.com/c3systems/c3-go/common/hashing"
+	"github.com/c3systems/c3-go/common/hashutil"
 	"github.com/c3systems/c3-go/common/hexutil"
 	"github.com/c3systems/merkletree"
 )
@@ -116,7 +116,7 @@ func (tx *Transaction) CalculateHashBytes() ([]byte, error) {
 		return nil, err
 	}
 
-	hashedBytes := hashing.Hash(data)
+	hashedBytes := hashutil.Hash(data)
 	return hashedBytes[:], nil
 }
 

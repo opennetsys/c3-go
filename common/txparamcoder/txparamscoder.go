@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/c3systems/c3-go/common/hashing"
+	"github.com/c3systems/c3-go/common/hashutil"
 	"github.com/c3systems/c3-go/common/hexutil"
 )
 
 // EncodeMethodName ...
 func EncodeMethodName(name string) string {
-	return hashing.HashToHexString([]byte(name))
+	return hashutil.HashToHexString([]byte(name))
 }
 
 // EncodeParam ...

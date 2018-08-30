@@ -12,7 +12,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/c3systems/c3-go/common/hashing"
+	"github.com/c3systems/c3-go/common/hashutil"
 	"github.com/c3systems/c3-go/common/hexutil"
 	"github.com/c3systems/c3-go/core/chain/mainchain"
 	"github.com/c3systems/c3-go/core/chain/merkle"
@@ -335,7 +335,7 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 		log.Printf("[miner] is genesis tx for image hash %s", imageHash)
 		genesisBlock, diff, err := buildGenesisStateBlock(imageHash, tx)
 		if err != nil {
-			log.Println("[miner] err buildingGenesisStateBlock\n%v", err)
+			log.Printf("[miner] err buildingGenesisStateBlock\n%v", err)
 			return err
 		}
 
@@ -575,7 +575,7 @@ func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBloc
 			return nil, nil, err
 		}
 
-		nextStateHashBytes := hashing.Hash(nextState)
+		nextStateHashBytes := hashutil.Hash(nextState)
 		nextStateHash := hexutil.EncodeToString(nextStateHashBytes[:])
 		log.Printf("[miner] state prev diff hash: %s", *diffStruct.Props().DiffHash)
 		log.Printf("[miner] state current hash: %s", nextStateHash)

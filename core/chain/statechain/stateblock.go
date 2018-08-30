@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/c3systems/c3-go/common/coder"
-	"github.com/c3systems/c3-go/common/hashing"
+	"github.com/c3systems/c3-go/common/hashutil"
 	"github.com/c3systems/c3-go/common/hexutil"
 
 	"github.com/c3systems/merkletree"
@@ -114,7 +114,7 @@ func (b Block) CalculateHashBytes() ([]byte, error) {
 		return nil, err
 	}
 
-	hashedBytes := hashing.Hash(bytes)
+	hashedBytes := hashutil.Hash(bytes)
 	return hashedBytes[:], nil
 }
 
