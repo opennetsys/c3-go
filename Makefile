@@ -112,6 +112,14 @@ test/e2e:
 
 # /END TEST TYPES
 
+# CONFIG
+
+.PHONY: test/config
+test/config:
+	@go test -v -parallel 1 config/*.go $(ARGS)
+
+# /END CONFIG
+
 # COMMON
 
 .PHONY: test/common
@@ -140,6 +148,10 @@ test/common/command:
 .PHONY: test/common/c3crypto
 test/common/c3crypto:
 	@go test -v -parallel 1 common/c3crypto/*.go $(ARGS)
+
+.PHONY: test/common/ipns
+test/common/ipns:
+	@go test -v -parallel 1 common/ipns/*.go $(ARGS)
 
 # /END COMMON
 

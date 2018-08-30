@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/c3systems/c3-go/core/p2p/store"
+	"github.com/c3systems/c3-go/common/dirutil"
 
 	flatfs "github.com/ipfs/go-ds-flatfs"
 )
@@ -19,7 +19,7 @@ import (
 func New(path string) (*flatfs.Datastore, error) {
 	// expand tilde
 	if strings.HasPrefix(path, "~/") {
-		path = filepath.Join(store.UserHomeDir(), path[2:])
+		path = filepath.Join(dirutil.UserHomeDir(), path[2:])
 	}
 
 	var (
@@ -27,7 +27,7 @@ func New(path string) (*flatfs.Datastore, error) {
 		err     error
 	)
 
-	if err := store.CreateDirIfNotExist(path); err != nil {
+	if err := dirutil.CreateDirIfNotExist(path); err != nil {
 		return nil, err
 	}
 

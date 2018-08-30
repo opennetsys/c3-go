@@ -1,6 +1,5 @@
 <p align="center">
-	<img src="https://user-images.githubusercontent.com/168240/44509676-396bab80-a667-11e8-89d1-69e8599af9af.png" width="250" alt="sandbox" />
-	<br>
+	<img src="https://user-images.githubusercontent.com/168240/44509676-396bab80-a667-11e8-89d1-69e8599af9af.png" width="250" alt="sandbox" /> <br>
 	<br>
 </p>
 
@@ -172,6 +171,14 @@ make test
 ```
 
 Tests require docker daemon and IPFS daemon to be running.
+
+## Development
+
+Install new dependencies to `vendor/` (will take a couple of minutes)
+
+```bash
+make deps
+```
 
 ## License
 

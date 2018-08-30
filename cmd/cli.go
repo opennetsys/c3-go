@@ -187,7 +187,7 @@ For more info visit: https://github.com/c3systems/c3-go,
 	startSubCmd.MarkFlagRequired("output")
 	generateCmd.AddCommand(generateKeyCmd)
 
-	rootCmd.AddCommand(pushCmd, pullCmd, deployCmd(), invokeMethodCmd(), encodeCmd(), nodeCmd, generateCmd)
+	rootCmd.AddCommand(pushCmd, pullCmd, nodeCmd, generateCmd, deployCmd(), invokeMethodCmd(), encodeCmd(), peerCmd())
 
 	return rootCmd
 }

@@ -8,6 +8,12 @@
   revision = "28f7e881ca57bc00e028f9ede9f0d9104cfeef5e"
 
 [[projects]]
+  name = "github.com/BurntSushi/toml"
+  packages = ["."]
+  revision = "b26d9c308763d68093482582cea63d69be07a0f0"
+  version = "v0.3.0"
+
+[[projects]]
   name = "github.com/Microsoft/go-winio"
   packages = ["."]
   revision = "67921128fb397dd80339870d2193d6b1e6856fd4"
@@ -276,6 +282,7 @@
     "exchange/bitswap/notifications",
     "exchange/bitswap/testnet",
     "exchange/bitswap/wantlist",
+    "keystore",
     "thirdparty/verifcid"
   ]
   revision = "7853e53860805e08a212d78c4baa5d59bff99ba8"
@@ -991,6 +998,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e3880621f97b0bec35c2a82fb5696646c6d64c581ffabbfcb9f37570d5126f72"
+  inputs-digest = "2665848ccb7c94a49cad2e94a4c7458d805b75b8aab90e6cccfbe2adda741182"
   solver-name = "gps-cdcl"
   solver-version = 1
