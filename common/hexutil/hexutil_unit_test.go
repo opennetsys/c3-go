@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/big"
 	"reflect"
-	"strings"
 	"testing"
 )
 
@@ -48,18 +47,18 @@ func TestEncodeUint64(t *testing.T) {
 	}{
 		{
 			uint64(123),
-			"0x7B",
+			"0x7b",
 		},
 		{
 			uint64(53452345),
-			"0x32F9E39",
+			"0x32f9e39",
 		},
 	}
 
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
 			encoded := EncodeUint64(tt.in)
-			if encoded != strings.ToLower(tt.out) {
+			if encoded != tt.out {
 				t.Errorf("want %v; got %v", tt.out, encoded)
 			}
 		})
@@ -196,18 +195,18 @@ func TestEncodeBigInt(t *testing.T) {
 	}{
 		{
 			big.NewInt(123),
-			"0x7B",
+			"0x7b",
 		},
 		{
 			big.NewInt(53452345),
-			"0x32F9E39",
+			"0x32f9e39",
 		},
 	}
 
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
 			encoded := EncodeBigInt(tt.in)
-			if encoded != strings.ToLower(tt.out) {
+			if encoded != tt.out {
 				t.Errorf("want %s; got %s", tt.out, encoded)
 			}
 		})
@@ -221,7 +220,7 @@ func TestDecodeBigInt(t *testing.T) {
 		out string
 	}{
 		{
-			"0x7B",
+			"0x7b",
 			"123",
 		},
 	}
@@ -248,11 +247,11 @@ func TestEncodeInt(t *testing.T) {
 	}{
 		{
 			123,
-			"0x7B",
+			"0x7b",
 		},
 		{
 			-932445,
-			"0xFFFFFFFFFFF1C5A3",
+			"0xfffffffffff1c5a3",
 		},
 	}
 
@@ -260,7 +259,7 @@ func TestEncodeInt(t *testing.T) {
 		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
 			encoded := EncodeInt(tt.in)
 
-			if encoded != strings.ToLower(tt.out) {
+			if encoded != tt.out {
 				t.Errorf("want %s; got %s", tt.out, encoded)
 			}
 		})
@@ -301,18 +300,18 @@ func TestEncodeFloat64(t *testing.T) {
 	}{
 		{
 			float64(123),
-			"0x405EC00000000000",
+			"0x405ec00000000000",
 		},
 		{
 			float64(-561.2863),
-			"0xC0818A4A57A786C2",
+			"0xc0818a4a57a786c2",
 		},
 	}
 
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
 			encoded := EncodeFloat64(tt.in)
-			if encoded != strings.ToLower(tt.out) {
+			if encoded != tt.out {
 				t.Errorf("want %v; got %v", tt.out, encoded)
 			}
 		})

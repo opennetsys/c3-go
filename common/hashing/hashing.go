@@ -3,6 +3,7 @@ package hashing
 import (
 	"crypto/sha512"
 	"hash"
+	"strings"
 
 	"github.com/c3systems/c3-go/common/hexutil"
 )
@@ -26,5 +27,5 @@ func HashToHexString(data []byte) string {
 
 // IsEqual ...
 func IsEqual(hexHash string, data []byte) bool {
-	return hexHash == HashToHexString(data)
+	return strings.ToLower(hexHash) == HashToHexString(data)
 }

@@ -36,12 +36,12 @@ func DecodeUint64(hexStr string) (uint64, error) {
 
 // EncodeUint64 encodes i as a hex string
 func EncodeUint64(i uint64) string {
-	return AddLeader(strconv.FormatUint(i, 16))
+	return strings.ToLower(AddLeader(strconv.FormatUint(i, 16)))
 }
 
 // EncodeString ...
 func EncodeString(str string) string {
-	return AddLeader(hex.EncodeToString([]byte(str)))
+	return strings.ToLower(AddLeader(hex.EncodeToString([]byte(str))))
 }
 
 // DecodeString ...
@@ -61,7 +61,7 @@ func DecodeString(hexStr string) ([]byte, error) {
 
 // EncodeToString ...
 func EncodeToString(b []byte) string {
-	return AddLeader(hex.EncodeToString(b))
+	return strings.ToLower(AddLeader(hex.EncodeToString(b)))
 }
 
 // EncodeBytes ...
@@ -123,7 +123,7 @@ func DecodeInt(hexStr string) (int, error) {
 // EncodeFloat64 ...
 // https://www.h-schmidt.net/FloatConverter/IEEE754.html
 func EncodeFloat64(f float64) string {
-	return AddLeader(fmt.Sprintf("%x", math.Float64bits(f)))
+	return strings.ToLower(AddLeader(fmt.Sprintf("%x", math.Float64bits(f))))
 }
 
 // DecodeFloat64 ...
