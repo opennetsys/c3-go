@@ -335,3 +335,12 @@ localhostproxy:
 	@sudo ifconfig $$(ifconfig | grep LOOPBACK | awk '{print $1}' | sed -E 's/[^a-zA-Z0-9]+//g') 123.123.123.123/24
 
 # /END MISC
+
+# COVERAGE
+
+.PHONY: coverage
+coverage:
+	@go test -v -covermode=count -coverprofile=coverage.out
+	@goveralls -coverprofile=coverage.out -service=travis-ci -repotoken="$$COVERALLS_TOKEN"
+
+# /END COVERAGE
