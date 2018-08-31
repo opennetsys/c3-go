@@ -2,7 +2,9 @@ package dirutil
 
 import (
 	"os"
+	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 // UserHomeDir ...
@@ -22,8 +24,19 @@ func UserHomeDir() string {
 	return os.Getenv("HOME")
 }
 
+// NormalizePath ...
+func NormalizePath(path string) string {
+	// expand tilde
+	if strings.HasPrefix(path, "~/") {
+		path = filepath.Join(UserHomeDir(), path[2:])
+	}
+
+	return path
+}
+
 // CreateDirIfNotExist ...
 func CreateDirIfNotExist(path string) error {
+	path = NormalizePath(path)
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return os.MkdirAll(path, 0757)
 	}

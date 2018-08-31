@@ -1,9 +1,6 @@
 package badgerstore
 
 import (
-	"path/filepath"
-	"strings"
-
 	"github.com/c3systems/c3-go/common/dirutil"
 
 	badger "github.com/dgraph-io/badger"
@@ -13,11 +10,6 @@ import (
 
 // New ...
 func New(path string, options *badger.Options) (ds.Batching, error) {
-	// expand tilde
-	if strings.HasPrefix(path, "~/") {
-		path = filepath.Join(dirutil.UserHomeDir(), path[2:])
-	}
-
 	if err := dirutil.CreateDirIfNotExist(path); err != nil {
 		return nil, err
 	}

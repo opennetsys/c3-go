@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/BurntSushi/toml"
@@ -19,6 +20,9 @@ type config struct {
 	Port           int    `toml:"port"`
 	DataDir        string `toml:"dataDir"`
 	PrivateKeyPath string `toml:"privateKey"`
+	Peer           string `toml:"peer"`
+	configDir      string `toml:"-"` // NOTE: don't save to TOML
+	configFilename string `toml:"-"` // NOTE: don't save to TOML
 }
 
 // Config ...
@@ -32,8 +36,41 @@ func New() *Config {
 	cnf := &Config{
 		config: &config{
 			Port:           DefaultServerPort,
+			configDir:      DefaultConfigDirectory,
+			configFilename: DefaultConfigFilename,
 			DataDir:        DefaultStoreDirectory,
-			PrivateKeyPath: DefaultConfigDirectory + "/priv.pem",
+			PrivateKeyPath: DefaultConfigDirectory + "/" + DefaultPrivateKeyFilename,
+			Peer:           "",
+		},
+	}
+	if err := cnf.setupConfig(); err != nil {
+		log.Fatal(err)
+	}
+
+	return cnf
+}
+
+// NewFromFile ...
+func NewFromFile(filepath string) *Config {
+	if filepath == "" {
+		log.Fatal("filepath is required")
+	}
+
+	paths := strings.Split(filepath, "/")
+	filename := strings.Join(paths[len(paths)-1:len(paths)], "")
+	filedir := "./"
+	if len(paths) > 1 {
+		filedir = strings.Join(paths[0:len(paths)-2], "/")
+	}
+
+	cnf := &Config{
+		config: &config{
+			Port:           DefaultServerPort,
+			configDir:      filedir,
+			configFilename: filename,
+			DataDir:        DefaultStoreDirectory,
+			PrivateKeyPath: DefaultConfigDirectory + "/" + DefaultPrivateKeyFilename,
+			Peer:           "",
 		},
 	}
 	if err := cnf.setupConfig(); err != nil {
@@ -48,14 +85,24 @@ func (cnf *Config) Port() int {
 	return cnf.config.Port
 }
 
+// NodeURI ...
+func (cnf *Config) NodeURI() string {
+	return fmt.Sprintf("/ip4/0.0.0.0/tcp/%v", cnf.Port())
+}
+
 // DataDir ...
 func (cnf *Config) DataDir() string {
-	return cnf.config.DataDir
+	return dirutil.NormalizePath(cnf.config.DataDir)
 }
 
 // PrivateKeyPath ...
 func (cnf *Config) PrivateKeyPath() string {
-	return cnf.config.PrivateKeyPath
+	return dirutil.NormalizePath(cnf.config.PrivateKeyPath)
+}
+
+// Peer ...
+func (cnf *Config) Peer() string {
+	return cnf.config.Peer
 }
 
 func (cnf *Config) setupConfig() error {
@@ -72,26 +119,15 @@ func (cnf *Config) setupConfig() error {
 		return err
 	}
 	cnf.config = conf
-	err = cnf.loadConfig()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (cnf *Config) loadConfig() error {
-	log.Println(cnf.config)
-
 	return nil
 }
 
 func (cnf *Config) configDirPath() string {
-	homedir := dirutil.UserHomeDir()
-	return fmt.Sprintf("%s%s", homedir, "/.c3")
+	return dirutil.NormalizePath(cnf.config.configDir)
 }
 
 func (cnf *Config) configPath() string {
-	return fmt.Sprintf("%v%v", cnf.configDirPath(), "/config.toml")
+	return fmt.Sprintf("%v%v", cnf.configDirPath(), "/"+cnf.config.configFilename)
 }
 
 func (cnf *Config) makeConfigDir() error {

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"os"
 
 	log "github.com/sirupsen/logrus"
@@ -27,6 +28,7 @@ var (
 // Build ...
 func Build() *cobra.Command {
 	var (
+		configPath              string
 		nodeURI                 string
 		dataDir                 string
 		peer                    string
@@ -36,6 +38,8 @@ func Build() *cobra.Command {
 		dockerLocalRegistryHost string
 		difficulty              int
 	)
+
+	cnf := config.New()
 
 	rootCmd := &cobra.Command{
 		Use:   "c3",
@@ -112,6 +116,19 @@ For more info visit: https://github.com/c3systems/c3-go,
 		Short: "Start a c3 node",
 		Long:  "By starting a c3 node, you will participate in the c3 network: mining and storing blocks and responding to RPC requests. Thank you, you are making the c3 network stronger by participating.",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// use settings from config file if config filepath is passed as argument to CLI
+			if configPath != "" {
+				cnf := config.NewFromFile(configPath)
+				nodeURI = cnf.NodeURI()
+				dataDir = cnf.DataDir()
+				pem = cnf.PrivateKeyPath()
+				peer = cnf.Peer()
+			}
+
+			if _, err := os.Stat(pem); os.IsNotExist(err) {
+				return fmt.Errorf("%s does not exist", pem)
+			}
+
 			n := new(node.Service)
 			return node.Start(n, &nodetypes.Config{
 				URI:     nodeURI,
@@ -125,14 +142,15 @@ For more info visit: https://github.com/c3systems/c3-go,
 			})
 		},
 	}
-	startSubCmd.Flags().StringVarP(&nodeURI, "uri", "u", "/ip4/0.0.0.0/tcp/9000", "The host on which to run the node")
-	startSubCmd.Flags().StringVarP(&peer, "peer", "p", "", "A peer to which to connect")
-	startSubCmd.Flags().StringVarP(&dataDir, "data-dir", "d", config.DefaultStoreDirectory, "The directory in which to save data")
-	startSubCmd.Flags().StringVar(&pem, "pem", "", "A pem file containing an ecdsa private key")
-	startSubCmd.Flags().StringVar(&password, "password", "", "A password for the pem file [OPTIONAL]")
-	startSubCmd.Flags().IntVar(&difficulty, "difficulty", 6, "The hashing difficulty for mining blocks. (1-15) [OPTIONAL]")
 
-	startSubCmd.MarkFlagRequired("pem")
+	startSubCmd.Flags().StringVarP(&configPath, "config", "c", "", "[Optional] filepath of the config file to use")
+	startSubCmd.Flags().StringVarP(&nodeURI, "uri", "u", "/ip4/0.0.0.0/tcp/9000", "The host on which to run the node")
+	startSubCmd.Flags().StringVarP(&peer, "peer", "p", cnf.Peer(), "A peer to which to connect")
+	startSubCmd.Flags().StringVarP(&dataDir, "data-dir", "d", cnf.DataDir(), "The directory in which to save data")
+	startSubCmd.Flags().StringVar(&pem, "pem", cnf.PrivateKeyPath(), "A pem file containing an ecdsa private key")
+	startSubCmd.Flags().StringVar(&password, "password", "", "A password for the pem file [OPTIONAL]")
+	startSubCmd.Flags().IntVar(&difficulty, "difficulty", 6, "The hashing difficulty for mining blocks. (1-15) [OPTIONAL]. This feature will be deprecated when C3 soon moves to Delegated Proof-of-Stake.")
+
 	// TODO: add more flags for blockstore and nodestore, etc.
 	nodeCmd.AddCommand(startSubCmd)
 

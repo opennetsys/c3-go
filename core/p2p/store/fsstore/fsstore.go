@@ -1,9 +1,6 @@
 package fsstore
 
 import (
-	"path/filepath"
-	"strings"
-
 	"github.com/c3systems/c3-go/common/dirutil"
 
 	flatfs "github.com/ipfs/go-ds-flatfs"
@@ -17,11 +14,6 @@ import (
 
 // New ...
 func New(path string) (*flatfs.Datastore, error) {
-	// expand tilde
-	if strings.HasPrefix(path, "~/") {
-		path = filepath.Join(dirutil.UserHomeDir(), path[2:])
-	}
-
 	var (
 		shardFn *flatfs.ShardIdV1
 		err     error

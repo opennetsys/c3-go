@@ -20,6 +20,9 @@ var DefaultConfigFilename = "config.toml"
 // DefaultStoreDirectory is the default directory where the file system store will live.
 var DefaultStoreDirectory = "~/.c3/chaindata"
 
+// DefaultPrivateKeyFilename is the filename for the account's private key
+var DefaultPrivateKeyFilename = "priv.pem"
+
 // TempContainerStatePath ...
 var TempContainerStatePath = "/tmp"
 

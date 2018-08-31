@@ -64,9 +64,7 @@ jobs:
       - run:
           name: Coverage
           command: |
-            go get golang.org/x/tools/cmd/cover
-            go get github.com/mattn/goveralls
-            make coverage
+            go get golang.org/x/tools/cmd/cover && go get github.com/mattn/goveralls && make coverage
 
 workflows:
   version: 2

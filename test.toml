@@ -1,0 +1,3 @@
+port = 1144
+dataDir = "~/.c3/chaindata"
+privateKey = "~/.gvm/pkgsets/go1.11/global/src/github.com/c3systems/c3-go/priv.pem"
