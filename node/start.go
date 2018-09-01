@@ -2,7 +2,6 @@ package node
 
 import (
 	"context"
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"time"
@@ -86,14 +85,7 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 	}
 	pub := &priv.PublicKey
 
-	// TODO: wait until pr is merged...
-	// https://github.com/libp2p/go-libp2p-crypto/pull/35
-	//wPriv, wPub, err := wCrypt.GenerateECDSAKeyPairFromKey(priv)
-	//if err != nil {
-	//return fmt.Errorf("err generating key pairs\n%v", err)
-	//}
-
-	wPriv, wPub, err := lCrypt.GenerateKeyPairWithReader(lCrypt.RSA, 4096, rand.Reader)
+	wPriv, wPub, err := lCrypt.GenerateECDSAKeyPairFromKey(priv)
 	if err != nil {
 		return fmt.Errorf("err generating key pairs\n%v", err)
 	}
@@ -213,7 +205,7 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 		return err
 	}
 
-	log.Printf("[miner] set mainchain genesis block with cid %s", c)
+	log.Printf("[miner] set mainchain genesis block with cid %v", c)
 
 	nextBlock := &mainchain.GenesisBlock
 	peers := newNode.Peerstore().Peers()

@@ -340,6 +340,19 @@ localhostproxy:
 
 .PHONY: coverage
 coverage:
-	@go test -v -covermode=count -coverprofile=coverage.out && ls && goveralls -coverprofile=coverage.out -service=travis-ci -repotoken="$$COVERALLS_TOKEN"
+	@go test -v -covermode=count -coverprofile=coverage.out
+	@goveralls -coverprofile=coverage.out -service=travis-ci -repotoken="$$COVERALLS_TOKEN"
 
 # /END COVERAGE
+
+# NOTE: Temp fix till PR is merged:
+# https://github.com/libp2p/go-libp2p-crypto/pull/35
+.PHONY: fix/libp2pcrypto
+fix/libp2pcrypto:
+	@rm -rf vendor/github.com/libp2p/go-libp2p-crypto/
+	@git clone https://github.com/c3systems/go-libp2p-crypto.git
+	@mv go-libp2p-crypto vendor/github.com/libp2p/go-libp2p-crypto
+	@find "./vendor" -name "*.go" -print0 | xargs -0 perl -pi -e "s/c3systems\/go-libp2p-crypto/libp2p\/go-libp2p-crypto/g"
+	@sed -iE 's/k1, k2 :=/k1, k2, _ :=/g' vendor/github.com/libp2p/go-libp2p-secio/protocol.go
+	@sed -iE 's/s.local.keys = k1/\/\/s.local.keys = k1/g' vendor/github.com/libp2p/go-libp2p-secio/protocol.go
+	@sed -iE 's/s.remote.keys = k2/\/\/s.remote.keys = k2/g' vendor/github.com/libp2p/go-libp2p-secio/protocol.go

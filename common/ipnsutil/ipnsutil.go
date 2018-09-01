@@ -1,13 +1,14 @@
-package ipns
+package ipnsutil
 
 import (
 	"bufio"
 	"bytes"
-	"crypto/rand"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"log"
 
+	"github.com/c3systems/c3-go/common/c3crypto"
 	"github.com/ipfs/go-ipfs/keystore"
 	lCrypt "github.com/libp2p/go-libp2p-crypto"
 	peer "github.com/libp2p/go-libp2p-peer"
@@ -16,15 +17,17 @@ import (
 )
 
 // PEMToIPNS ...
-func PEMToIPNS(pemFilePath string, password *string) (string, error) {
-	// TODO: wait until pr is merged...
-	// https://github.com/libp2p/go-libp2p-crypto/pull/35
-	//wPriv, wPub, err := wCrypt.GenerateECDSAKeyPairFromKey(priv)
-	//if err != nil {
-	//return fmt.Errorf("err generating key pairs\n%v", err)
-	//}
+func PEMToIPNS(pemFilepath string, password *string) (string, error) {
+	if pemFilepath == "" {
+		return "", errors.New("pem filepath is required")
+	}
 
-	_, wPub, err := lCrypt.GenerateKeyPairWithReader(lCrypt.RSA, 4096, rand.Reader)
+	priv, err := c3crypto.ReadPrivateKeyFromPem(pemFilepath, password)
+	if err != nil {
+		return "", fmt.Errorf("err reading pem file\n%v", err)
+	}
+
+	_, wPub, err := lCrypt.GenerateECDSAKeyPairFromKey(priv)
 	if err != nil {
 		return "", fmt.Errorf("err generating key pairs\n%v", err)
 	}

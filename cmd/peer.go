@@ -1,7 +1,10 @@
 package cmd
 
 import (
-	log "github.com/sirupsen/logrus"
+	"fmt"
+
+	"github.com/c3systems/c3-go/common/netutil"
+	"github.com/c3systems/c3-go/config"
 	"github.com/spf13/cobra"
 )
 
@@ -30,7 +33,13 @@ func peerCmd() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			log.Println("TODO")
+			cnf := config.New()
+			ip, err := netutil.LocalIP()
+			if err != nil {
+				return err
+			}
+
+			fmt.Printf("Your Peer ID:\n/ip4/%s/tcp/%v/%s", ip.String(), cnf.Port(), cnf.PrivateKeyIPNS())
 
 			return nil
 		},

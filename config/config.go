@@ -11,6 +11,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/c3systems/c3-go/common/dirutil"
+	"github.com/c3systems/c3-go/common/ipnsutil"
 )
 
 var fileperm = os.FileMode(0644)
@@ -98,6 +99,15 @@ func (cnf *Config) DataDir() string {
 // PrivateKeyPath ...
 func (cnf *Config) PrivateKeyPath() string {
 	return dirutil.NormalizePath(cnf.config.PrivateKeyPath)
+}
+
+// PrivateKeyIPNS ...
+func (cnf *Config) PrivateKeyIPNS() string {
+	id, err := ipnsutil.PEMToIPNS(cnf.PrivateKeyPath(), nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return id
 }
 
 // Peer ...

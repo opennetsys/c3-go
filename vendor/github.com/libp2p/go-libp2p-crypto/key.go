@@ -13,30 +13,39 @@ import (
 	"crypto/elliptic"
 	"crypto/hmac"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/sha1"
 	"crypto/sha512"
 	"hash"
 
+	// note: change back to libp2p for pr
 	pb "github.com/libp2p/go-libp2p-crypto/pb"
 
 	"github.com/gogo/protobuf/proto"
 	sha256 "github.com/minio/sha256-simd"
 )
 
-var ErrBadKeyType = errors.New("invalid or unsupported key type")
-
 const (
+	// RSA is an enum for the supported RSA key type
 	RSA = iota
+	// Ed25519 is an enum for the supported Ed25519 key type
 	Ed25519
+	// Secp256k1 is an enum for the supported Secp256k1 key type
 	Secp256k1
+	// ECDSA is an enum for the supported ECDSA key type
+	ECDSA
 )
 
-var KeyTypes = []int{
-	RSA,
-	Ed25519,
-	Secp256k1,
-}
+var (
+	// ErrBadKeyType is returned when a key is not supported
+	ErrBadKeyType = errors.New("invalid or unsupported key type")
+	// KeyTypes is a list of supported keys
+	KeyTypes = []int{
+		RSA,
+		Ed25519,
+		Secp256k1,
+		ECDSA,
+	}
+)
 
 // PubKeyUnmarshaller is a func that creates a PubKey from a given slice of bytes
 type PubKeyUnmarshaller func(data []byte) (PubKey, error)
@@ -44,16 +53,20 @@ type PubKeyUnmarshaller func(data []byte) (PubKey, error)
 // PrivKeyUnmarshaller is a func that creates a PrivKey from a given slice of bytes
 type PrivKeyUnmarshaller func(data []byte) (PrivKey, error)
 
+// PubKeyUnmarshallers is a map of unmarshallers by key type
 var PubKeyUnmarshallers = map[pb.KeyType]PubKeyUnmarshaller{
 	pb.KeyType_RSA:       UnmarshalRsaPublicKey,
 	pb.KeyType_Ed25519:   UnmarshalEd25519PublicKey,
 	pb.KeyType_Secp256k1: UnmarshalSecp256k1PublicKey,
+	pb.KeyType_ECDSA:     UnmarshalECDSAPublicKey,
 }
 
+// PrivKeyUnmarshallers is a map of unmarshallers by key type
 var PrivKeyUnmarshallers = map[pb.KeyType]PrivKeyUnmarshaller{
 	pb.KeyType_RSA:       UnmarshalRsaPrivateKey,
 	pb.KeyType_Ed25519:   UnmarshalEd25519PrivateKey,
 	pb.KeyType_Secp256k1: UnmarshalSecp256k1PrivateKey,
+	pb.KeyType_ECDSA:     UnmarshalECDSAPrivateKey,
 }
 
 // Key represents a crypto key that can be compared to another key
@@ -77,6 +90,7 @@ type PrivKey interface {
 	GetPublic() PubKey
 }
 
+// PubKey is a public key
 type PubKey interface {
 	Key
 
@@ -84,33 +98,31 @@ type PubKey interface {
 	Verify(data []byte, sig []byte) (bool, error)
 }
 
-// Given a public key, generates the shared key.
+// GenSharedKey generates the shared key from a given private key
 type GenSharedKey func([]byte) ([]byte, error)
 
+// GenerateKeyPair generates a private and public key
 func GenerateKeyPair(typ, bits int) (PrivKey, PubKey, error) {
 	return GenerateKeyPairWithReader(typ, bits, rand.Reader)
 }
 
-// Generates a keypair of the given type and bitsize
+// GenerateKeyPairWithReader returns a keypair of the given type and bitsize
 func GenerateKeyPairWithReader(typ, bits int, src io.Reader) (PrivKey, PubKey, error) {
 	switch typ {
 	case RSA:
-		priv, err := rsa.GenerateKey(src, bits)
-		if err != nil {
-			return nil, nil, err
-		}
-		pk := &priv.PublicKey
-		return &RsaPrivateKey{sk: priv}, &RsaPublicKey{pk}, nil
+		return GenerateRSAKeyPair(bits, src)
 	case Ed25519:
 		return GenerateEd25519Key(src)
 	case Secp256k1:
 		return GenerateSecp256k1Key(src)
+	case ECDSA:
+		return GenerateECDSAKeyPair(src)
 	default:
 		return nil, nil, ErrBadKeyType
 	}
 }
 
-// Generates an ephemeral public key and returns a function that will compute
+// GenerateEKeyPair returns an ephemeral public key and returns a function that will compute
 // the shared secret key.  Used in the identify module.
 //
 // Focuses only on ECDH now, but can be made more general in the future.
@@ -137,11 +149,11 @@ func GenerateEKeyPair(curveName string) ([]byte, GenSharedKey, error) {
 		// Verify and unpack node's public key.
 		x, y := elliptic.Unmarshal(curve, theirPub)
 		if x == nil {
-			return nil, fmt.Errorf("Malformed public key: %d %v", len(theirPub), theirPub)
+			return nil, fmt.Errorf("malformed public key: %d %v", len(theirPub), theirPub)
 		}
 
 		if !curve.IsOnCurve(x, y) {
-			return nil, errors.New("Invalid public key.")
+			return nil, errors.New("invalid public key")
 		}
 
 		// Generate shared secret.
@@ -153,15 +165,16 @@ func GenerateEKeyPair(curveName string) ([]byte, GenSharedKey, error) {
 	return pubKey, done, nil
 }
 
+// StretchedKeys ...
 type StretchedKeys struct {
 	IV        []byte
 	MacKey    []byte
 	CipherKey []byte
 }
 
-// Generates a set of keys for each party by stretching the shared key.
+// KeyStretcher returns a set of keys for each party by stretching the shared key.
 // (myIV, theirIV, myCipherKey, theirCipherKey, myMACKey, theirMACKey)
-func KeyStretcher(cipherType string, hashType string, secret []byte) (StretchedKeys, StretchedKeys) {
+func KeyStretcher(cipherType string, hashType string, secret []byte) (*StretchedKeys, *StretchedKeys, error) {
 	var cipherKeySize int
 	var ivSize int
 	switch cipherType {
@@ -197,15 +210,21 @@ func KeyStretcher(cipherType string, hashType string, secret []byte) (StretchedK
 	}
 
 	m := hmac.New(h, secret)
-	m.Write(seed)
+	if _, err := m.Write(seed); err != nil {
+		return nil, nil, err
+	}
 
 	a := m.Sum(nil)
 
 	j := 0
 	for j < len(result) {
 		m.Reset()
-		m.Write(a)
-		m.Write(seed)
+		if _, err := m.Write(a); err != nil {
+			return nil, nil, err
+		}
+		if _, err := m.Write(seed); err != nil {
+			return nil, nil, err
+		}
 		b := m.Sum(nil)
 
 		todo := len(b)
@@ -219,7 +238,9 @@ func KeyStretcher(cipherType string, hashType string, secret []byte) (StretchedK
 		j += todo
 
 		m.Reset()
-		m.Write(a)
+		if _, err := m.Write(a); err != nil {
+			return nil, nil, err
+		}
 		a = m.Sum(nil)
 	}
 
@@ -238,7 +259,7 @@ func KeyStretcher(cipherType string, hashType string, secret []byte) (StretchedK
 	k2.CipherKey = r2[ivSize : ivSize+cipherKeySize]
 	k2.MacKey = r2[ivSize+cipherKeySize:]
 
-	return k1, k2
+	return &k1, &k2, nil
 }
 
 // UnmarshalPublicKey converts a protobuf serialized public key into its
@@ -283,13 +304,14 @@ func UnmarshalPrivateKey(data []byte) (PrivKey, error) {
 
 // MarshalPrivateKey converts a key object into its protobuf serialized form.
 func MarshalPrivateKey(k PrivKey) ([]byte, error) {
-
 	switch k.(type) {
 	case *Ed25519PrivateKey:
 		return k.Bytes()
 	case *RsaPrivateKey:
 		return k.Bytes()
 	case *Secp256k1PrivateKey:
+		return k.Bytes()
+	case *ECDSAPrivateKey:
 		return k.Bytes()
 	default:
 		return nil, ErrBadKeyType

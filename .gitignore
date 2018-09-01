@@ -25,16 +25,11 @@ build/
 
 # misc
 notes.txt
-
 .data/
-
 .testfiles/
-
 *.pem
 test.toml
-
 *.tar
-
 node/test_data/go_example_image.tar
-
 coverage.out
+vendor.bak

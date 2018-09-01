@@ -1,4 +1,4 @@
-package ipns
+package ipnsutil
 
 import (
 	"testing"
