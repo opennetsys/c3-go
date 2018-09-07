@@ -339,8 +339,16 @@ localhostproxy:
 # COVERAGE
 
 .PHONY: coverage
-coverage:
-	@go test -v -covermode=count -coverprofile=coverage.out
+coverage: coverage/install test/coverage
+
+.PHONY: coverage/install
+coverage/install:
+	@go get golang.org/x/tools/cmd/cover
+	@go get github.com/mattn/goveralls
+
+.PHONY: test/coverage
+test/coverage:
+	@go test -v ./common/... -covermode=count -coverprofile=coverage.out
 	@goveralls -coverprofile=coverage.out -service=travis-ci -repotoken="$$COVERALLS_TOKEN"
 
 # /END COVERAGE

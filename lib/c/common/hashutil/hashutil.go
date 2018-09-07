@@ -3,8 +3,6 @@ package main
 import "C"
 import (
 	"unsafe"
-
-	"github.com/c3systems/c3-go/common/hashing"
 )
 
 // Hash ...

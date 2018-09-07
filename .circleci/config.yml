@@ -60,10 +60,11 @@ jobs:
           name: Tests
           command: |
             make test
-            go get golang.org/x/tools/cmd/cover
-            go get github.com/mattn/goveralls
-            go test -v -covermode=count -coverprofile=coverage.out
-            goveralls -coverprofile=coverage.out -service=travis-ci -repotoken="$COVERALLS_TOKEN"
+
+      - run:
+          name: Coverage
+          command: |
+            make coverage
 
 workflows:
   version: 2
