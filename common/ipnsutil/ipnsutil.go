@@ -27,7 +27,7 @@ func PEMToIPNS(pemFilepath string, password *string) (string, error) {
 		return "", fmt.Errorf("err reading pem file\n%v", err)
 	}
 
-	_, wPub, err := lCrypt.GenerateECDSAKeyPairFromKey(priv)
+	_, wPub, err := lCrypt.ECDSAKeyPairFromKey(priv)
 	if err != nil {
 		return "", fmt.Errorf("err generating key pairs\n%v", err)
 	}

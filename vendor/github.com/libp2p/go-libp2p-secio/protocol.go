@@ -328,7 +328,7 @@ func (s *secureSession) runHandshakeSync() error {
 	}
 
 	// generate two sets of keys (stretching)
-	k1, k2, _ := ci.KeyStretcher(s.local.cipherT, s.local.hashT, s.sharedSecret)
+	k1, k2 := ci.KeyStretcher(s.local.cipherT, s.local.hashT, s.sharedSecret)
 
 	// use random nonces to decide order.
 	switch {
@@ -340,8 +340,8 @@ func (s *secureSession) runHandshakeSync() error {
 		// we should've bailed before this. but if not, bail here.
 		return ErrEcho
 	}
-	//s.local.keys = k1
-	//s.remote.keys = k2
+	s.local.keys = k1
+	s.remote.keys = k2
 
 	// log.Debug("2.2 keys:\n\tshared: %v\n\tk1: %v\n\tk2: %v",
 	// 	s.sharedSecret, s.local.keys, s.remote.keys)

@@ -5,16 +5,13 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
+	"encoding/asn1"
 	"errors"
 	"io"
 	"math/big"
-	"reflect"
 
-	// note: changeback to libp2p for pr
 	pb "github.com/libp2p/go-libp2p-crypto/pb"
 
-	"github.com/ethereum/go-ethereum/rlp"
-	proto "github.com/gogo/protobuf/proto"
 	sha256 "github.com/minio/sha256-simd"
 )
 
@@ -30,8 +27,7 @@ type ECDSAPublicKey struct {
 
 // ECDSASig holds the r and s values of an ECDSA signature
 type ECDSASig struct {
-	R *big.Int
-	S *big.Int
+	R, S *big.Int
 }
 
 var (
@@ -47,12 +43,7 @@ var (
 
 // GenerateECDSAKeyPair generates a new ecdsa private and public key
 func GenerateECDSAKeyPair(src io.Reader) (PrivKey, PubKey, error) {
-	priv, err := ecdsa.GenerateKey(ECDSACurve, src)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return &ECDSAPrivateKey{priv}, &ECDSAPublicKey{&priv.PublicKey}, nil
+	return GenerateECDSAKeyPairWithCurve(ECDSACurve, src)
 }
 
 // GenerateECDSAKeyPairWithCurve generates a new ecdsa private and public key with a speicified curve
@@ -65,8 +56,8 @@ func GenerateECDSAKeyPairWithCurve(curve elliptic.Curve, src io.Reader) (PrivKey
 	return &ECDSAPrivateKey{priv}, &ECDSAPublicKey{&priv.PublicKey}, nil
 }
 
-// GenerateECDSAKeyPairFromKey generates a new ecdsa private and public key from an input private key
-func GenerateECDSAKeyPairFromKey(priv *ecdsa.PrivateKey) (PrivKey, PubKey, error) {
+// ECDSAKeyPairFromKey generates a new ecdsa private and public key from an input private key
+func ECDSAKeyPairFromKey(priv *ecdsa.PrivateKey) (PrivKey, PubKey, error) {
 	if priv == nil {
 		return nil, nil, ErrNilPrivateKey
 	}
@@ -111,16 +102,17 @@ func UnmarshalECDSAPublicKey(data []byte) (PubKey, error) {
 
 // Bytes returns the private key as protobuf bytes
 func (ePriv *ECDSAPrivateKey) Bytes() ([]byte, error) {
-	b, err := x509.MarshalECPrivateKey(ePriv.priv)
-	if err != nil {
-		return nil, err
-	}
+	return MarshalPrivateKey(ePriv)
+}
 
-	pbmes := new(pb.PrivateKey)
-	typ := pb.KeyType_ECDSA
-	pbmes.Type = &typ
-	pbmes.Data = b
-	return proto.Marshal(pbmes)
+// Type returns the key type
+func (ePriv *ECDSAPrivateKey) Type() pb.KeyType {
+	return pb.KeyType_ECDSA
+}
+
+// Raw returns x509 bytes from a private key
+func (ePriv *ECDSAPrivateKey) Raw() ([]byte, error) {
+	return x509.MarshalECPrivateKey(ePriv.priv)
 }
 
 // Equals compares to private keys
@@ -141,12 +133,10 @@ func (ePriv *ECDSAPrivateKey) Sign(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	sig := &ECDSASig{
+	return asn1.Marshal(ECDSASig{
 		R: r,
 		S: s,
-	}
-
-	return rlp.EncodeToBytes(sig)
+	})
 }
 
 // GetPublic returns a public key
@@ -156,16 +146,17 @@ func (ePriv *ECDSAPrivateKey) GetPublic() PubKey {
 
 // Bytes returns the public key as protobuf bytes
 func (ePub *ECDSAPublicKey) Bytes() ([]byte, error) {
-	b, err := x509.MarshalPKIXPublicKey(ePub.pub)
-	if err != nil {
-		return nil, err
-	}
+	return MarshalPublicKey(ePub)
+}
 
-	pbmes := new(pb.PublicKey)
-	typ := pb.KeyType_ECDSA
-	pbmes.Type = &typ
-	pbmes.Data = b
-	return proto.Marshal(pbmes)
+// Type returns the key type
+func (ePub *ECDSAPublicKey) Type() pb.KeyType {
+	return pb.KeyType_ECDSA
+}
+
+// Raw returns x509 bytes from a public key
+func (ePub ECDSAPublicKey) Raw() ([]byte, error) {
+	return x509.MarshalPKIXPublicKey(ePub.pub)
 }
 
 // Equals compares to public keys
@@ -175,13 +166,14 @@ func (ePub *ECDSAPublicKey) Equals(o Key) bool {
 		return false
 	}
 
-	return reflect.DeepEqual(ePub, oPub)
+	return ePub.pub.X != nil && ePub.pub.Y != nil && oPub.pub.X != nil && oPub.pub.Y != nil &&
+		0 == ePub.pub.X.Cmp(oPub.pub.X) && 0 == ePub.pub.Y.Cmp(oPub.pub.Y)
 }
 
 // Verify compares data to a signature
 func (ePub *ECDSAPublicKey) Verify(data, sigBytes []byte) (bool, error) {
 	sig := new(ECDSASig)
-	if err := rlp.DecodeBytes(sigBytes, sig); err != nil {
+	if _, err := asn1.Unmarshal(sigBytes, sig); err != nil {
 		return false, err
 	}
 	if sig == nil {

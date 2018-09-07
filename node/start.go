@@ -85,7 +85,7 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 	}
 	pub := &priv.PublicKey
 
-	wPriv, wPub, err := lCrypt.GenerateECDSAKeyPairFromKey(priv)
+	wPriv, wPub, err := lCrypt.ECDSAKeyPairFromKey(priv)
 	if err != nil {
 		return fmt.Errorf("err generating key pairs\n%v", err)
 	}

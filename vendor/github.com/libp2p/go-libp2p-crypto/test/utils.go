@@ -4,7 +4,6 @@ import (
 	"math/rand"
 	"time"
 
-	// TODO: change back to libp2p for pr
 	ci "github.com/libp2p/go-libp2p-crypto"
 )
 

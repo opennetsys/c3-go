@@ -242,7 +242,7 @@ run/node:
 
 .PHONY: run/node/2
 run/node/2:
-	@go run main.go node start --pem=node/test_data/priv2.pem --uri /ip4/0.0.0.0/tcp/3001 --data-dir ~/.c3-2 --difficulty 5
+	@go run main.go node start --pem=node/test_data/priv2.pem --uri /ip4/0.0.0.0/tcp/3001 --data-dir ~/.c3-2 --difficulty 5 --peer "$(PEER)"
 
 .PHONY: node/save/testimage
 node/save/testimage:
@@ -350,9 +350,17 @@ coverage:
 .PHONY: fix/libp2pcrypto
 fix/libp2pcrypto:
 	@rm -rf vendor/github.com/libp2p/go-libp2p-crypto/
-	@git clone https://github.com/c3systems/go-libp2p-crypto.git
+	@git clone -b forPR https://github.com/c3systems/go-libp2p-crypto.git
 	@mv go-libp2p-crypto vendor/github.com/libp2p/go-libp2p-crypto
 	@find "./vendor" -name "*.go" -print0 | xargs -0 perl -pi -e "s/c3systems\/go-libp2p-crypto/libp2p\/go-libp2p-crypto/g"
-	@sed -iE 's/k1, k2 :=/k1, k2, _ :=/g' vendor/github.com/libp2p/go-libp2p-secio/protocol.go
-	@sed -iE 's/s.local.keys = k1/\/\/s.local.keys = k1/g' vendor/github.com/libp2p/go-libp2p-secio/protocol.go
-	@sed -iE 's/s.remote.keys = k2/\/\/s.remote.keys = k2/g' vendor/github.com/libp2p/go-libp2p-secio/protocol.go
+	#@sed -iE 's/k1, k2 :=/k1, k2, _ :=/g' vendor/github.com/libp2p/go-libp2p-secio/protocol.go
+	#@sed -iE 's/s.local.keys = k1/\/\/s.local.keys = k1/g' vendor/github.com/libp2p/go-libp2p-secio/protocol.go
+	#@sed -iE 's/s.remote.keys = k2/\/\/s.remote.keys = k2/g' vendor/github.com/libp2p/go-libp2p-secio/protocol.go
+
+  @git clone git@github.com:gogo/protobuf.git
+	@rm -rf vendor/github.com/gogo/protobuf
+	@mv protobuf vendor/github.com/gogo/
+
+	@git clone git@github.com:libp2p/go-libp2p-netutil.git
+	@rm -rf vendor/github.com/libp2p/go-libp2p-netutil
+	@mv go-libp2p-netutil vendor/github.com/libp2p/

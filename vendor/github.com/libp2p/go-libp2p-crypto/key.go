@@ -5,19 +5,17 @@ package crypto
 
 import (
 	"bytes"
-	"encoding/base64"
-	"errors"
-	"fmt"
-	"io"
-
 	"crypto/elliptic"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha1"
 	"crypto/sha512"
+	"encoding/base64"
+	"errors"
+	"fmt"
 	"hash"
+	"io"
 
-	// note: change back to libp2p for pr
 	pb "github.com/libp2p/go-libp2p-crypto/pb"
 
 	"github.com/gogo/protobuf/proto"
@@ -72,10 +70,20 @@ var PrivKeyUnmarshallers = map[pb.KeyType]PrivKeyUnmarshaller{
 // Key represents a crypto key that can be compared to another key
 type Key interface {
 	// Bytes returns a serialized, storeable representation of this key
+	// DEPRECATED in favor of Marshal / Unmarshal
 	Bytes() ([]byte, error)
 
 	// Equals checks whether two PubKeys are the same
 	Equals(Key) bool
+
+	// Raw returns the raw bytes of the key (not wrapped in the
+	// libp2p-crypto protobuf).
+	//
+	// This function is the inverse of {Priv,Pub}KeyUnmarshaler.
+	Raw() ([]byte, error)
+
+	// Type returns the protobof key type.
+	Type() pb.KeyType
 }
 
 // PrivKey represents a private key that can be used to generate a public key,
@@ -174,7 +182,7 @@ type StretchedKeys struct {
 
 // KeyStretcher returns a set of keys for each party by stretching the shared key.
 // (myIV, theirIV, myCipherKey, theirCipherKey, myMACKey, theirMACKey)
-func KeyStretcher(cipherType string, hashType string, secret []byte) (*StretchedKeys, *StretchedKeys, error) {
+func KeyStretcher(cipherType string, hashType string, secret []byte) (StretchedKeys, StretchedKeys) {
 	var cipherKeySize int
 	var ivSize int
 	switch cipherType {
@@ -210,21 +218,19 @@ func KeyStretcher(cipherType string, hashType string, secret []byte) (*Stretched
 	}
 
 	m := hmac.New(h, secret)
-	if _, err := m.Write(seed); err != nil {
-		return nil, nil, err
-	}
+	// note: guaranteed to never return an error
+	m.Write(seed)
 
 	a := m.Sum(nil)
 
 	j := 0
 	for j < len(result) {
 		m.Reset()
-		if _, err := m.Write(a); err != nil {
-			return nil, nil, err
-		}
-		if _, err := m.Write(seed); err != nil {
-			return nil, nil, err
-		}
+
+		// note: guaranteed to never return an error.
+		m.Write(a)
+		m.Write(seed)
+
 		b := m.Sum(nil)
 
 		todo := len(b)
@@ -238,9 +244,10 @@ func KeyStretcher(cipherType string, hashType string, secret []byte) (*Stretched
 		j += todo
 
 		m.Reset()
-		if _, err := m.Write(a); err != nil {
-			return nil, nil, err
-		}
+
+		// note: guaranteed to never return an error.
+		m.Write(a)
+
 		a = m.Sum(nil)
 	}
 
@@ -259,7 +266,7 @@ func KeyStretcher(cipherType string, hashType string, secret []byte) (*Stretched
 	k2.CipherKey = r2[ivSize : ivSize+cipherKeySize]
 	k2.MacKey = r2[ivSize+cipherKeySize:]
 
-	return &k1, &k2, nil
+	return k1, k2
 }
 
 // UnmarshalPublicKey converts a protobuf serialized public key into its
@@ -282,7 +289,15 @@ func UnmarshalPublicKey(data []byte) (PubKey, error) {
 // MarshalPublicKey converts a public key object into a protobuf serialized
 // public key
 func MarshalPublicKey(k PubKey) ([]byte, error) {
-	return k.Bytes()
+	pbmes := new(pb.PublicKey)
+	pbmes.Type = k.Type()
+	data, err := k.Raw()
+	if err != nil {
+		return nil, err
+	}
+	pbmes.Data = data
+
+	return proto.Marshal(pbmes)
 }
 
 // UnmarshalPrivateKey converts a protobuf serialized private key into its
@@ -304,18 +319,15 @@ func UnmarshalPrivateKey(data []byte) (PrivKey, error) {
 
 // MarshalPrivateKey converts a key object into its protobuf serialized form.
 func MarshalPrivateKey(k PrivKey) ([]byte, error) {
-	switch k.(type) {
-	case *Ed25519PrivateKey:
-		return k.Bytes()
-	case *RsaPrivateKey:
-		return k.Bytes()
-	case *Secp256k1PrivateKey:
-		return k.Bytes()
-	case *ECDSAPrivateKey:
-		return k.Bytes()
-	default:
-		return nil, ErrBadKeyType
+	pbmes := new(pb.PrivateKey)
+	pbmes.Type = k.Type()
+	data, err := k.Raw()
+	if err != nil {
+		return nil, err
 	}
+
+	pbmes.Data = data
+	return proto.Marshal(pbmes)
 }
 
 // ConfigDecodeKey decodes from b64 (for config file), and unmarshals.
