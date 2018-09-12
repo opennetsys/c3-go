@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -19,10 +20,11 @@ import (
 	"github.com/c3systems/c3-go/core/p2p/store/leveldbstore"
 	colorlog "github.com/c3systems/c3-go/log/color"
 	loghooks "github.com/c3systems/c3-go/log/hooks"
-	redis "github.com/gomodule/redigo/redis"
-	//"github.com/c3systems/c3-go/node/store/safemempool"
+	nodestore "github.com/c3systems/c3-go/node/store"
 	"github.com/c3systems/c3-go/node/store/redisstore"
+	"github.com/c3systems/c3-go/node/store/safemempool"
 	nodetypes "github.com/c3systems/c3-go/node/types"
+	redis "github.com/gomodule/redigo/redis"
 
 	ipfsaddr "github.com/ipfs/go-ipfs-addr"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
@@ -167,25 +169,32 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 		newNode.Peerstore().AddAddrs(pinfo.ID, pinfo.Addrs, peerstore.PermanentAddrTTL)
 	}
 
-	// TODO: add cli flags for different types
-	/*
-		memPool, err := safemempool.New(&safemempool.Props{})
+	var memPool nodestore.Interface
+
+	mempoolType := strings.ToLower(cfg.MempoolType)
+	switch mempoolType {
+	case "redis":
+		log.Println(`[node] mempool type is "redis"`)
+		redisaddr := "localhost:6379"
+		redispool := &redis.Pool{
+			MaxIdle:     3,
+			IdleTimeout: 240 * time.Second,
+			Dial:        func() (redis.Conn, error) { return redis.Dial("tcp", redisaddr) },
+		}
+		memPool, err = redisstore.New(&redisstore.Props{
+			Pool: redispool,
+		})
+		if err != nil {
+			return fmt.Errorf("[node] err initializing redisstore\n%v", err)
+		}
+	case "memory":
+		fallthrough
+	default:
+		log.Println(`[node] mempool type is "memory"`)
+		memPool, err = safemempool.New(&safemempool.Props{})
 		if err != nil {
 			return fmt.Errorf("[node] err initializing mempool\n%v", err)
 		}
-	*/
-
-	redisaddr := "localhost:6379"
-	redispool := &redis.Pool{
-		MaxIdle:     3,
-		IdleTimeout: 240 * time.Second,
-		Dial:        func() (redis.Conn, error) { return redis.Dial("tcp", redisaddr) },
-	}
-	memPool, err := redisstore.New(&redisstore.Props{
-		Pool: redispool,
-	})
-	if err != nil {
-		return fmt.Errorf("[node] err initializing redisstore\n%v", err)
 	}
 
 	// TODO: add cli flags for different types

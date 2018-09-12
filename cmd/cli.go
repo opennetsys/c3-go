@@ -36,6 +36,7 @@ func Build() *cobra.Command {
 		password                string
 		outputPath              string
 		dockerLocalRegistryHost string
+		mempoolType             string
 		difficulty              int
 	)
 
@@ -139,16 +140,18 @@ For more info visit: https://github.com/c3systems/c3-go,
 					Password: password,
 				},
 				BlockDifficulty: difficulty,
+				MempoolType:     mempoolType,
 			})
 		},
 	}
 
-	startSubCmd.Flags().StringVarP(&configPath, "config", "c", "", "[Optional] filepath of the config file to use")
+	startSubCmd.Flags().StringVarP(&configPath, "config", "c", "", "filepath of the config file to use [OPTIONAL]")
 	startSubCmd.Flags().StringVarP(&nodeURI, "uri", "u", "/ip4/0.0.0.0/tcp/9000", "The host on which to run the node")
 	startSubCmd.Flags().StringVarP(&peer, "peer", "p", cnf.Peer(), "A peer to which to connect")
 	startSubCmd.Flags().StringVarP(&dataDir, "data-dir", "d", cnf.DataDir(), "The directory in which to save data")
 	startSubCmd.Flags().StringVar(&pem, "pem", cnf.PrivateKeyPath(), "A pem file containing an ecdsa private key")
 	startSubCmd.Flags().StringVar(&password, "password", "", "A password for the pem file [OPTIONAL]")
+	startSubCmd.Flags().StringVar(&mempoolType, "mempool-type", "memory", "The mempool type to use (memory, redis) [OPTIONAL]")
 	startSubCmd.Flags().IntVar(&difficulty, "difficulty", 6, "The hashing difficulty for mining blocks. (1-15) [OPTIONAL]. This feature will be deprecated when C3 soon moves to Delegated Proof-of-Stake.")
 
 	// TODO: add more flags for blockstore and nodestore, etc.

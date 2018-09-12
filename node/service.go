@@ -3,7 +3,6 @@ package node
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	log "github.com/sirupsen/logrus"
 
@@ -38,7 +37,6 @@ func New(props *Props) (*Service, error) {
 
 func (s *Service) spawnNextBlockMiner(prevBlock *mainchain.Block) error {
 	pendingTransactions, err := s.props.Store.GatherPendingTransactions()
-	fmt.Println("FOOOO", pendingTransactions)
 	if err != nil {
 		log.Errorf("[node] error gathering pending transactions; %v", err)
 		return err

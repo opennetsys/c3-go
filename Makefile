@@ -238,7 +238,7 @@ test/logger/color:
 
 .PHONY: run/node
 run/node:
-	@go run main.go node start --pem=node/test_data/priv1.pem --uri /ip4/0.0.0.0/tcp/3330 --data-dir ~/.c3-1 --difficulty 5
+	@go run main.go node start --pem=node/test_data/priv1.pem --uri /ip4/0.0.0.0/tcp/3330 --data-dir ~/.c3-1 --difficulty 5 --mempool-type memory
 
 .PHONY: run/node/2
 run/node/2:

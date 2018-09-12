@@ -28,4 +28,5 @@ type Config struct {
 	DataDir         string
 	Keys            Keys
 	BlockDifficulty int
+	MempoolType     string
 }
