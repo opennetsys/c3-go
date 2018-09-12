@@ -24,6 +24,7 @@ import (
 	"github.com/c3systems/c3-go/node/store/redisstore"
 	"github.com/c3systems/c3-go/node/store/safemempool"
 	nodetypes "github.com/c3systems/c3-go/node/types"
+	"github.com/c3systems/c3-go/rpc"
 	redis "github.com/gomodule/redigo/redis"
 
 	ipfsaddr "github.com/ipfs/go-ipfs-addr"
@@ -196,6 +197,11 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 			return fmt.Errorf("[node] err initializing mempool\n%v", err)
 		}
 	}
+
+	// start rpc service
+	go rpc.New(&rpc.Config{
+		Mempool: memPool,
+	})
 
 	// TODO: add cli flags for different types
 	diskStore, err := leveldbstore.New(cfg.DataDir, nil)

@@ -10,6 +10,7 @@ import (
 	context "golang.org/x/net/context"
 
 	loghooks "github.com/c3systems/c3-go/log/hooks"
+	"github.com/c3systems/c3-go/node/store"
 	pb "github.com/c3systems/c3-go/rpc/pb"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
@@ -26,32 +27,46 @@ const port = ":5005"
 
 // RPC ...
 type RPC struct {
+	mempool store.Interface
+}
+
+// Config ...
+type Config struct {
+	Mempool store.Interface
 }
 
 // Server ...
-type Server struct{}
+type Server struct {
+	service *RPC
+}
 
 // New ...
-func New() *RPC {
+func New(cfg *Config) *RPC {
 	listen, err := net.Listen("tcp", port)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	svc := &RPC{
+		mempool: cfg.Mempool,
+	}
+
 	grpcServer := grpc.NewServer()
-	pb.RegisterC3Server(grpcServer, &Server{})
+	pb.RegisterC3Server(grpcServer, &Server{
+		service: svc,
+	})
 	reflection.Register(grpcServer)
 	grpcServer.Serve(listen)
 
 	log.Printf("[rpc] server running on port %s", port)
 
-	return &RPC{}
+	return svc
 }
 
 // Send ...
 func (s *Server) Send(ctx context.Context, r *pb.Request) (*pb.Response, error) {
 	method := strings.ToLower(r.Method)
-	result, err := handleRequest(method, r)
+	result, err := s.handleRequest(method, r)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -63,12 +78,13 @@ func (s *Server) Send(ctx context.Context, r *pb.Request) (*pb.Response, error) 
 	}, nil
 }
 
-func handleRequest(method string, r *pb.Request) (*any.Any, error) {
+// handleRequest ...
+func (s *Server) handleRequest(method string, r *pb.Request) (*any.Any, error) {
 	switch method {
 	case "c3_ping":
-		return ptypes.MarshalAny(ping())
-	case "c3_latestBlock":
-		return ptypes.MarshalAny(latestBlock())
+		return ptypes.MarshalAny(s.service.ping())
+	case "c3_latestblock":
+		return ptypes.MarshalAny(s.service.latestBlock())
 	default:
 		return nil, ErrMethodNotSupported
 	}
