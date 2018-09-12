@@ -403,7 +403,7 @@ func EncodeAddress(pub *ecdsa.PublicKey) (string, error) {
 // DecodeAddress [for now] decodes public address hex to ECDSA public key.
 // Public key are treated as public address at the moment.
 func DecodeAddress(address string) (*ecdsa.PublicKey, error) {
-	byteStr, err := hexutil.StripLeader(address)
+	byteStr, err := hexutil.RemovePrefix(address)
 	if err != nil {
 		return nil, err
 	}

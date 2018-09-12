@@ -21,7 +21,7 @@ var (
 
 // DecodeUint64 decodes a hex string into a uint64
 func DecodeUint64(hexStr string) (uint64, error) {
-	str, err := StripLeader(hexStr)
+	str, err := RemovePrefix(hexStr)
 	if err != nil {
 		return 0, err
 	}
@@ -36,17 +36,17 @@ func DecodeUint64(hexStr string) (uint64, error) {
 
 // EncodeUint64 encodes i as a hex string
 func EncodeUint64(i uint64) string {
-	return strings.ToLower(AddLeader(strconv.FormatUint(i, 16)))
+	return strings.ToLower(AddPrefix(strconv.FormatUint(i, 16)))
 }
 
 // EncodeString ...
 func EncodeString(str string) string {
-	return strings.ToLower(AddLeader(hex.EncodeToString([]byte(str))))
+	return strings.ToLower(AddPrefix(hex.EncodeToString([]byte(str))))
 }
 
 // DecodeString ...
 func DecodeString(hexStr string) ([]byte, error) {
-	str, err := StripLeader(hexStr)
+	str, err := RemovePrefix(hexStr)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func DecodeString(hexStr string) ([]byte, error) {
 
 // EncodeToString ...
 func EncodeToString(b []byte) string {
-	return strings.ToLower(AddLeader(hex.EncodeToString(b)))
+	return strings.ToLower(AddPrefix(hex.EncodeToString(b)))
 }
 
 // EncodeBytes ...
@@ -93,7 +93,7 @@ func EncodeBigInt(i *big.Int) string {
 // DecodeBigInt ...
 func DecodeBigInt(hexStr string) (*big.Int, error) {
 	i := new(big.Int)
-	hx, err := StripLeader(hexStr)
+	hx, err := RemovePrefix(hexStr)
 	if err != nil {
 		return nil, err
 	}
@@ -123,12 +123,12 @@ func DecodeInt(hexStr string) (int, error) {
 // EncodeFloat64 ...
 // https://www.h-schmidt.net/FloatConverter/IEEE754.html
 func EncodeFloat64(f float64) string {
-	return strings.ToLower(AddLeader(fmt.Sprintf("%x", math.Float64bits(f))))
+	return strings.ToLower(AddPrefix(fmt.Sprintf("%x", math.Float64bits(f))))
 }
 
 // DecodeFloat64 ...
 func DecodeFloat64(hexStr string) (float64, error) {
-	hx, err := StripLeader(hexStr)
+	hx, err := RemovePrefix(hexStr)
 	if err != nil {
 		return float64(0), err
 	}
@@ -142,13 +142,13 @@ func DecodeFloat64(hexStr string) (float64, error) {
 	return f, nil
 }
 
-// StripLeader ...
-func StripLeader(hexStr string) (string, error) {
+// RemovePrefix ...
+func RemovePrefix(hexStr string) (string, error) {
 	return strings.TrimPrefix(hexStr, Leader), nil
 }
 
-// AddLeader ...
-func AddLeader(str string) string {
+// AddPrefix ...
+func AddPrefix(str string) string {
 	// note: should check if leader is already present?
 	return fmt.Sprintf("%s%s", Leader, str)
 }

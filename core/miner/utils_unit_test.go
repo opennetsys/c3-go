@@ -34,8 +34,8 @@ func TestCheckBlockHashAgainstDifficulty(t *testing.T) {
 	}
 
 	var (
-		hash1 string = hexutil.AddLeader("01")
-		hash2 string = hexutil.AddLeader("1")
+		hash1 string = hexutil.AddPrefix("01")
+		hash2 string = hexutil.AddPrefix("1")
 		hash3 string = "foo"
 	)
 
@@ -111,7 +111,7 @@ func TestCheckHashAgainstDifficulty(t *testing.T) {
 	tests := []test{
 		test{
 			input: input{
-				hashHex:    hexutil.AddLeader("01"),
+				hashHex:    hexutil.AddPrefix("01"),
 				difficulty: 1,
 			},
 			expected: true,
@@ -119,7 +119,7 @@ func TestCheckHashAgainstDifficulty(t *testing.T) {
 		},
 		test{
 			input: input{
-				hashHex:    hexutil.AddLeader("01"),
+				hashHex:    hexutil.AddPrefix("01"),
 				difficulty: 2,
 			},
 			expected: false,
@@ -127,7 +127,7 @@ func TestCheckHashAgainstDifficulty(t *testing.T) {
 		},
 		test{
 			input: input{
-				hashHex:    hexutil.AddLeader("1"),
+				hashHex:    hexutil.AddPrefix("1"),
 				difficulty: 0,
 			},
 			expected: true,

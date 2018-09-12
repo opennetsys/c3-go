@@ -162,12 +162,12 @@ func DecodeFloat64(hexStr *C.char) C.double {
 	return C.double(res)
 }
 
-// StripLeader ...
-//export StripLeader
-func StripLeader(hexStr *C.char) *C.char {
+// RemovePrefix ...
+//export RemovePrefix
+func RemovePrefix(hexStr *C.char) *C.char {
 	str := C.GoString(hexStr)
 
-	s, err := hexutil.StripLeader(str)
+	s, err := hexutil.RemovePrefix(str)
 	if err != nil {
 		panic(err)
 	}
@@ -175,12 +175,12 @@ func StripLeader(hexStr *C.char) *C.char {
 	return C.CString(s)
 }
 
-// AddLeader ...
-//export AddLeader
-func AddLeader(str *C.char) *C.char {
+// AddPrefix ...
+//export AddPrefix
+func AddPrefix(str *C.char) *C.char {
 	gStr := C.GoString(str)
 
-	res := hexutil.AddLeader(gStr)
+	res := hexutil.AddPrefix(gStr)
 	return C.CString(res)
 }
 

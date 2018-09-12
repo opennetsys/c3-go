@@ -176,6 +176,7 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 	switch mempoolType {
 	case "redis":
 		log.Println(`[node] mempool type is "redis"`)
+		// TODO: move to config
 		redisaddr := "localhost:6379"
 		redispool := &redis.Pool{
 			MaxIdle:     3,
@@ -197,11 +198,6 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 			return fmt.Errorf("[node] err initializing mempool\n%v", err)
 		}
 	}
-
-	// start rpc service
-	go rpc.New(&rpc.Config{
-		Mempool: memPool,
-	})
 
 	// TODO: add cli flags for different types
 	diskStore, err := leveldbstore.New(cfg.DataDir, nil)
@@ -284,6 +280,12 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 		return fmt.Errorf("error starting miner in main start method\n%v", err)
 	}
 	log.Printf("[node] started %s", newNode.ID().Pretty())
+
+	// start rpc service
+	go rpc.New(&rpc.Config{
+		Mempool: memPool,
+		P2P:     p2pSvc,
+	})
 
 	for {
 		switch v := <-n.props.SubscriberChannel; v.(type) {

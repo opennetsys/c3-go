@@ -9,6 +9,7 @@ import (
 
 	context "golang.org/x/net/context"
 
+	"github.com/c3systems/c3-go/core/p2p"
 	loghooks "github.com/c3systems/c3-go/log/hooks"
 	"github.com/c3systems/c3-go/node/store"
 	pb "github.com/c3systems/c3-go/rpc/pb"
@@ -23,16 +24,19 @@ var (
 	ErrMethodNotSupported = errors.New("method not supported")
 )
 
+// TODO: move to config
 const port = ":5005"
 
 // RPC ...
 type RPC struct {
 	mempool store.Interface
+	p2p     *p2p.Service
 }
 
 // Config ...
 type Config struct {
 	Mempool store.Interface
+	P2P     *p2p.Service
 }
 
 // Server ...
@@ -49,6 +53,7 @@ func New(cfg *Config) *RPC {
 
 	svc := &RPC{
 		mempool: cfg.Mempool,
+		p2p:     cfg.P2P,
 	}
 
 	grpcServer := grpc.NewServer()
@@ -85,6 +90,8 @@ func (s *Server) handleRequest(method string, r *pb.Request) (*any.Any, error) {
 		return ptypes.MarshalAny(s.service.ping())
 	case "c3_latestblock":
 		return ptypes.MarshalAny(s.service.latestBlock())
+	case "c3_getblock":
+		return ptypes.MarshalAny(s.service.getBlock(r.Params))
 	default:
 		return nil, ErrMethodNotSupported
 	}

@@ -389,4 +389,8 @@ run/rpc/ping:
 run/rpc/latestBlock:
 	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_latestBlock"}' localhost:5005 c3.C3/Send
 
+.PHONY: run/rpc/getblock
+run/rpc/getblock:
+	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_getBlock","params":["0x3"]}' localhost:5005 c3.C3/Send
+
 # /END RPC

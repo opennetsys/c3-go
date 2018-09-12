@@ -46,7 +46,7 @@ func CheckBlockHashAgainstDifficulty(block *mainchain.Block) (bool, error) {
 func CheckHashAgainstDifficulty(hashHex string, difficulty uint64) (bool, error) {
 	// TODO: check the difficulty is correct?
 
-	hashStr, err := hexutil.StripLeader(hashHex)
+	hashStr, err := hexutil.RemovePrefix(hashHex)
 	if err != nil {
 		return false, err
 	}

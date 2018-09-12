@@ -28,3 +28,21 @@ message PingResponse {
 message LatestBlockResponse {
   string data = 1;
 }
+
+message BlockResponse {
+  string BlockHash = 1;
+  string BlockNumber = 2;
+  string BlockTime = 3;
+  string ImageHash = 4;
+  string StateBlocksMerkleHash = 5;
+  string PrevBlockHash = 6;
+  string Nonce = 7;
+  string Difficulty = 8;
+  string MinerAddress = 9;
+  Signature MinerSig = 10;
+}
+
+message Signature {
+  string R = 1;
+  string S = 2;
+}

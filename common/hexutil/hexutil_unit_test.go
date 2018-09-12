@@ -348,7 +348,7 @@ func TestDecodeFloat64(t *testing.T) {
 	}
 }
 
-func TestStripLeader(t *testing.T) {
+func TestRemovePrefix(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		in  string
@@ -374,7 +374,7 @@ func TestStripLeader(t *testing.T) {
 
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
-			result, err := StripLeader(tt.in)
+			result, err := RemovePrefix(tt.in)
 			if err == nil && result != tt.out {
 				t.Errorf("want %v; got %v", tt.out, result)
 			}
@@ -386,7 +386,7 @@ func TestStripLeader(t *testing.T) {
 	}
 }
 
-func TestAddLeader(t *testing.T) {
+func TestAddPrefix(t *testing.T) {
 }
 
 func TestEncodeStringDecodeString(t *testing.T) {
