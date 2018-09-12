@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+import "google/protobuf/any.proto";
+
+package c3;
+
+service C3 {
+  rpc Send (Request) returns (Response) {}
+}
+
+message Request {
+  string jsonrpc = 1;
+  uint64 id = 2;
+  string method = 3;
+  repeated string params = 4;
+}
+
+message Response {
+  string jsonrpc = 1;
+  uint64 id = 2;
+  google.protobuf.Any result = 3;
+}
+
+message PingResponse {
+  string data = 1;
+}
+
+message LatestBlockResponse {
+  string data = 1;
+}

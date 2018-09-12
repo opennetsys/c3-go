@@ -361,14 +361,24 @@ fix/libp2pcrypto:
 	@git clone -b forPR https://github.com/c3systems/go-libp2p-crypto.git
 	@mv go-libp2p-crypto vendor/github.com/libp2p/go-libp2p-crypto
 	@find "./vendor" -name "*.go" -print0 | xargs -0 perl -pi -e "s/c3systems\/go-libp2p-crypto/libp2p\/go-libp2p-crypto/g"
+	@git clone git@github.com:gogo/protobuf.git
+	@rm -rf vendor/github.com/gogo/protobuf
+	@mv protobuf vendor/github.com/gogo/
+	@git clone git@github.com:libp2p/go-libp2p-netutil.git
+	@rm -rf vendor/github.com/libp2p/go-libp2p-netutil
+	@mv go-libp2p-netutil vendor/github.com/libp2p/
 	#@sed -iE 's/k1, k2 :=/k1, k2, _ :=/g' vendor/github.com/libp2p/go-libp2p-secio/protocol.go
 	#@sed -iE 's/s.local.keys = k1/\/\/s.local.keys = k1/g' vendor/github.com/libp2p/go-libp2p-secio/protocol.go
 	#@sed -iE 's/s.remote.keys = k2/\/\/s.remote.keys = k2/g' vendor/github.com/libp2p/go-libp2p-secio/protocol.go
 
-  @git clone git@github.com:gogo/protobuf.git
-	@rm -rf vendor/github.com/gogo/protobuf
-	@mv protobuf vendor/github.com/gogo/
+.PHONY: test/rpc
+test/rpc:
+	@go test -v rpc/*.go $(ARGS)
 
-	@git clone git@github.com:libp2p/go-libp2p-netutil.git
-	@rm -rf vendor/github.com/libp2p/go-libp2p-netutil
-	@mv go-libp2p-netutil vendor/github.com/libp2p/
+.PHONY: run/rpc/ping
+run/rpc/ping:
+	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_ping"}' localhost:5005 c3.C3/Send
+
+.PHONY: build/rpc/proto
+build/rpc/proto:
+	@protoc --go_out=plugins=grpc:. rpc/pb/c3.proto

@@ -104,3 +104,11 @@ required = [
 [[constraint]]
   name = "github.com/libp2p/go-libp2p-blankhost"
   version = "0.3.3"
+
+[[constraint]]
+  name = "github.com/golang/protobuf"
+  version = "v1.2.0"
+
+[[constraint]]
+  name = "golang.org/x/net"
+  branch = "master"
