@@ -124,11 +124,16 @@ func (s Service) RemoveTxs(hashes []string) error {
 	c := s.props.Pool.Get()
 	defer c.Close()
 
+	if len(hashes) == 0 {
+		return nil
+	}
+
 	keys := buildKeys(hashes)
 	k := make([]interface{}, len(keys))
 	for i, v := range k {
 		k[i] = v
 	}
+
 	_, err := c.Do("DEL", k...)
 	if err != nil {
 		return err
@@ -265,6 +270,9 @@ func (s *Service) GetPendingMainchainBlocks() ([]*mainchain.Block, error) {
 
 	var blks []*mainchain.Block
 	for _, bytesStr := range bytesStrs {
+		if bytesStr == "" {
+			continue
+		}
 		var blk mainchain.Block
 		if err := blk.DeserializeString(bytesStr); err != nil {
 			return nil, err
@@ -281,6 +289,10 @@ func (s *Service) RemovePendingMainchainBlock(blockHash string) error {
 	c := s.props.Pool.Get()
 	defer c.Close()
 
+	if blockHash == "" {
+		return nil
+	}
+
 	key := buildKey(blockHash)
 	_, err := c.Do("DEL", key)
 	if err != nil {
@@ -295,6 +307,10 @@ func (s *Service) RemovePendingMainchainBlock(blockHash string) error {
 func (s *Service) RemovePendingMainchainBlocks(blockHashes []string) error {
 	c := s.props.Pool.Get()
 	defer c.Close()
+
+	if len(blockHashes) == 0 {
+		return nil
+	}
 
 	keys := buildKeys(blockHashes)
 	k := make([]interface{}, len(keys))
