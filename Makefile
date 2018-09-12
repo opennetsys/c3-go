@@ -371,6 +371,12 @@ fix/libp2pcrypto:
 	#@sed -iE 's/s.local.keys = k1/\/\/s.local.keys = k1/g' vendor/github.com/libp2p/go-libp2p-secio/protocol.go
 	#@sed -iE 's/s.remote.keys = k2/\/\/s.remote.keys = k2/g' vendor/github.com/libp2p/go-libp2p-secio/protocol.go
 
+# RPC
+
+.PHONY: build/rpc/proto
+build/rpc/proto:
+	@protoc --go_out=plugins=grpc:. rpc/pb/c3.proto
+
 .PHONY: test/rpc
 test/rpc:
 	@go test -v rpc/*.go $(ARGS)
@@ -379,6 +385,8 @@ test/rpc:
 run/rpc/ping:
 	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_ping"}' localhost:5005 c3.C3/Send
 
-.PHONY: build/rpc/proto
-build/rpc/proto:
-	@protoc --go_out=plugins=grpc:. rpc/pb/c3.proto
+.PHONY: run/rpc/latestBlock
+run/rpc/latestBlock:
+	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_latestBlock"}' localhost:5005 c3.C3/Send
+
+# /END RPC

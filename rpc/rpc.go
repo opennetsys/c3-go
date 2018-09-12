@@ -67,6 +67,8 @@ func handleRequest(method string, r *pb.Request) (*any.Any, error) {
 	switch method {
 	case "c3_ping":
 		return ptypes.MarshalAny(ping())
+	case "c3_latestBlock":
+		return ptypes.MarshalAny(latestBlock())
 	default:
 		return nil, ErrMethodNotSupported
 	}

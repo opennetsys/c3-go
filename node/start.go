@@ -19,7 +19,9 @@ import (
 	"github.com/c3systems/c3-go/core/p2p/store/leveldbstore"
 	colorlog "github.com/c3systems/c3-go/log/color"
 	loghooks "github.com/c3systems/c3-go/log/hooks"
-	"github.com/c3systems/c3-go/node/store/safemempool"
+	redis "github.com/gomodule/redigo/redis"
+	//"github.com/c3systems/c3-go/node/store/safemempool"
+	"github.com/c3systems/c3-go/node/store/redisstore"
 	nodetypes "github.com/c3systems/c3-go/node/types"
 
 	ipfsaddr "github.com/ipfs/go-ipfs-addr"
@@ -166,9 +168,24 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 	}
 
 	// TODO: add cli flags for different types
-	memPool, err := safemempool.New(&safemempool.Props{})
+	/*
+		memPool, err := safemempool.New(&safemempool.Props{})
+		if err != nil {
+			return fmt.Errorf("[node] err initializing mempool\n%v", err)
+		}
+	*/
+
+	redisaddr := "localhost:6379"
+	redispool := &redis.Pool{
+		MaxIdle:     3,
+		IdleTimeout: 240 * time.Second,
+		Dial:        func() (redis.Conn, error) { return redis.Dial("tcp", redisaddr) },
+	}
+	memPool, err := redisstore.New(&redisstore.Props{
+		Pool: redispool,
+	})
 	if err != nil {
-		return fmt.Errorf("[node] err initializing mempool\n%v", err)
+		return fmt.Errorf("[node] err initializing redisstore\n%v", err)
 	}
 
 	// TODO: add cli flags for different types

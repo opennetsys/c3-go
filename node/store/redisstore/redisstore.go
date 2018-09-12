@@ -2,17 +2,18 @@ package redisstore
 
 import (
 	"errors"
-	"log"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/c3systems/c3-go/core/chain/mainchain"
 	"github.com/c3systems/c3-go/core/chain/statechain"
+	loghooks "github.com/c3systems/c3-go/log/hooks"
 	redis "github.com/gomodule/redigo/redis"
 )
 
-// TODO: add pending blocks methods...
-
 const (
 	transactionsMembersName = "transactions"
+	blocksMembersName       = "blocks"
 )
 
 // Props ...
@@ -182,9 +183,16 @@ func (s Service) GatherPendingTransactions() ([]*statechain.Transaction, error) 
 		return nil, err
 	}
 
-	var txs []*statechain.Transaction
+	txs := []*statechain.Transaction{}
+	if len(bytesStrs) == 0 {
+		return txs, nil
+	}
+
 	for _, bytesStr := range bytesStrs {
 		var tx statechain.Transaction
+		if len(bytesStr) == 0 {
+			continue
+		}
 		if err := tx.DeserializeString(bytesStr); err != nil {
 			return nil, err
 		}
@@ -208,4 +216,101 @@ func (s *Service) GetHeadBlock() (mainchain.Block, error) {
 func (s *Service) SetHeadBlock(block *mainchain.Block) error {
 	s.headBlock = block
 	return nil
+}
+
+// SetPendingMainchainBlock ...
+func (s *Service) SetPendingMainchainBlock(block *mainchain.Block) error {
+	if block == nil {
+		return errors.New("block is nil")
+	}
+
+	if block.Props().BlockHash == nil {
+		return errors.New("block hash is nil")
+	}
+
+	bytesStr, err := block.SerializeString()
+	if err != nil {
+		return err
+	}
+
+	hash := *block.Props().BlockHash
+	c := s.props.Pool.Get()
+	defer c.Close()
+	_, err = c.Do("SET", buildKey(hash), bytesStr)
+	if err != nil {
+		return err
+	}
+
+	_, err = c.Do("SADD", blocksMembersName, hash)
+
+	return nil
+}
+
+// GetPendingMainchainBlocks ...
+func (s *Service) GetPendingMainchainBlocks() ([]*mainchain.Block, error) {
+	c := s.props.Pool.Get()
+	defer c.Close()
+
+	hashes, err := redis.Strings(c.Do("SMEMBERS", blocksMembersName))
+	if err != nil {
+		return nil, err
+	}
+
+	keys := buildKeys(hashes)
+	// get many keys in a single MGET, ask redigo for []string result
+	bytesStrs, err := redis.Strings(c.Do("MGET", keys))
+	if err != nil {
+		return nil, err
+	}
+
+	var blks []*mainchain.Block
+	for _, bytesStr := range bytesStrs {
+		var blk mainchain.Block
+		if err := blk.DeserializeString(bytesStr); err != nil {
+			return nil, err
+		}
+
+		blks = append(blks, &blk)
+	}
+
+	return blks, nil
+}
+
+// RemovePendingMainchainBlock ...
+func (s *Service) RemovePendingMainchainBlock(blockHash string) error {
+	c := s.props.Pool.Get()
+	defer c.Close()
+
+	key := buildKey(blockHash)
+	_, err := c.Do("DEL", key)
+	if err != nil {
+		return err
+	}
+
+	_, err = c.Do("SREM", key)
+	return err
+}
+
+// RemovePendingMainchainBlocks ...
+func (s *Service) RemovePendingMainchainBlocks(blockHashes []string) error {
+	c := s.props.Pool.Get()
+	defer c.Close()
+
+	keys := buildKeys(blockHashes)
+	k := make([]interface{}, len(keys))
+	for i, v := range k {
+		k[i] = v
+	}
+	_, err := c.Do("DEL", k...)
+	if err != nil {
+		return err
+	}
+
+	_, err = c.Do("SREM", k...)
+
+	return err
+}
+
+func init() {
+	log.AddHook(loghooks.ContextHook{})
 }
