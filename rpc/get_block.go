@@ -2,6 +2,8 @@ package rpc
 
 // Ping ...
 import (
+	"errors"
+
 	"github.com/c3systems/c3-go/common/hexutil"
 	"github.com/c3systems/c3-go/core/chain/mainchain"
 	"github.com/c3systems/c3-go/core/p2p"
@@ -9,34 +11,45 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var (
+	// ErrBlockNotFound ...
+	ErrBlockNotFound = errors.New("block not found")
+)
+
 // getBlock ...
-func (s *RPC) getBlock(params []string) *pb.BlockResponse {
+func (s *RPC) getBlock(params []string) (*pb.BlockResponse, error) {
 	headBlock, err := s.mempool.GetHeadBlock()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	wantBlockNumber, err := hexutil.DecodeFloat64(params[0])
+	wantBlockNumber, err := hexutil.DecodeInt(params[0])
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	headBlockNumber, err := hexutil.DecodeFloat64(headBlock.Props().BlockNumber)
-	if wantBlockNumber > headBlockNumber || wantBlockNumber <= 0 {
-		return nil
+	headBlockNumber, err := hexutil.DecodeInt(headBlock.Props().BlockNumber)
+
+	if wantBlockNumber <= 0 {
+		return nil, ErrBlockNotFound
+	}
+
+	if wantBlockNumber > headBlockNumber {
+		return nil, ErrBlockNotFound
 	}
 
 	currentBlock := headBlock
 	for {
-		blockNumber, err := hexutil.DecodeFloat64(currentBlock.Props().BlockNumber)
+		blockNumber, err := hexutil.DecodeInt(currentBlock.Props().BlockNumber)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
-		if blockNumber == 0 {
-			return nil
+
+		if blockNumber <= 0 || blockNumber > headBlockNumber {
+			return nil, ErrBlockNotFound
 		}
 		if blockNumber != wantBlockNumber {
-			prevBlockHash := headBlock.Props().PrevBlockHash
+			prevBlockHash := currentBlock.Props().PrevBlockHash
 			prevBlock := s.getBlockByHash(prevBlockHash)
 			currentBlock = *prevBlock
 			continue
@@ -58,7 +71,7 @@ func (s *RPC) getBlock(params []string) *pb.BlockResponse {
 			Difficulty:            props.Difficulty,
 			MinerAddress:          props.MinerAddress,
 			MinerSig:              sig,
-		}
+		}, nil
 	}
 }
 

@@ -139,7 +139,6 @@ func (s *Service) spawnMinerListener(cancel context.CancelFunc, minerChan chan i
 					// TODO: wait until there are no more pending blocks, but for now, just assume all blocks received will be added to the chain
 					// TODO: check that all pending blocks have block #'s larger than the one we just mined
 					if pendingBlocks != nil && len(pendingBlocks) > 0 {
-						spew.Dump(pendingBlocks[0])
 						log.Printf("[node] we mined a block, but there are mined blocks pending, just abort and wait")
 						return
 					}

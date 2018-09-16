@@ -18,10 +18,12 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/c3systems/c3-go/common/hexutil"
 	"github.com/c3systems/c3-go/common/netutil"
 	"github.com/c3systems/c3-go/common/stringutil"
 	c3config "github.com/c3systems/c3-go/config"
 	"github.com/c3systems/c3-go/core/docker"
+	colorlog "github.com/c3systems/c3-go/log/color"
 	loghooks "github.com/c3systems/c3-go/log/hooks"
 	"github.com/c3systems/c3-go/registry"
 	regutil "github.com/c3systems/c3-go/registry/util"
@@ -127,10 +129,10 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 	hostPort := strconv.Itoa(hp)
 	containerID, err := s.docker.CreateContainer(dockerImageID, nil, &docker.CreateContainerConfig{
 		Volumes: map[string]string{
-			// sock binding will be required for spawning sibling containers
-			// container:host
-			//"/var/run/docker.sock": "/var/run/docker.sock",
-			//"/tmp": tmpdir,
+		// sock binding will be required for spawning sibling containers
+		// container:host
+		//"/var/run/docker.sock": "/var/run/docker.sock",
+		//"/tmp": tmpdir,
 		},
 		Ports: map[string]string{
 			"3333": hostPort,
@@ -281,6 +283,12 @@ func parseNewState(reader io.Reader) ([]byte, error) {
 	err = json.Unmarshal(b, &state)
 	if err != nil {
 		return nil, err
+	}
+
+	for key, value := range state {
+		k, _ := hexutil.DecodeString(key)
+		v, _ := hexutil.DecodeString(value)
+		log.Printf(colorlog.Magenta("[sandbox] state k/v %s=>%s", string(k), string(v)))
 	}
 
 	log.Printf("[sandbox] new state %s", state)

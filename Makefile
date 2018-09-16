@@ -377,20 +377,35 @@ fix/libp2pcrypto:
 build/rpc/proto:
 	@protoc --go_out=plugins=grpc:. rpc/pb/c3.proto
 
+# build protobufs for web client
+# example:
+# make build/rpc/proto/web OUT_DIR=./tmp
+.PHONY: build/rpc/proto/web
+build/rpc/proto/web:
+	@protoc -I=rpc/pb/ --js_out=import_style=commonjs:$(OUT_DIR) --grpc-web_out=import_style=commonjs,mode=grpcwebtext:$(OUT_DIR) c3.proto
+
 .PHONY: test/rpc
 test/rpc:
 	@go test -v rpc/*.go $(ARGS)
 
 .PHONY: run/rpc/ping
 run/rpc/ping:
-	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_ping"}' localhost:5005 c3.C3/Send
+	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_ping"}' localhost:5005 protos.C3Service/Send
 
 .PHONY: run/rpc/latestBlock
 run/rpc/latestBlock:
-	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_latestBlock"}' localhost:5005 c3.C3/Send
+	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_latestBlock"}' localhost:5005 protos.C3/Send
 
 .PHONY: run/rpc/getblock
 run/rpc/getblock:
-	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_getBlock","params":["0x3"]}' localhost:5005 c3.C3/Send
+	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_getBlock","params":["0x3"]}' localhost:5005 protos.C3/Send
+
+.PHONY: install/grpcwebproxy
+install/grpcwebproxy:
+	@go get github.com/improbable-eng/grpc-web/go/grpcwebproxy
+
+.PHONY: run/grpcwebproxy
+run/grpcwebproxy:
+	@grpcwebproxy --backend_addr=localhost:5005 --run_tls_server=false
 
 # /END RPC

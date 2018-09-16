@@ -57,7 +57,7 @@ func New(cfg *Config) *RPC {
 	}
 
 	grpcServer := grpc.NewServer()
-	pb.RegisterC3Server(grpcServer, &Server{
+	pb.RegisterC3ServiceServer(grpcServer, &Server{
 		service: svc,
 	})
 	reflection.Register(grpcServer)
@@ -91,7 +91,16 @@ func (s *Server) handleRequest(method string, r *pb.Request) (*any.Any, error) {
 	case "c3_latestblock":
 		return ptypes.MarshalAny(s.service.latestBlock())
 	case "c3_getblock":
-		return ptypes.MarshalAny(s.service.getBlock(r.Params))
+		result, err := s.service.getBlock(r.Params)
+		if err != nil {
+			return ptypes.MarshalAny(&pb.ErrorResponse{
+				Code:    400,
+				Message: err.Error(),
+			})
+		}
+		return ptypes.MarshalAny(result)
+	case "c3_getstateblock":
+		return ptypes.MarshalAny(s.service.getStateblock(r.Params))
 	default:
 		return nil, ErrMethodNotSupported
 	}

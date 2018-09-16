@@ -64,7 +64,8 @@ jobs:
       - run:
           name: Coverage
           command: |
-            make coverage
+            echo "TODO"
+            #make coverage
 
 workflows:
   version: 2

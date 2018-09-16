@@ -2,9 +2,9 @@ syntax = "proto3";
 
 import "google/protobuf/any.proto";
 
-package c3;
+package protos;
 
-service C3 {
+service C3Service {
   rpc Send (Request) returns (Response) {}
 }
 
@@ -21,6 +21,11 @@ message Response {
   google.protobuf.Any result = 3;
 }
 
+message ErrorResponse {
+  uint64 code = 1;
+  string message = 2;
+}
+
 message PingResponse {
   string data = 1;
 }
@@ -30,19 +35,39 @@ message LatestBlockResponse {
 }
 
 message BlockResponse {
-  string BlockHash = 1;
-  string BlockNumber = 2;
-  string BlockTime = 3;
-  string ImageHash = 4;
-  string StateBlocksMerkleHash = 5;
-  string PrevBlockHash = 6;
-  string Nonce = 7;
-  string Difficulty = 8;
-  string MinerAddress = 9;
-  Signature MinerSig = 10;
+  string blockHash = 1;
+  string blockNumber = 2;
+  string blockTime = 3;
+  string imageHash = 4;
+  string stateBlocksMerkleHash = 5;
+  string prevBlockHash = 6;
+  string nonce = 7;
+  string difficulty = 8;
+  string minerAddress = 9;
+  Signature minerSig = 10;
 }
 
 message Signature {
-  string R = 1;
-  string S = 2;
+  string r = 1;
+  string s = 2;
+}
+
+message TransactionResponse {
+  string txHash  = 1;
+  string imageHash = 2;
+  string method = 3;
+  repeated string payload = 4;
+  string from = 5;
+  Signature sig = 6;
+}
+
+message StateBlockResponse {
+  string blockHash = 1;
+  string blockNumber = 2;
+  string blockTime = 3;
+  string imageHash = 4;
+  string txHash = 5;
+  string prevBlockHash = 6;
+  string statePrevDiffHash = 7;
+  string stateCurrentHash = 8;
 }
