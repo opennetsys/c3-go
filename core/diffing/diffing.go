@@ -49,7 +49,7 @@ func Diff(old, new, out string, isDir bool) error {
 	s += " %s %s | sed -e 's|%s|%s|' | sed -e 's|%s|%s|' > %s"
 
 	// same as: git diff --minimal --unified file1 file2
-	cmd := exec.Command("sh", "-c", fmt.Sprintf("diff -ud"+s, commands...))
+	cmd := exec.Command("sh", "-c", fmt.Sprintf("diff -uda"+s, commands...))
 	if err := cmd.Start(); err != nil {
 		return err
 	}
@@ -85,9 +85,12 @@ func Patch(patch, orig string, backup bool, absPath bool) error {
 		s        string
 	)
 
+	commands = append(commands, "-u")
+	s = " %s"
+
 	if backup {
 		commands = append(commands, "-b")
-		s = " %s"
+		s += " %s"
 	}
 	if absPath {
 		commands = append(commands, "-d/ -p0")

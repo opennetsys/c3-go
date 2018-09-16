@@ -20,6 +20,8 @@
 - Patchutils
   - MacOS
     - `brew install patchutils`
+  - Linux
+    - `[sudo] apt-get install patchutils`
 
 #### Docker config
 
