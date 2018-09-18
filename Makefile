@@ -238,7 +238,7 @@ test/logger/color:
 
 .PHONY: run/node
 run/node:
-	@go run main.go node start --pem=node/test_data/priv1.pem --uri /ip4/0.0.0.0/tcp/3330 --data-dir ~/.c3-1 --difficulty 5 --mempool-type memory
+	@go run main.go node start --pem=node/test_data/priv1.pem --uri /ip4/0.0.0.0/tcp/3330 --data-dir ~/.c3-1 --difficulty 5 --mempool-type memory --rpc "0.0.0.0:5005"
 
 .PHONY: run/node/2
 run/node/2:
@@ -409,3 +409,12 @@ run/grpcwebproxy:
 	@grpcwebproxy --backend_addr=localhost:5005 --run_tls_server=false
 
 # /END RPC
+
+# LOC
+
+# get total lines of code
+.PHONY: loc
+loc:
+	@find ./ -name '*.go' ! -path ".//vendor/*" ! -path ".//.git/*" | xargs wc -l
+
+# /END LOC

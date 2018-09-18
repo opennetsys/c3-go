@@ -13,7 +13,7 @@ func TestGetFreePort(t *testing.T) {
 		t.Error(err)
 	}
 	if port == 0 {
-		t.Error("port == 0")
+		t.Error("port is 0")
 	}
 
 	// Try to listen on the port

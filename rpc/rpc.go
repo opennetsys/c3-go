@@ -24,19 +24,18 @@ var (
 	ErrMethodNotSupported = errors.New("method not supported")
 )
 
-// TODO: move to config
-const port = ":5005"
-
 // RPC ...
 type RPC struct {
 	mempool store.Interface
 	p2p     *p2p.Service
+	host    string
 }
 
 // Config ...
 type Config struct {
 	Mempool store.Interface
 	P2P     *p2p.Service
+	RPCHost string
 }
 
 // Server ...
@@ -46,14 +45,24 @@ type Server struct {
 
 // New ...
 func New(cfg *Config) *RPC {
-	listen, err := net.Listen("tcp", port)
-	if err != nil {
-		log.Fatal(err)
+	if cfg == nil {
+		log.Fatal("[rpc] config required")
+	}
+
+	if cfg.RPCHost == "" {
+		log.Println("[rpc] host empty. RPC server not running")
+		return nil
 	}
 
 	svc := &RPC{
 		mempool: cfg.Mempool,
 		p2p:     cfg.P2P,
+		host:    cfg.RPCHost,
+	}
+
+	listen, err := net.Listen("tcp", svc.host)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	grpcServer := grpc.NewServer()
@@ -63,7 +72,7 @@ func New(cfg *Config) *RPC {
 	reflection.Register(grpcServer)
 	grpcServer.Serve(listen)
 
-	log.Printf("[rpc] server running on port %s", port)
+	log.Printf("[rpc] server running on port %s", svc.host)
 
 	return svc
 }

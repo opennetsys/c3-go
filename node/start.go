@@ -285,6 +285,7 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 	go rpc.New(&rpc.Config{
 		Mempool: memPool,
 		P2P:     p2pSvc,
+		RPCHost: cfg.RPCHost,
 	})
 
 	for {

@@ -29,4 +29,5 @@ type Config struct {
 	Keys            Keys
 	BlockDifficulty int
 	MempoolType     string
+	RPCHost         string
 }
