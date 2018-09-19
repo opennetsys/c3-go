@@ -281,12 +281,14 @@ func Start(n *Service, cfg *nodetypes.Config) error {
 	}
 	log.Printf("[node] started %s", newNode.ID().Pretty())
 
-	// start rpc service
-	go rpc.New(&rpc.Config{
-		Mempool: memPool,
-		P2P:     p2pSvc,
-		RPCHost: cfg.RPCHost,
-	})
+	if cfg.RPCHost != "" {
+		// start rpc service
+		go rpc.New(&rpc.Config{
+			Mempool: memPool,
+			P2P:     p2pSvc,
+			RPCHost: cfg.RPCHost,
+		})
+	}
 
 	for {
 		switch v := <-n.props.SubscriberChannel; v.(type) {

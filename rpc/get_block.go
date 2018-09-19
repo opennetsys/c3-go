@@ -2,18 +2,8 @@ package rpc
 
 // Ping ...
 import (
-	"errors"
-
 	"github.com/c3systems/c3-go/common/hexutil"
-	"github.com/c3systems/c3-go/core/chain/mainchain"
-	"github.com/c3systems/c3-go/core/p2p"
 	pb "github.com/c3systems/c3-go/rpc/pb"
-	log "github.com/sirupsen/logrus"
-)
-
-var (
-	// ErrBlockNotFound ...
-	ErrBlockNotFound = errors.New("block not found")
 )
 
 // getBlock ...
@@ -29,6 +19,9 @@ func (s *RPC) getBlock(params []string) (*pb.BlockResponse, error) {
 	}
 
 	headBlockNumber, err := hexutil.DecodeInt(headBlock.Props().BlockNumber)
+	if err != nil {
+		return nil, err
+	}
 
 	if wantBlockNumber <= 0 {
 		return nil, ErrBlockNotFound
@@ -73,18 +66,4 @@ func (s *RPC) getBlock(params []string) (*pb.BlockResponse, error) {
 			MinerSig:              sig,
 		}, nil
 	}
-}
-
-func (s *RPC) getBlockByHash(hash string) *mainchain.Block {
-	cid, err := p2p.GetCIDByHash(hash)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	block, err := s.p2p.GetMainchainBlock(cid)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return block
 }

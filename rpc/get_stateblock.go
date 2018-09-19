@@ -2,53 +2,70 @@ package rpc
 
 // Ping ...
 import (
+	"github.com/c3systems/c3-go/common/hexutil"
 	pb "github.com/c3systems/c3-go/rpc/pb"
-	log "github.com/sirupsen/logrus"
 )
 
 // getStateblock ...
-func (s *RPC) getStateblock(params []string) *pb.TransactionResponse {
+func (s *RPC) getStateblock(params []string) (*pb.StateBlockResponse, error) {
 	headBlock, err := s.mempool.GetHeadBlock()
 	if err != nil {
-		log.Fatal(err)
+		return nil, ErrBlockNotFound
 	}
 
-	_ = headBlock
+	imageHash := params[0]
 
-	// TODO
+	wantStateBlockNumber, err := hexutil.DecodeInt(params[1])
+	if err != nil {
+		return nil, err
+	}
 
-	/*
-		currentBlock := headBlock
-		for {
-			blockNumber, err := hexutil.DecodeFloat64(currentBlock.Props().BlockNumber)
-			if err != nil {
-				log.Fatal(err)
-			}
-			if blockNumber == 0 {
-				return nil
-			}
-			if blockNumber != wantBlockNumber {
-				prevBlockHash := headBlock.Props().PrevBlockHash
-				prevBlock := s.getBlockByHash(prevBlockHash)
-				currentBlock = *prevBlock
-				continue
-			}
+	if wantStateBlockNumber <= 0 {
+		return nil, ErrStateBlockNotFound
+	}
 
-			props := currentBlock.Props()
-			//sig := props.MinerSig
-			sig := &pb.Signature{}
-			blockHash := props.BlockHash
+	currentStateBlock, err := s.p2p.FetchMostRecentStateBlock(imageHash, &headBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		stateBlockNumber, err := hexutil.DecodeInt(currentStateBlock.Props().BlockNumber)
+		if err != nil {
+			return nil, err
 		}
-	*/
+		if stateBlockNumber <= 0 {
+			return nil, ErrStateBlockNotFound
+		}
 
-	return &pb.TransactionResponse{
-	/*
-		TxHash:
-		ImageHash:
-		Method:
-		Payload:
-		From:
-		Sig:
-	*/
+		if currentStateBlock == nil {
+			return nil, ErrStateBlockNotFound
+		}
+
+		props := currentStateBlock.Props()
+		stateBlockNumber, err = hexutil.DecodeInt(props.BlockNumber)
+		if err != nil {
+			return nil, err
+		}
+
+		if stateBlockNumber != wantStateBlockNumber {
+			prevStateBlockHash := props.PrevBlockHash
+			prevStateBlock := s.getStateBlockByHash(prevStateBlockHash)
+			currentStateBlock = prevStateBlock
+			continue
+		}
+
+		blockHash := props.BlockHash
+
+		return &pb.StateBlockResponse{
+			BlockHash:         *blockHash,
+			BlockNumber:       props.BlockNumber,
+			BlockTime:         props.BlockTime,
+			ImageHash:         props.ImageHash,
+			TxHash:            props.TxHash,
+			PrevBlockHash:     props.PrevBlockHash,
+			StatePrevDiffHash: props.StatePrevDiffHash,
+			StateCurrentHash:  props.StateCurrentHash,
+		}, nil
 	}
 }

@@ -238,7 +238,7 @@ test/logger/color:
 
 .PHONY: run/node
 run/node:
-	@go run main.go node start --pem=node/test_data/priv1.pem --uri /ip4/0.0.0.0/tcp/3330 --data-dir ~/.c3-1 --difficulty 5 --mempool-type memory --rpc "0.0.0.0:5005"
+	@go run main.go node start --pem=node/test_data/priv1.pem --uri /ip4/0.0.0.0/tcp/3330 --data-dir ~/.c3-1 --difficulty 5 --mempool-type memory --rpc ":5005"
 
 .PHONY: run/node/2
 run/node/2:
@@ -394,11 +394,15 @@ run/rpc/ping:
 
 .PHONY: run/rpc/latestBlock
 run/rpc/latestBlock:
-	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_latestBlock"}' localhost:5005 protos.C3/Send
+	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_latestBlock"}' localhost:5005 protos.C3Service/Send
 
 .PHONY: run/rpc/getblock
 run/rpc/getblock:
-	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_getBlock","params":["0x3"]}' localhost:5005 protos.C3/Send
+	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_getBlock","params":["0x3"]}' localhost:5005 protos.C3Service/Send
+
+.PHONY: run/rpc/getstateblock
+run/rpc/getstateblock:
+	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_getStateBlock","params":["1042bc722199", "0x1"]}' localhost:5005 protos.C3Service/Send
 
 .PHONY: install/grpcwebproxy
 install/grpcwebproxy:

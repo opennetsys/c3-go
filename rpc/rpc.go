@@ -22,6 +22,10 @@ import (
 var (
 	// ErrMethodNotSupported ...
 	ErrMethodNotSupported = errors.New("method not supported")
+	// ErrBlockNotFound ...
+	ErrBlockNotFound = errors.New("block not found")
+	// ErrStateBlockNotFound ...
+	ErrStateBlockNotFound = errors.New("state block not found")
 )
 
 // RPC ...
@@ -69,10 +73,12 @@ func New(cfg *Config) *RPC {
 	pb.RegisterC3ServiceServer(grpcServer, &Server{
 		service: svc,
 	})
-	reflection.Register(grpcServer)
-	grpcServer.Serve(listen)
-
 	log.Printf("[rpc] server running on port %s", svc.host)
+	reflection.Register(grpcServer)
+	err = grpcServer.Serve(listen)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	return svc
 }
@@ -109,7 +115,14 @@ func (s *Server) handleRequest(method string, r *pb.Request) (*any.Any, error) {
 		}
 		return ptypes.MarshalAny(result)
 	case "c3_getstateblock":
-		return ptypes.MarshalAny(s.service.getStateblock(r.Params))
+		result, err := s.service.getStateblock(r.Params)
+		if err != nil {
+			return ptypes.MarshalAny(&pb.ErrorResponse{
+				Code:    400,
+				Message: err.Error(),
+			})
+		}
+		return ptypes.MarshalAny(result)
 	default:
 		return nil, ErrMethodNotSupported
 	}
