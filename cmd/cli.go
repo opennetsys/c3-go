@@ -131,8 +131,7 @@ For more info visit: https://github.com/c3systems/c3-go,
 				return fmt.Errorf("%s does not exist", pem)
 			}
 
-			n := new(node.Service)
-			return node.Start(n, &nodetypes.Config{
+			n, err := node.NewFullNode(&nodetypes.Config{
 				URI:     nodeURI,
 				Peer:    peer,
 				DataDir: dataDir,
@@ -144,6 +143,11 @@ For more info visit: https://github.com/c3systems/c3-go,
 				MempoolType:     mempoolType,
 				RPCHost:         rpcHost,
 			})
+			if err != nil {
+				return err
+			}
+
+			return n.Start()
 		},
 	}
 
@@ -211,7 +215,7 @@ For more info visit: https://github.com/c3systems/c3-go,
 	startSubCmd.MarkFlagRequired("output")
 	generateCmd.AddCommand(generateKeyCmd)
 
-	rootCmd.AddCommand(pushCmd, pullCmd, nodeCmd, generateCmd, deployCmd(), invokeMethodCmd(), encodeCmd(), peerCmd())
+	rootCmd.AddCommand(pushCmd, pullCmd, nodeCmd, generateCmd, deployCmd(), invokeMethodCmd(), encodeCmd(), peerCmd(), snapshotCmd())
 
 	return rootCmd
 }

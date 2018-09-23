@@ -238,7 +238,7 @@ test/logger/color:
 
 .PHONY: run/node
 run/node:
-	@go run main.go node start --pem=node/test_data/priv1.pem --uri /ip4/0.0.0.0/tcp/3330 --data-dir ~/.c3-1 --difficulty 5 --mempool-type memory --rpc ":5005"
+	@go run main.go node start --pem=node/test_data/priv1.pem --uri /ip4/0.0.0.0/tcp/3330 --data-dir .tmp --difficulty 5 --mempool-type memory --rpc ":5005"
 
 .PHONY: run/node/2
 run/node/2:
@@ -333,6 +333,7 @@ ipfs/daemon:
 .PHONY: localhostproxy
 localhostproxy:
 	@sudo ifconfig $$(ifconfig | grep LOOPBACK | awk '{print $1}' | sed -E 's/[^a-zA-Z0-9]+//g') 123.123.123.123/24
+	#@sudo ifconfig lo0 123.123.123.123/24
 
 # /END MISC
 
@@ -388,21 +389,23 @@ build/rpc/proto/web:
 test/rpc:
 	@go test -v rpc/*.go $(ARGS)
 
+RPC_HOST := "localhost:5005"
+
 .PHONY: run/rpc/ping
 run/rpc/ping:
-	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_ping"}' localhost:5005 protos.C3Service/Send
+	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_ping"}' $(RPC_HOST) protos.C3Service/Send
 
 .PHONY: run/rpc/latestBlock
 run/rpc/latestBlock:
-	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_latestBlock"}' localhost:5005 protos.C3Service/Send
+	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_latestBlock"}' $(RPC_HOST) protos.C3Service/Send
 
 .PHONY: run/rpc/getblock
 run/rpc/getblock:
-	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_getBlock","params":["0x3"]}' localhost:5005 protos.C3Service/Send
+	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_getBlock","params":["0x3"]}' $(RPC_HOST) protos.C3Service/Send
 
 .PHONY: run/rpc/getstateblock
 run/rpc/getstateblock:
-	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_getStateBlock","params":["1042bc722199", "0x1"]}' localhost:5005 protos.C3Service/Send
+	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_getStateBlock","params":["1042bc722199", "0x1"]}' $(RPC_HOST) protos.C3Service/Send
 
 .PHONY: install/grpcwebproxy
 install/grpcwebproxy:

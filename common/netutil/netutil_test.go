@@ -16,8 +16,13 @@ func TestGetFreePort(t *testing.T) {
 		t.Error("port is 0")
 	}
 
+	ip, err := LocalIP()
+	if err != nil {
+		t.Error(err)
+	}
+
 	// Try to listen on the port
-	l, err := net.Listen("tcp", "localhost"+":"+strconv.Itoa(port))
+	l, err := net.Listen("tcp", ip.String()+":"+strconv.Itoa(port))
 	if err != nil {
 		t.Error(err)
 	}

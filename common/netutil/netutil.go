@@ -7,7 +7,11 @@ import (
 
 // GetFreePort asks the kernel for a free open port that is ready to use.
 func GetFreePort() (int, error) {
-	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	ip, err := LocalIP()
+	if err != nil {
+    return 0, err
+	}
+	addr, err := net.ResolveTCPAddr("tcp", ip.String() + ":0")
 	if err != nil {
 		return 0, err
 	}

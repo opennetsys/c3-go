@@ -8,37 +8,25 @@ import (
 	"github.com/c3systems/c3-go/core/chain/statechain"
 	"github.com/c3systems/c3-go/node"
 	nodetypes "github.com/c3systems/c3-go/node/types"
-	log "github.com/sirupsen/logrus"
 )
 
 func broadcastTx(txType, image, payloadStr, peer, privPEM string) (string, error) {
 	nodeURI := "/ip4/0.0.0.0/tcp/9911"
 	dataDir := "~/.c3-2"
-	n := new(node.Service)
-	ready := make(chan bool)
-	// TODO: send directly to peer node
-	go func() {
-		go func() {
-			err := node.Start(n, &nodetypes.Config{
-				URI:     nodeURI,
-				Peer:    peer,
-				DataDir: dataDir,
-				Keys: nodetypes.Keys{
-					PEMFile:  privPEM,
-					Password: "",
-				},
-			})
+	n, err := node.NewFullNode(&nodetypes.Config{
+		URI:     nodeURI,
+		Peer:    peer,
+		DataDir: dataDir,
+		Keys: nodetypes.Keys{
+			PEMFile:  privPEM,
+			Password: "",
+		},
+		//BlockDifficulty: -1,
+	})
 
-			if err != nil {
-				log.Fatal(err)
-			}
-		}()
-
-		time.Sleep(10 * time.Second)
-		ready <- true
-	}()
-
-	<-ready
+	if err != nil {
+		return "", err
+	}
 
 	priv, err := c3crypto.ReadPrivateKeyFromPem(privPEM, nil)
 	if err != nil {

@@ -3,7 +3,14 @@ package node
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
+	"time"
 
+	redis "github.com/gomodule/redigo/redis"
+	ipfsaddr "github.com/ipfs/go-ipfs-addr"
+	bstore "github.com/ipfs/go-ipfs-blockstore"
+	ma "github.com/multiformats/go-multiaddr"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/c3systems/c3-go/common/c3crypto"
@@ -12,17 +19,64 @@ import (
 	"github.com/c3systems/c3-go/core/chain/mainchain"
 	"github.com/c3systems/c3-go/core/chain/statechain"
 	"github.com/c3systems/c3-go/core/miner"
+	"github.com/c3systems/c3-go/core/p2p"
+	"github.com/c3systems/c3-go/core/p2p/protobuff"
+	"github.com/c3systems/c3-go/core/p2p/store/leveldbstore"
 	"github.com/c3systems/c3-go/core/sandbox"
 	colorlog "github.com/c3systems/c3-go/log/color"
 	loghooks "github.com/c3systems/c3-go/log/hooks"
+	nodestore "github.com/c3systems/c3-go/node/store"
+	"github.com/c3systems/c3-go/node/store/redisstore"
+	"github.com/c3systems/c3-go/node/store/safemempool"
 	nodetypes "github.com/c3systems/c3-go/node/types"
-	"github.com/davecgh/go-spew/spew"
+	"github.com/c3systems/c3-go/rpc"
 
+	"crypto/ecdsa"
+
+	floodsub "github.com/libp2p/go-floodsub"
+	lCrypt "github.com/libp2p/go-libp2p-crypto"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
+	net "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
+	peerstore "github.com/libp2p/go-libp2p-peerstore"
+	swarm "github.com/libp2p/go-libp2p-swarm"
+	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
+	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
+	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
+	tcp "github.com/libp2p/go-tcp-transport"
+
+	host "github.com/libp2p/go-libp2p-host"
 )
 
-// New ...
-func New(props *Props) (*Service, error) {
+// Keys ...
+// note: any concern keeping these in memory? Maybe only fetch when needed?
+type Keys struct {
+	Priv *ecdsa.PrivateKey
+	Pub  *ecdsa.PublicKey
+}
+
+// Props ...
+type Props struct {
+	// Note: it's preferable to not use abbreviations if it means uppercasing all the letters. Acronyms are OK.
+	Context             context.Context
+	SubscriberChannel   chan interface{}
+	CancelMinersChannel chan struct{}
+	Host                host.Host
+	Store               nodestore.Interface // store is used to temporarily store blocks and txs for mining and verification
+	Pubsub              *floodsub.PubSub    // note: how to make this into an interface?
+	P2P                 p2p.Interface
+	Keys                Keys
+	Protobyff           protobuff.Interface
+	BlockDifficulty     int
+}
+
+// Service ...
+type Service struct {
+	props Props
+}
+
+// newNode ...
+func newNode(props *Props) (*Service, error) {
 	if props == nil {
 		return nil, errors.New("props cannot be nil")
 	}
@@ -33,6 +87,248 @@ func New(props *Props) (*Service, error) {
 	return &Service{
 		props: *props,
 	}, nil
+}
+
+// NewFullNode ...
+func NewFullNode(cfg *nodetypes.Config) (*Service, error) {
+	ctx := context.Background()
+	//ctx, cancel := context.WithCancel(context.Background())
+	//defer cancel()
+	n := new(Service)
+	if cfg == nil {
+		// note: is this the correct way to fail an app with cobra?
+		return nil, errors.New("config is required to start the node")
+	}
+
+	var pwd *string
+	if cfg.Keys.Password != "" {
+		pwd = &cfg.Keys.Password
+	}
+
+	priv, err := c3crypto.ReadPrivateKeyFromPem(cfg.Keys.PEMFile, pwd)
+	if err != nil {
+		return nil, fmt.Errorf("err reading pem file\n%v", err)
+	}
+	pub := &priv.PublicKey
+
+	wPriv, wPub, err := lCrypt.ECDSAKeyPairFromKey(priv)
+	if err != nil {
+		return nil, fmt.Errorf("err generating key pairs\n%v", err)
+	}
+
+	pid, err := peer.IDFromPublicKey(wPub)
+	if err != nil {
+		return nil, fmt.Errorf("err generating pid from public key\n%v", err)
+	}
+
+	listen, err := ma.NewMultiaddr(cfg.URI)
+	if err != nil {
+		return nil, fmt.Errorf("err parsing ipfs uri\n%v", err)
+	}
+
+	ps := peerstore.NewPeerstore()
+	if err := ps.AddPrivKey(pid, wPriv); err != nil {
+		return nil, fmt.Errorf("err adding priv key\n%v", err)
+	}
+	if err := ps.AddPubKey(pid, wPub); err != nil {
+		return nil, fmt.Errorf("err adding pub key\n%v", err)
+	}
+
+	swarmNet := swarm.NewSwarm(ctx, pid, ps, nil)
+	tcpTransport := tcp.NewTCPTransport(genUpgrader(swarmNet))
+	if err := swarmNet.AddTransport(tcpTransport); err != nil {
+		return nil, fmt.Errorf("err adding tcp transport\n%v", err)
+	}
+	if err := swarmNet.AddListenAddr(listen); err != nil {
+		return nil, fmt.Errorf("err adding swam listen addr\n%v", err)
+	}
+	bNode := bhost.New(swarmNet)
+
+	dhtSvc, err := dht.New(ctx, bNode)
+	if err != nil {
+		return nil, fmt.Errorf("err building dht svc\n%v", err)
+	}
+	if err := dhtSvc.Bootstrap(ctx); err != nil {
+		return nil, fmt.Errorf("err bootstrapping dht\n%v", err)
+	}
+
+	newNode := rhost.Wrap(bNode, dhtSvc)
+	h = newNode
+
+	discoverySvc, err := discovery.NewMdnsService(ctx, newNode, time.Second, "c3")
+	if err != nil {
+		return nil, fmt.Errorf("error starting discovery service\n%v", err)
+	}
+	discoverySvc.RegisterNotifee(&DiscoveryNotifee{newNode})
+
+	pubsub, err := floodsub.NewFloodSub(ctx, newNode)
+	if err != nil {
+		return nil, fmt.Errorf("err building new pubsub service\n%v", err)
+	}
+
+	for i, addr := range newNode.Addrs() {
+		log.Printf(colorlog.Green("[node] %d: %s/ipfs/%s\n", i, addr, newNode.ID().Pretty()))
+	}
+
+	if cfg.Peer != "" {
+		addr, err := ipfsaddr.ParseString(cfg.Peer)
+		if err != nil {
+			return nil, fmt.Errorf("err parsing node uri flag: %s\n%v", cfg.URI, err)
+		}
+
+		pinfo, err := peerstore.InfoFromP2pAddr(addr.Multiaddr())
+		if err != nil {
+			return nil, fmt.Errorf("err getting info from peerstore\n%v", err)
+		}
+
+		log.Println("[node] FULL", addr.String())
+		log.Println("[node] PIN INFO", pinfo)
+
+		if err := newNode.Connect(ctx, *pinfo); err != nil {
+			return nil, fmt.Errorf("[node] bootstrapping a peer failed\n%v", err)
+		}
+
+		newNode.Peerstore().AddAddrs(pinfo.ID, pinfo.Addrs, peerstore.PermanentAddrTTL)
+	}
+
+	var memPool nodestore.Interface
+
+	mempoolType := strings.ToLower(cfg.MempoolType)
+	switch mempoolType {
+	case "redis":
+		log.Println(`[node] mempool type is "redis"`)
+		// TODO: move to config
+		redisaddr := "localhost:6379"
+		redispool := &redis.Pool{
+			MaxIdle:     3,
+			IdleTimeout: 240 * time.Second,
+			Dial:        func() (redis.Conn, error) { return redis.Dial("tcp", redisaddr) },
+		}
+		memPool, err = redisstore.New(&redisstore.Props{
+			Pool: redispool,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("[node] err initializing redisstore\n%v", err)
+		}
+	case "memory":
+		fallthrough
+	default:
+		log.Println(`[node] mempool type is "memory"`)
+		memPool, err = safemempool.New(&safemempool.Props{})
+		if err != nil {
+			return nil, fmt.Errorf("[node] err initializing mempool\n%v", err)
+		}
+	}
+
+	// TODO: add cli flags for different types
+	diskStore, err := leveldbstore.New(cfg.DataDir, nil)
+	if err != nil {
+		return nil, fmt.Errorf("[node] err building disk store\n%v", err)
+	}
+	// wrap the datastore in a 'content addressed blocks' layer
+	// TODO: implement metrics? https://github.com/ipfs/go-ds-measure
+	blocks := bstore.NewBlockstore(diskStore)
+
+	p2pSvc, err := p2p.New(&p2p.Props{
+		BlockStore: blocks,
+		Host:       newNode,
+		Router:     dhtSvc,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error starting ipfs p2p network\n%v", err)
+	}
+
+	pBuff, err := protobuff.NewNode(&protobuff.Props{
+		Host:                   newNode,
+		GetHeadBlockFN:         memPool.GetHeadBlock,
+		BroadcastTransactionFN: n.BroadcastTransaction,
+		AddPendingTxFN:         memPool.AddTx,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error starting protobuff node\n%v", err)
+	}
+
+	initialBlock := &mainchain.GenesisBlock
+
+	result := make(chan *mainchain.Block, 1)
+	go func() {
+		latestBlock, err := p2pSvc.GetLatestBlock()
+		if err == nil {
+			result <- latestBlock
+		}
+	}()
+
+	select {
+	case latestBlock := <-result:
+		initialBlock = latestBlock
+	case <-time.After(2 * time.Second):
+	}
+
+	c, err := p2pSvc.SetMainchainBlock(initialBlock)
+	if err != nil {
+		log.Errorf("[miner] error setting mainchain genesis block; error %s", err)
+		return nil, err
+	}
+
+	log.Printf("[miner] set mainchain genesis block with cid %v", c)
+
+	nextBlock := initialBlock
+
+	peers := newNode.Peerstore().Peers()
+	if len(peers) > 1 {
+		if err := sendEcho(newNode.ID(), peers, pBuff); err != nil {
+			log.Errorln("error echoing peer; is peer online?")
+			return nil, fmt.Errorf("err echoing peer\n%v", err)
+		}
+		if err := fetchHeadBlock(newNode.ID(), nextBlock, peers, pBuff); err != nil {
+			return nil, fmt.Errorf("err fetching headblock\n%v", err)
+		}
+	}
+
+	if err := memPool.SetHeadBlock(nextBlock); err != nil {
+		return nil, fmt.Errorf("err setting head block\n%v", err)
+	}
+
+	nb := &net.NotifyBundle{
+		ConnectedF: onConn,
+	}
+	newNode.Network().Notify(nb)
+
+	n.props = Props{
+		Context:             ctx,
+		SubscriberChannel:   make(chan interface{}),
+		CancelMinersChannel: make(chan struct{}),
+		Host:                newNode,
+		Store:               memPool,
+		Pubsub:              pubsub,
+		P2P:                 p2pSvc,
+		Protobyff:           pBuff,
+		Keys: Keys{
+			Priv: priv,
+			Pub:  pub,
+		},
+		BlockDifficulty: cfg.BlockDifficulty,
+	}
+
+	if err := n.listenForEvents(); err != nil {
+		return nil, fmt.Errorf("error starting listener\n%v", err)
+	}
+	// TODO: add a cli flag to determine if the node mines
+	if err := n.spawnNextBlockMiner(nextBlock); err != nil {
+		return nil, fmt.Errorf("error starting miner in main start method\n%v", err)
+	}
+	log.Printf("[node] started %s", newNode.ID().Pretty())
+
+	if cfg.RPCHost != "" {
+		// start rpc service
+		go rpc.New(&rpc.Config{
+			Mempool: memPool,
+			P2P:     p2pSvc,
+			RPCHost: cfg.RPCHost,
+		})
+	}
+
+	return n, nil
 }
 
 func (s *Service) spawnNextBlockMiner(prevBlock *mainchain.Block) error {
@@ -52,7 +348,12 @@ func (s *Service) spawnNextBlockMiner(prevBlock *mainchain.Block) error {
 
 	// TODO: need to get this from the network
 	blockDifficulty := config.DefaultBlockDifficulty
-	if s.props.BlockDifficulty != 0 {
+
+	var simulated bool
+	// if block difficulty is set to -1 than we simulate block hashing (used for testing)
+	if s.props.BlockDifficulty == -1 {
+		simulated = true
+	} else if s.props.BlockDifficulty != 0 {
 		blockDifficulty = s.props.BlockDifficulty
 	}
 
@@ -71,6 +372,7 @@ func (s *Service) spawnNextBlockMiner(prevBlock *mainchain.Block) error {
 		EncodedMinerAddress: encMinerAddr,
 		PendingTransactions: pendingTransactions,
 		RemoveTx:            s.props.Store.RemoveTx,
+		Simulated:           simulated,
 	})
 	if err != nil {
 		log.Errorf("[node] err building miner\n%v", err)
@@ -188,6 +490,12 @@ func (s *Service) spawnMinerListener(cancel context.CancelFunc, minerChan chan i
 
 					if err := s.props.Store.SetHeadBlock(minedBlock.NextBlock); err != nil {
 						log.Errorf("[node] err setting the head block\n%v", err)
+						return
+					}
+
+					_, err = s.props.P2P.SetLatestBlock(minedBlock.NextBlock)
+					if err != nil {
+						log.Errorf("[node] err storing the head block\n%v", err)
 						return
 					}
 
@@ -363,7 +671,6 @@ func (s *Service) handleReceiptOfMinedBlock(minedBlock *miner.MinedBlock) {
 	}
 
 	log.Println(colorlog.Yellow("[node] received mined block on the channel\nblock number: %s", minedBlock.NextBlock.Props().BlockNumber))
-	//spew.Dump(minedBlock)
 
 	if err := s.props.Store.SetPendingMainchainBlock(minedBlock.NextBlock); err != nil {
 		log.Errorf("[node] err setting pending mainchain block\n%v", err)
@@ -391,7 +698,6 @@ func (s *Service) handleReceiptOfMinedBlock(minedBlock *miner.MinedBlock) {
 	// note: ping the other nodes to tell them we didn't accept the block? See if they did?
 	if !ok {
 		log.Error("[node] received invalid mined block")
-		spew.Dump(minedBlock)
 		return
 	}
 	log.Println("[node] mined block was validated")
@@ -591,6 +897,36 @@ func (s *Service) removeMinedTxs(minedBlock *miner.MinedBlock) error {
 	}
 
 	return s.props.Store.RemoveTxs(txs)
+}
+
+// Start ...
+// NOTE: start is called from cmd package
+func (s *Service) Start() error {
+	for {
+		switch v := <-s.props.SubscriberChannel; v.(type) {
+		case error:
+			err, _ := v.(error)
+			log.Errorf("[node] received an error on the channel %s", err)
+
+		case *miner.MinedBlock:
+			log.Print("[node] received mined block")
+			b, _ := v.(*miner.MinedBlock)
+			go s.handleReceiptOfMinedBlock(b)
+
+		case *statechain.Transaction:
+			log.Print("[node] received statechain transaction")
+			tx, _ := v.(*statechain.Transaction)
+			go s.handleReceiptOfStatechainTransaction(tx)
+
+		default:
+			log.Errorf("[node] received an unknown message on channel of type %T\n%v", v, v)
+		}
+	}
+}
+
+// Props ...
+func (s *Service) Props() Props {
+	return s.props
 }
 
 func init() {

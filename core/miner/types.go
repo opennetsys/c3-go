@@ -46,6 +46,7 @@ type Props struct {
 	Sandbox             sandbox.Interface
 	PendingTransactions []*statechain.Transaction
 	RemoveTx            func(hash string) error
+  Simulated bool
 }
 
 // Service ...

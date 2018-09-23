@@ -20,6 +20,8 @@ import (
 // Ensure the struct implements the interface
 var _ Interface = (*Service)(nil)
 
+var latestMainchainBlockKey = []byte("latestMainchainBlock")
+
 // New ...
 func New(props *Props) (*Service, error) {
 	var err error
@@ -88,6 +90,16 @@ func (s Service) SetMerkleTree(tree *merkle.Tree) (*cid.Cid, error) {
 	return PutMerkleTree(s.peersOrLocal, tree)
 }
 
+// SetBytes ...
+func (s Service) SetBytes(b []byte) (*cid.Cid, error) {
+	return PutBytes(s.peersOrLocal, b)
+}
+
+// SetLatestBlock ...
+func (s Service) SetLatestBlock(block *mainchain.Block) (*cid.Cid, error) {
+	return PutLatestBlock(s.peersOrLocal, block)
+}
+
 //// SaveLocal ...
 //func (s Service) SaveLocal(v interface{}) (*cid.Cid, error) {
 //return Put(s.local, v)
@@ -143,6 +155,20 @@ func (s Service) GetStatechainDiff(c *cid.Cid) (*statechain.Diff, error) {
 // GetMerkleTree ...
 func (s Service) GetMerkleTree(c *cid.Cid) (*merkle.Tree, error) {
 	return FetchMerkleTree(s.peersOrLocal, c)
+}
+
+// GetBytes ...
+func (s Service) GetBytes(c *cid.Cid) ([]byte, error) {
+	return FetchBytes(s.peersOrLocal, c)
+}
+
+// GetLatestBlock ...
+func (s Service) GetLatestBlock() (*mainchain.Block, error) {
+	c, err := GetBytesCID(latestMainchainBlockKey)
+	if err != nil {
+		return nil, err
+	}
+	return FetchLatestBlock(s.peersOrLocal, c)
 }
 
 // FetchMostRecentStateBlock ...

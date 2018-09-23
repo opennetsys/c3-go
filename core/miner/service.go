@@ -186,6 +186,12 @@ func (s Service) mineBlock() error {
 			return err
 		}
 
+    // NOTE: simulated is for testing, auto accepts first block hash mined
+		if s.props.Simulated {
+			check = true
+			time.Sleep(2 * time.Second)
+		}
+
 		if check {
 			nextProps := s.minedBlock.NextBlock.Props()
 			nextProps.Nonce = nonce

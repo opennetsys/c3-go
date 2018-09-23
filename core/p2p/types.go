@@ -21,7 +21,8 @@ var (
 
 // Props ...
 type Props struct {
-	BlockStore bstore.Blockstore // note: https://github.com/ipfs/go-ipfs/blob/master/docs/datastores.md
+	// NOTE: https://github.com/ipfs/go-ipfs/blob/master/docs/datastores.md
+	BlockStore bstore.Blockstore
 	Host       host.Host
 	Router     routing.ContentRouting
 }

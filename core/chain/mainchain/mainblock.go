@@ -3,6 +3,7 @@ package mainchain
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 
 	"github.com/c3systems/c3-go/common/coder"
 	"github.com/c3systems/c3-go/common/hashutil"
@@ -97,7 +98,7 @@ func (b *Block) CalculateHash() (string, error) {
 		return "", err
 	}
 
-	return hexutil.EncodeToString(bts), nil
+	return strings.ToLower(hexutil.EncodeToString(bts)), nil
 }
 
 // CalculateHashBytes ...
@@ -151,6 +152,13 @@ func (b *Block) SetHash() error {
 	}
 
 	b.props.BlockHash = &hash
+
+	return nil
+}
+
+// SetMinerSig ...
+func (b *Block) SetMinerSig(sig *MinerSig) error {
+	b.props.MinerSig = sig
 
 	return nil
 }

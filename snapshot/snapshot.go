@@ -10,8 +10,9 @@ import (
 	"github.com/c3systems/c3-go/core/chain/statechain"
 	"github.com/c3systems/c3-go/core/p2p"
 	"github.com/c3systems/c3-go/node/store"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/prometheus/common/log"
+	log "github.com/sirupsen/logrus"
 )
 
 // TODO
@@ -20,17 +21,22 @@ import (
 
 // Service ...
 type Service struct {
+	Mempool store.Interface
+	P2P     p2p.Interface
 }
 
 // Config ...
 type Config struct {
 	Mempool store.Interface
-	P2P     *p2p.Service
+	P2P     p2p.Interface
 }
 
 // New ...
 func New(cfg *Config) *Service {
-	return &Service{}
+	return &Service{
+		P2P:     cfg.P2P,
+		Mempool: cfg.Mempool,
+	}
 }
 
 const (
@@ -40,8 +46,11 @@ const (
 
 // Snapshot ...
 func (s *Service) Snapshot(imageHash string, stateBlockNumber int) error {
-
-	prevStateBlock, err = s.props.P2P.FetchMostRecentStateBlock(imageHash, s.props.PreviousBlock)
+	headBlock, err := s.Mempool.GetHeadBlock()
+	if err != nil {
+		return err
+	}
+	prevStateBlock, err := s.P2P.FetchMostRecentStateBlock(imageHash, &headBlock)
 	if err != nil {
 		return err
 	}
@@ -51,9 +60,14 @@ func (s *Service) Snapshot(imageHash string, stateBlockNumber int) error {
 		newStatechainBlocks []*statechain.Block
 		fileNames           []string
 	)
+
+	_ = newDiffs
+	_ = newStatechainBlocks
 	defer cleanupFiles(&fileNames)
 
 	ts := time.Now().Unix()
+
+	state := []byte(``)
 
 	stateFile, err := makeTempFile(fmt.Sprintf("%s/%v/%s", imageHash, ts, StateFileName))
 	if err != nil {
@@ -85,12 +99,18 @@ func (s *Service) Snapshot(imageHash string, stateBlockNumber int) error {
 		return err
 	}
 
+	spew.Dump(prevStateBlock)
+
 	runningBlockNumber, err := hexutil.DecodeUint64(prevStateBlock.Props().BlockNumber)
 	if err != nil {
 		return err
 	}
 	runningBlockHash := *prevStateBlock.Props().BlockHash // note: already checked nil pointer, above
 	runningState := state
+
+	_ = runningBlockNumber
+	_ = runningBlockHash
+	_ = runningState
 
 	/*
 		// apply state to container and start running transactions
