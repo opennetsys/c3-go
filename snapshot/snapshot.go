@@ -1,6 +1,8 @@
 package snapshot
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -8,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/c3systems/c3-go/common/hashutil"
 	"github.com/c3systems/c3-go/common/hexutil"
+	"github.com/c3systems/c3-go/common/stringutil"
 	"github.com/c3systems/c3-go/core/chain/statechain"
-	"github.com/c3systems/c3-go/core/diffing"
+	"github.com/c3systems/c3-go/core/miner"
 	"github.com/c3systems/c3-go/core/p2p"
 	"github.com/c3systems/c3-go/core/sandbox"
 	"github.com/c3systems/c3-go/node/store"
@@ -53,18 +55,18 @@ const (
 )
 
 // Snapshot ...
-func (s *Service) Snapshot(imageHash string, stateBlockNumber int) error {
+func (s *Service) Snapshot(imageHash string, stateBlockNumber int) (string, error) {
 	headBlock, err := s.Mempool.GetHeadBlock()
 	if err != nil {
-		return err
+		return "", err
 	}
 	prevStateBlock, err := s.P2P.FetchMostRecentStateBlock(imageHash, &headBlock)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if prevStateBlock == nil {
-		return errors.New("state block not found")
+		return "", errors.New("state block not found")
 	}
 
 	var (
@@ -77,121 +79,181 @@ func (s *Service) Snapshot(imageHash string, stateBlockNumber int) error {
 
 	ts := time.Now().Unix()
 
-	state := []byte(``)
+	minr, err := miner.New(&miner.Props{
+		Context:             context.Background(),
+		PreviousBlock:       &headBlock,
+		P2P:                 s.P2P,
+		PendingTransactions: nil,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	diffs, err := minr.GatherDiffs(prevStateBlock)
+	if err != nil {
+		return "", err
+	}
+
+	for i := range diffs {
+		log.Printf("diff %v\n%s", i, diffs[i].Props().Data)
+	}
+
+	var genesisState []byte
+	state, err := miner.GenerateStateFromDiffs(context.Background(), imageHash, genesisState, diffs)
+	if err != nil {
+		return "", err
+	}
+
+	spew.Dump(state)
+
+	sta, err := stringutil.CompactJSON(state)
+	if err != nil {
+		return "", err
+	}
+
+	var st map[string]string
+	err = json.Unmarshal(sta, &st)
+	if err != nil {
+		return "''", err
+	}
+
+	for key, value := range st {
+		k, _ := hexutil.DecodeString(key)
+		v, _ := hexutil.DecodeString(value)
+		log.Printf("[sandbox] state k/v %s=>%s", string(k), string(v))
+	}
 
 	stateFile, err := makeTempFile(fmt.Sprintf("%s/%v/%s", imageHash, ts, StateFileName))
 	if err != nil {
-		return err
+		return "", err
 	}
 	fileNames = append(fileNames, stateFile.Name())
 	if _, err = stateFile.Write(state); err != nil {
-		return err
+		return "", err
 	}
 	if err = stateFile.Close(); err != nil {
-		return err
+		return "", err
 	}
 
 	nextStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/nextState.txt", imageHash, ts))
 	if err != nil {
-		return err
+		return "", err
 	}
 	fileNames = append(fileNames, nextStateFile.Name()) // clean up
 	if err = nextStateFile.Close(); err != nil {
-		return err
+		return "", err
 	}
 
 	patchFile, err := makeTempFile(fmt.Sprintf("%s/%v/diff.patch", imageHash, ts))
 	if err != nil {
-		return err
+		return "", err
 	}
 	fileNames = append(fileNames, patchFile.Name())
 	if err = patchFile.Close(); err != nil {
-		return err
+		return "", err
 	}
 
 	spew.Dump(prevStateBlock)
 
 	runningBlockNumber, err := hexutil.DecodeUint64(prevStateBlock.Props().BlockNumber)
 	if err != nil {
-		return err
+		return "", err
 	}
 	runningBlockHash := *prevStateBlock.Props().BlockHash // note: already checked nil pointer, above
 	latestState := state
 
-	//tx := statechain.NewTransaction(&statechain.TransactionProps{ })
-
 	// apply state to container and start running transactions
-
 	var nextState []byte
 
 	log.Printf("[miner] setting docker container initial state to %q", string(state))
 
 	// run container, passing the tx inputs
-	nextState, err = s.Sandbox.Play(&sandbox.PlayConfig{
+	committedImageID, err := s.Sandbox.CommitPlay(&sandbox.PlayConfig{
 		ImageID:      imageHash,
 		Payload:      []byte(""),
 		InitialState: latestState,
 	})
-
 	if err != nil {
-		log.Errorf("[miner] error running container for image hash: %s; error: %s", imageHash, err)
-		return err
+		return "", err
 	}
 
-	log.Printf("[miner] container new state: %s", string(nextState))
-
-	if err := ioutil.WriteFile(nextStateFile.Name(), nextState, os.ModePerm); err != nil {
-		return err
+	if committedImageID == "" {
+		return "", errors.New("expected image ID")
 	}
 
-	if err = diffing.Diff(stateFile.Name(), nextStateFile.Name(), patchFile.Name(), false); err != nil {
-		return err
-	}
+	_ = newDiffs
+	_ = newStatechainBlocks
+	_ = runningBlockNumber
+	_ = runningBlockHash
+	_ = nextState
 
-	// build the diff struct
-	diffData, err := ioutil.ReadFile(patchFile.Name())
-	if err != nil {
-		return err
-	}
+	return committedImageID, nil
 
-	diffStruct := statechain.NewDiff(&statechain.DiffProps{
-		Data: string(diffData),
-	})
-	if err := diffStruct.SetHash(); err != nil {
-		return err
-	}
+	/*
+		nextState, err = s.Sandbox.Play(&sandbox.PlayConfig{
+			ImageID:      imageHash,
+			Payload:      []byte(""),
+			InitialState: latestState,
+		})
+	*/
 
-	nextStateHashBytes := hashutil.Hash(nextState)
-	nextStateHash := hexutil.EncodeToString(nextStateHashBytes[:])
-	log.Printf("[miner] state prev diff hash: %s", *diffStruct.Props().DiffHash)
-	log.Printf("[miner] state current hash: %s", nextStateHash)
+	/*
+		if err != nil {
+			log.Errorf("[miner] error running container for image hash: %s; error: %s", imageHash, err)
+			return err
+		}
 
-	runningBlockNumber++
-	nextStateStruct := statechain.New(&statechain.BlockProps{
-		BlockNumber: hexutil.EncodeUint64(runningBlockNumber),
-		BlockTime:   hexutil.EncodeUint64(uint64(ts)),
-		ImageHash:   imageHash,
-		//TxHash:            *tx.Props().TxHash, // note: checked for nil pointer, above
-		PrevBlockHash:     runningBlockHash,
-		StatePrevDiffHash: *diffStruct.Props().DiffHash, // note: used setHash, above so it would've erred
-		StateCurrentHash:  nextStateHash,
-	})
-	if err := nextStateStruct.SetHash(); err != nil {
-		return err
-	}
-	runningBlockHash = *nextStateStruct.Props().BlockHash
+		log.Printf("[miner] container new state: %s", string(nextState))
 
-	newDiffs = append(newDiffs, diffStruct)
-	newStatechainBlocks = append(newStatechainBlocks, nextStateStruct)
+		if err := ioutil.WriteFile(nextStateFile.Name(), nextState, os.ModePerm); err != nil {
+			return err
+		}
 
-	// get ready for the next loop
-	latestState = nextState
+		if err = diffing.Diff(stateFile.Name(), nextStateFile.Name(), patchFile.Name(), false); err != nil {
+			return err
+		}
 
-	if err := ioutil.WriteFile(stateFile.Name(), nextState, os.ModePerm); err != nil {
-		return err
-	}
+		// build the diff struct
+		diffData, err := ioutil.ReadFile(patchFile.Name())
+		if err != nil {
+			return err
+		}
 
-	return nil
+		diffStruct := statechain.NewDiff(&statechain.DiffProps{
+			Data: string(diffData),
+		})
+		if err := diffStruct.SetHash(); err != nil {
+			return err
+		}
+
+		nextStateHashBytes := hashutil.Hash(nextState)
+		nextStateHash := hexutil.EncodeToString(nextStateHashBytes[:])
+		log.Printf("[miner] state prev diff hash: %s", *diffStruct.Props().DiffHash)
+		log.Printf("[miner] state current hash: %s", nextStateHash)
+
+		runningBlockNumber++
+		nextStateStruct := statechain.New(&statechain.BlockProps{
+			BlockNumber:       hexutil.EncodeUint64(runningBlockNumber),
+			BlockTime:         hexutil.EncodeUint64(uint64(ts)),
+			ImageHash:         imageHash,
+			TxHash:            nil,
+			PrevBlockHash:     runningBlockHash,
+			StatePrevDiffHash: *diffStruct.Props().DiffHash, // note: used setHash, above so it would've erred
+			StateCurrentHash:  nextStateHash,
+		})
+		if err := nextStateStruct.SetHash(); err != nil {
+			return err
+		}
+		runningBlockHash = *nextStateStruct.Props().BlockHash
+
+		newDiffs = append(newDiffs, diffStruct)
+		newStatechainBlocks = append(newStatechainBlocks, nextStateStruct)
+
+		if err := ioutil.WriteFile(stateFile.Name(), nextState, os.ModePerm); err != nil {
+			return err
+		}
+	*/
+	//return "", nil
 }
 
 func cleanupFiles(fileNames *[]string) {

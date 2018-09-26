@@ -186,7 +186,7 @@ func (s Service) mineBlock() error {
 			return err
 		}
 
-    // NOTE: simulated is for testing, auto accepts first block hash mined
+		// NOTE: simulated is for testing, auto accepts first block hash mined
 		if s.props.Simulated {
 			check = true
 			time.Sleep(2 * time.Second)
@@ -370,7 +370,7 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 		log.Printf("[miner] prev state block; block number: %s; block hash: %s", prevStateBlock.Props().BlockNumber, *prevStateBlock.Props().BlockHash)
 
 		// gather the diffs
-		diffs, err = s.gatherDiffs(prevStateBlock)
+		diffs, err = s.GatherDiffs(prevStateBlock)
 		if err != nil {
 			log.Errorf("[miner] error getting cid by hash for image hash %s\n%v", imageHash, err)
 			return err
@@ -389,7 +389,7 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 
 	// apply the diffs to get the current state
 	var genesisState []byte
-	state, err := generateStateFromDiffs(s.props.Context, imageHash, genesisState, diffs)
+	state, err := GenerateStateFromDiffs(s.props.Context, imageHash, genesisState, diffs)
 	if err != nil {
 		log.Errorf("[miner] error getting state from diffs for image hash %s\n%v", imageHash, err)
 		return err
@@ -416,7 +416,8 @@ func (s Service) buildNextStates(imageHash string, transactions []*statechain.Tr
 	return nil
 }
 
-func (s *Service) gatherDiffs(block *statechain.Block) ([]*statechain.Diff, error) {
+// GatherDiffs ...
+func (s *Service) GatherDiffs(block *statechain.Block) ([]*statechain.Diff, error) {
 	var diffs []*statechain.Diff
 
 	if block == nil {

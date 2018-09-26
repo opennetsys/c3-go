@@ -86,9 +86,10 @@ func New(config *Config) *Service {
 
 // PlayConfig ...
 type PlayConfig struct {
-	ImageID      string // can be ipfs hash
-	Payload      []byte
-	InitialState []byte
+	ImageID            string // can be ipfs hash
+	Payload            []byte
+	InitialState       []byte
+	ContainerIDChannel chan string
 }
 
 // Play in the sandbox
@@ -176,9 +177,10 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 	errEvent := make(chan error)
 
 	go func() {
-		// Wait for application to start up
+		log.Printf("[sandbox] container ID: %s", containerID)
+		log.Println("[sandbox] waiting for dapp to start...")
 		// TODO: optimize
-		time.Sleep(3 * time.Second)
+		time.Sleep(10 * time.Second)
 		err := s.sendMessage(config.Payload, hostPort)
 		if err != nil {
 			log.Errorf("[sandbox] error sending message; %v", err)
@@ -187,6 +189,12 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 		}
 
 		log.Println("[sandbox] writing to done channel")
+
+		if config.ContainerIDChannel != nil {
+			go func() {
+				config.ContainerIDChannel <- containerID
+			}()
+		}
 
 		done <- true
 	}()
@@ -253,6 +261,35 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 		}
 
 		return result, nil
+	}
+}
+
+// CommitPlay commit an image
+func (s *Service) CommitPlay(config *PlayConfig) (string, error) {
+	ch := make(chan string)
+	errCh := make(chan error)
+
+	timer := time.NewTimer(1 * time.Minute)
+	go func() {
+		config.ContainerIDChannel = ch
+		_, err := s.Play(config)
+		if err != nil {
+			errCh <- err
+		}
+	}()
+
+	select {
+	case <-timer.C:
+		return "", errors.New("timed out")
+	case containerID := <-ch:
+		imageID, err := s.docker.CommitContainer(containerID)
+		if err != nil {
+			return "", err
+		}
+
+		return imageID, nil
+	case err := <-errCh:
+		return "", err
 	}
 }
 

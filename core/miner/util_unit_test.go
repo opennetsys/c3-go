@@ -348,7 +348,7 @@ func TestGatherDiffs(t *testing.T) {
 		Return(diff, nil)
 
 	// 4. run the function
-	diffs, err := gatherDiffs(context.Background(), mockP2P, block)
+	diffs, err := GatherDiffs(context.Background(), mockP2P, block)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -371,7 +371,7 @@ func TestGatherDiffs(t *testing.T) {
 		Return(diff, nil)
 
 	// 7. run the function
-	diffs, err = gatherDiffs(context.Background(), mockP2P, genesisBlock)
+	diffs, err = GatherDiffs(context.Background(), mockP2P, genesisBlock)
 	if err != nil {
 		t.Fatal(err)
 	}

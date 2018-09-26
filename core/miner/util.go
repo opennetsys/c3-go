@@ -912,7 +912,7 @@ func fetchCurrentState(ctx context.Context, p2pSvc p2p.Interface, block *statech
 		}
 
 		// gather the diffs
-		diffs, err := gatherDiffs(ctx, p2pSvc, block)
+		diffs, err := GatherDiffs(ctx, p2pSvc, block)
 		if err != nil {
 			log.Errorf("[miner] error gathering diffs\n%v", err)
 			ch <- err
@@ -924,7 +924,7 @@ func fetchCurrentState(ctx context.Context, p2pSvc p2p.Interface, block *statech
 		// TODO: get the genesis state of the block?
 		var genesisState []byte
 		imageHash := block.Props().ImageHash
-		state, err := generateStateFromDiffs(ctx, imageHash, genesisState, diffs)
+		state, err := GenerateStateFromDiffs(ctx, imageHash, genesisState, diffs)
 		if err != nil {
 			log.Errorf("[miner] error reading state file\n%v", err)
 			ch <- err
@@ -964,7 +964,8 @@ func fetchCurrentState(ctx context.Context, p2pSvc p2p.Interface, block *statech
 	}
 }
 
-func gatherDiffs(ctx context.Context, p2pSvc p2p.Interface, block *statechain.Block) ([]*statechain.Diff, error) {
+// GatherDiffs ...
+func GatherDiffs(ctx context.Context, p2pSvc p2p.Interface, block *statechain.Block) ([]*statechain.Diff, error) {
 	var diffs []*statechain.Diff
 
 	// gather the diffs
@@ -1030,7 +1031,8 @@ func gatherDiffs(ctx context.Context, p2pSvc p2p.Interface, block *statechain.Bl
 	return diffs, nil
 }
 
-func generateStateFromDiffs(ctx context.Context, imageHash string, genesisState []byte, diffs []*statechain.Diff) ([]byte, error) {
+// GenerateStateFromDiffs ...
+func GenerateStateFromDiffs(ctx context.Context, imageHash string, genesisState []byte, diffs []*statechain.Diff) ([]byte, error) {
 	combinedDiff, err := generateCombinedDiffs(ctx, imageHash, diffs)
 	if err != nil {
 		log.Errorf("[miner] error generating combined diffs; %s", err)
