@@ -25,4 +25,5 @@ type Interface interface {
 	LoadImageByFilepath(filepath string) error
 	CopyToContainer(containerID, dirpath string, data io.Reader) error
 	CopyFromContainer(containerID, srcpath string) (io.ReadCloser, error)
+	CommitContainer(containerID string) (string, error)
 }

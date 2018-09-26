@@ -29,6 +29,10 @@ func (s *RPC) getStateblock(params []string) (*pb.StateBlockResponse, error) {
 		return nil, err
 	}
 
+	if currentStateBlock == nil {
+		return nil, ErrStateBlockNotFound
+	}
+
 	for {
 		stateBlockNumber, err := hexutil.DecodeInt(currentStateBlock.Props().BlockNumber)
 		if err != nil {

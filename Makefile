@@ -405,7 +405,7 @@ run/rpc/getblock:
 
 .PHONY: run/rpc/getstateblock
 run/rpc/getstateblock:
-	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_getStateBlock","params":["1042bc722199", "0x1"]}' $(RPC_HOST) protos.C3Service/Send
+	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_getStateBlock","params":["9d25726b0160", "0x1"]}' $(RPC_HOST) protos.C3Service/Send
 
 .PHONY: install/grpcwebproxy
 install/grpcwebproxy:

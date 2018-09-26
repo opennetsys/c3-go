@@ -314,6 +314,33 @@ func TestCopyToContainerAndCopyFromContainer(t *testing.T) {
 	}
 }
 
+func TestCommitContainer(t *testing.T) {
+	t.Parallel()
+	client := NewClient()
+	err := client.PullImage(testImage)
+	if err != nil {
+		t.Error(err)
+	}
+	containerID, err := client.CreateContainer(testImage, []string{}, nil)
+	if err != nil {
+		t.Error(err)
+	}
+
+	commitedImageID, err := client.CommitContainer(containerID)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if commitedImageID == "" {
+		t.Error("expected commited image ID")
+	}
+
+	err = client.StopContainer(containerID)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
 func TestDockerVersionFromCLI(t *testing.T) {
 	t.Parallel()
 	version := dockerVersionFromCLI()

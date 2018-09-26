@@ -394,6 +394,16 @@ func (s *Client) CopyFromContainer(containerID, srcpath string) (io.ReadCloser, 
 	return reader, nil
 }
 
+// CommitContainer ...
+func (s *Client) CommitContainer(containerID string) (string, error) {
+	resp, err := s.client.ContainerCommit(context.Background(), containerID, types.ContainerCommitOptions{})
+	if err != nil {
+		return "", err
+	}
+
+	return resp.ID, nil
+}
+
 func init() {
 	log.AddHook(loghooks.ContextHook{})
 }

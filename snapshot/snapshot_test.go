@@ -37,7 +37,7 @@ func TestSnapshot(t *testing.T) {
 		Mempool: n.Props().Store,
 	})
 
-	imageHash := "2373725b0797"
+	imageHash := "9d25726b0160"
 	stateBlockNumber := 1
 	err = svc.Snapshot(imageHash, stateBlockNumber)
 	if err != nil {

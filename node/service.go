@@ -91,12 +91,7 @@ func newNode(props *Props) (*Service, error) {
 
 // NewFullNode ...
 func NewFullNode(cfg *nodetypes.Config) (*Service, error) {
-	ctx := context.Background()
-	//ctx, cancel := context.WithCancel(context.Background())
-	//defer cancel()
-	n := new(Service)
 	if cfg == nil {
-		// note: is this the correct way to fail an app with cobra?
 		return nil, errors.New("config is required to start the node")
 	}
 
@@ -134,6 +129,7 @@ func NewFullNode(cfg *nodetypes.Config) (*Service, error) {
 		return nil, fmt.Errorf("err adding pub key\n%v", err)
 	}
 
+	ctx := context.Background()
 	swarmNet := swarm.NewSwarm(ctx, pid, ps, nil)
 	tcpTransport := tcp.NewTCPTransport(genUpgrader(swarmNet))
 	if err := swarmNet.AddTransport(tcpTransport); err != nil {
@@ -238,6 +234,7 @@ func NewFullNode(cfg *nodetypes.Config) (*Service, error) {
 		return nil, fmt.Errorf("error starting ipfs p2p network\n%v", err)
 	}
 
+	n := new(Service)
 	pBuff, err := protobuff.NewNode(&protobuff.Props{
 		Host:                   newNode,
 		GetHeadBlockFN:         memPool.GetHeadBlock,
@@ -250,16 +247,17 @@ func NewFullNode(cfg *nodetypes.Config) (*Service, error) {
 
 	initialBlock := &mainchain.GenesisBlock
 
-	result := make(chan *mainchain.Block, 1)
+	// set head block to last mainchain block that was stored
+	cachedLatestBlock := make(chan *mainchain.Block, 1)
 	go func() {
 		latestBlock, err := p2pSvc.GetLatestBlock()
 		if err == nil {
-			result <- latestBlock
+			cachedLatestBlock <- latestBlock
 		}
 	}()
 
 	select {
-	case latestBlock := <-result:
+	case latestBlock := <-cachedLatestBlock:
 		initialBlock = latestBlock
 	case <-time.After(2 * time.Second):
 	}
