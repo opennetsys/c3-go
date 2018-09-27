@@ -12,6 +12,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/c3systems/c3-go/common/fileutil"
 	"github.com/c3systems/c3-go/common/hashutil"
 	"github.com/c3systems/c3-go/common/hexutil"
 	"github.com/c3systems/c3-go/core/chain/mainchain"
@@ -479,7 +480,7 @@ func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBloc
 
 	ts := time.Now().Unix()
 
-	stateFile, err := makeTempFile(fmt.Sprintf("%s/%v/%s", imageHash, ts, StateFileName))
+	stateFile, err := fileutil.CreateTempFile(fmt.Sprintf("%s/%v/%s", imageHash, ts, StateFileName))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -491,7 +492,7 @@ func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBloc
 		return nil, nil, err
 	}
 
-	nextStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/nextState.txt", imageHash, ts))
+	nextStateFile, err := fileutil.CreateTempFile(fmt.Sprintf("%s/%v/nextState.txt", imageHash, ts))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -500,7 +501,7 @@ func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBloc
 		return nil, nil, err
 	}
 
-	patchFile, err := makeTempFile(fmt.Sprintf("%s/%v/diff.patch", imageHash, ts))
+	patchFile, err := fileutil.CreateTempFile(fmt.Sprintf("%s/%v/diff.patch", imageHash, ts))
 	if err != nil {
 		return nil, nil, err
 	}

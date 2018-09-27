@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/c3systems/c3-go/common/c3crypto"
+	"github.com/c3systems/c3-go/common/fileutil"
 
 	"github.com/c3systems/c3-go/common/hexutil"
 	"github.com/c3systems/c3-go/core/chain/mainchain"
@@ -724,7 +725,7 @@ func TestMakeTempFile(t *testing.T) {
 
 	file := "baz"
 	fileName := fmt.Sprintf("%s/%s/%s", "foo", "bar", file)
-	f, err := makeTempFile(fileName)
+	f, err := fileutil.CreateTempFile(fileName)
 	if err != nil {
 		t.Fatal(err)
 	}

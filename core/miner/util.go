@@ -7,10 +7,10 @@ import (
 	"io/ioutil"
 	"os"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/c3systems/c3-go/common/c3crypto"
+	"github.com/c3systems/c3-go/common/fileutil"
 	"github.com/c3systems/c3-go/common/hashutil"
 	"github.com/c3systems/c3-go/common/hexutil"
 	"github.com/c3systems/c3-go/core/chain/mainchain"
@@ -700,7 +700,7 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, sbSvc sandbox.Interface, 
 	}
 
 	ts := time.Now().Unix()
-	outPatchFile, err := makeTempFile(fmt.Sprintf("%s/%v/diff.patch", prevBlock.Props().ImageHash, ts))
+	outPatchFile, err := fileutil.CreateTempFile(fmt.Sprintf("%s/%v/diff.patch", prevBlock.Props().ImageHash, ts))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -708,7 +708,7 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, sbSvc sandbox.Interface, 
 	if err = outPatchFile.Close(); err != nil {
 		return nil, nil, nil, err
 	}
-	prevStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/%s", prevBlock.Props().ImageHash, ts, StateFileName))
+	prevStateFile, err := fileutil.CreateTempFile(fmt.Sprintf("%s/%v/%s", prevBlock.Props().ImageHash, ts, StateFileName))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -738,7 +738,7 @@ func buildNextStateFromPrevState(p2pSvc p2p.Interface, sbSvc sandbox.Interface, 
 		}
 
 		//log.Printf("[miner] container new state: %s", string(nextState))
-		nextStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/nextState.txt", prevBlock.Props().ImageHash, ts))
+		nextStateFile, err := fileutil.CreateTempFile(fmt.Sprintf("%s/%v/nextState.txt", prevBlock.Props().ImageHash, ts))
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -819,7 +819,7 @@ func buildGenesisStateBlock(imageHash string, tx *statechain.Transaction) (*stat
 	nextState := tx.Props().Payload
 	log.Printf("[miner] container initial state: %s", string(nextState))
 
-	stateFile, err := makeTempFile(fmt.Sprintf("%s/%v/%s", imageHash, ts, StateFileName))
+	stateFile, err := fileutil.CreateTempFile(fmt.Sprintf("%s/%v/%s", imageHash, ts, StateFileName))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -828,7 +828,7 @@ func buildGenesisStateBlock(imageHash string, tx *statechain.Transaction) (*stat
 		return nil, nil, err
 	}
 
-	nextStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/nextState.txt", imageHash, ts))
+	nextStateFile, err := fileutil.CreateTempFile(fmt.Sprintf("%s/%v/nextState.txt", imageHash, ts))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -840,7 +840,7 @@ func buildGenesisStateBlock(imageHash string, tx *statechain.Transaction) (*stat
 		return nil, nil, err
 	}
 
-	outPatchFile, err := makeTempFile(fmt.Sprintf("%s/%v/diff.patch", imageHash, ts))
+	outPatchFile, err := fileutil.CreateTempFile(fmt.Sprintf("%s/%v/diff.patch", imageHash, ts))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1043,7 +1043,7 @@ func GenerateStateFromDiffs(ctx context.Context, imageHash string, genesisState 
 	var fileNames []string
 	defer cleanupFiles(&fileNames)
 
-	tmpStateFile, err := makeTempFile(fmt.Sprintf("%s/%v/%s", imageHash, ts, StateFileName))
+	tmpStateFile, err := fileutil.CreateTempFile(fmt.Sprintf("%s/%v/%s", imageHash, ts, StateFileName))
 	if err != nil {
 		log.Errorf("[miner] error generating tmp state file; %s", err)
 		return nil, err
@@ -1059,7 +1059,7 @@ func GenerateStateFromDiffs(ctx context.Context, imageHash string, genesisState 
 		return nil, err
 	}
 
-	combinedPatchFile, err := makeTempFile(fmt.Sprintf("%s/%v/combined.patch", imageHash, ts))
+	combinedPatchFile, err := fileutil.CreateTempFile(fmt.Sprintf("%s/%v/combined.patch", imageHash, ts))
 	if err != nil {
 		log.Errorf("[miner] error creating combined patch file; %s", err)
 		return nil, err
@@ -1097,7 +1097,7 @@ func generateCombinedDiffs(ctx context.Context, imageHash string, diffs []*state
 		return nil, errors.New("nil diffs")
 	}
 
-	combinedPatchFile, err := makeTempFile(fmt.Sprintf("%s/%v/combined.patch", imageHash, ts))
+	combinedPatchFile, err := fileutil.CreateTempFile(fmt.Sprintf("%s/%v/combined.patch", imageHash, ts))
 	if err != nil {
 		log.Errorf("[miner] error creating combined patch file; %s", err)
 		return nil, err
@@ -1112,7 +1112,7 @@ func generateCombinedDiffs(ctx context.Context, imageHash string, diffs []*state
 		return nil, err
 	}
 
-	tmpPatchFile, err := makeTempFile(fmt.Sprintf("%s/%v/tmp.patch", imageHash, ts))
+	tmpPatchFile, err := fileutil.CreateTempFile(fmt.Sprintf("%s/%v/tmp.patch", imageHash, ts))
 	if err != nil {
 		log.Errorf("[miner] error creating tmp patch file; %s", err)
 		return nil, err
@@ -1122,7 +1122,7 @@ func generateCombinedDiffs(ctx context.Context, imageHash string, diffs []*state
 		log.Errorf("[miner] error closing tmp patch file; %s", err)
 		return nil, err
 	}
-	tmpPatchFile1, err := makeTempFile(fmt.Sprintf("%s/%v/tmp1.patch", imageHash, ts))
+	tmpPatchFile1, err := fileutil.CreateTempFile(fmt.Sprintf("%s/%v/tmp1.patch", imageHash, ts))
 	if err != nil {
 		log.Errorf("[miner] error creating tmp patch file; %s", err)
 		return nil, err
@@ -1360,33 +1360,8 @@ func groupStateBlocksByImageHash(stateBlocksMap map[string]*statechain.Block) (m
 }
 
 func cleanupFiles(fileNames *[]string) {
-	if fileNames == nil {
-		return
-	}
-
-	for idx := range *fileNames {
-		if err := os.Remove((*fileNames)[idx]); err != nil {
-			log.Errorf("[miner] err cleaning up file %s", (*fileNames)[idx])
-		}
-	}
-}
-
-func makeTempFile(filename string) (*os.File, error) {
-	paths := strings.Split(filename, "/")
-	prefix := strings.Join(paths[:len(paths)-1], "_") // does not like slashes for some reason
-	filename = strings.Join(paths[len(paths)-1:len(paths)], "")
-
-	tmpdir, err := ioutil.TempDir("/tmp", prefix)
+	err := fileutil.RemoveFiles(fileNames)
 	if err != nil {
-		return nil, err
+		log.Errorf("[miner] err cleaning up files; %v", err)
 	}
-
-	filepath := fmt.Sprintf("%s/%s", tmpdir, filename)
-
-	f, err := os.OpenFile(filepath, os.O_WRONLY|os.O_CREATE, 0666)
-	if err != nil {
-		return nil, err
-	}
-
-	return f, nil
 }

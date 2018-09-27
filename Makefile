@@ -169,8 +169,12 @@ test/core/server:
 	@go test -v core/server/*.go $(ARGS)
 
 .PHONY: test/core/docker
-test/core/docker:
+test/core/docker: test/core/docker/util
 	@go test -v -parallel 1 core/docker/*.go $(ARGS)
+
+.PHONY: test/core/docker/util
+test/core/docker/util:
+	@go test -v -parallel 1 core/docker/util*.go $(ARGS)
 
 .PHONY: test/core/ipfs
 test/core/ipfs:

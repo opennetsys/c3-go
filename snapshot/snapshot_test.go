@@ -37,14 +37,14 @@ func TestSnapshot(t *testing.T) {
 		Mempool: n.Props().Store,
 	})
 
-	imageHash := "72dd62df4497"
-	stateBlockNumber := 1
+	imageHash := "d50ada614c01"
+	stateBlockNumber := 2
 	snapshotImageID, err := svc.Snapshot(imageHash, stateBlockNumber)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if snapshotImageID == " " {
+	if snapshotImageID == "" {
 		log.Fatal("expected image ID")
 	}
 
