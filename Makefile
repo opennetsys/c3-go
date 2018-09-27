@@ -429,3 +429,10 @@ loc:
 	@find ./ -name '*.go' ! -path ".//vendor/*" ! -path ".//.git/*" | xargs wc -l
 
 # /END LOC
+
+# CLI
+# Example
+# $ make snapshot IMAGE=d50ada614c01 STATEBLOCK=2
+.PHONY: snapshot
+snapshot:
+	@go run main.go snapshot --priv priv.pem --image $(IMAGE) --stateblock $(STATEBLOCK)

@@ -43,13 +43,10 @@ func New(cfg *Config) *Service {
 	}
 }
 
-const (
-	// StateFileName ...
-	StateFileName string = "state.txt"
-)
-
 // Snapshot ...
 func (s *Service) Snapshot(imageHash string, stateBlockNumber int) (string, error) {
+	// stateFileName ...
+	var stateFileName = "state.txt"
 	headBlock, err := s.Mempool.GetHeadBlock()
 	if err != nil {
 		return "", err
@@ -63,10 +60,7 @@ func (s *Service) Snapshot(imageHash string, stateBlockNumber int) (string, erro
 		return "", errors.New("state block not found")
 	}
 
-	var (
-		fileNames []string
-	)
-
+	var fileNames []string
 	defer fileutil.RemoveFiles(&fileNames)
 
 	ts := time.Now().Unix()
@@ -86,6 +80,7 @@ func (s *Service) Snapshot(imageHash string, stateBlockNumber int) (string, erro
 		return "", err
 	}
 
+	// debug logs
 	for i := range diffs {
 		log.Printf("diff %v\n%s", i, diffs[i].Props().Data)
 	}
@@ -95,8 +90,6 @@ func (s *Service) Snapshot(imageHash string, stateBlockNumber int) (string, erro
 	if err != nil {
 		return "", err
 	}
-
-	spew.Dump(state)
 
 	sta, err := stringutil.CompactJSON(state)
 	if err != nil {
@@ -109,13 +102,14 @@ func (s *Service) Snapshot(imageHash string, stateBlockNumber int) (string, erro
 		return "''", err
 	}
 
+	// debug logs
 	for key, value := range st {
 		k, _ := hexutil.DecodeString(key)
 		v, _ := hexutil.DecodeString(value)
 		log.Printf("[sandbox] state k/v %s=>%s", string(k), string(v))
 	}
 
-	stateFile, err := fileutil.CreateTempFile(fmt.Sprintf("%s/%v/%s", imageHash, ts, StateFileName))
+	stateFile, err := fileutil.CreateTempFile(fmt.Sprintf("%s/%v/%s", imageHash, ts, stateFileName))
 	if err != nil {
 		return "", err
 	}
@@ -151,7 +145,6 @@ func (s *Service) Snapshot(imageHash string, stateBlockNumber int) (string, erro
 
 	log.Printf("[miner] setting docker container initial state to %q", string(state))
 
-	// run container, passing the tx inputs
 	committedImageID, err := s.Sandbox.CommitPlay(&sandbox.PlayConfig{
 		ImageID:      imageHash,
 		Payload:      []byte(""),
