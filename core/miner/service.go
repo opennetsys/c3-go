@@ -12,6 +12,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/c3systems/c3-go/common/dirutil"
 	"github.com/c3systems/c3-go/common/fileutil"
 	"github.com/c3systems/c3-go/common/hashutil"
 	"github.com/c3systems/c3-go/common/hexutil"
@@ -569,6 +570,22 @@ func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBloc
 		if err = diffing.Diff(stateFile.Name(), nextStateFile.Name(), patchFile.Name(), false); err != nil {
 			return nil, nil, err
 		}
+
+		if err := dirutil.CreateDirIfNotExist("/tmp/" + imageHash); err != nil {
+			return nil, nil, err
+		}
+		filepath := fmt.Sprintf("/tmp/%s/%s", imageHash, StateFileName)
+		tempLatestImageStateFile, err := os.OpenFile(filepath, os.O_WRONLY|os.O_CREATE, 0666)
+		if err != nil {
+			return nil, nil, err
+		}
+		if _, err = tempLatestImageStateFile.Write(nextState); err != nil {
+			return nil, nil, err
+		}
+		if err = tempLatestImageStateFile.Close(); err != nil {
+			return nil, nil, err
+		}
+		log.Printf("[miner] latest state file path for image %s: %s", imageHash, tempLatestImageStateFile.Name())
 
 		// build the diff struct
 		diffData, err := ioutil.ReadFile(patchFile.Name())
