@@ -189,6 +189,8 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 		}
 
 		log.Println("[sandbox] writing to done channel")
+		// TODO: optimize
+		time.Sleep(5 * time.Second)
 
 		if config.ContainerIDChannel != nil {
 			go func() {
