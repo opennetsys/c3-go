@@ -84,7 +84,7 @@ test/check:
 	@pgrep -f docker > /dev/null || echo "Docker daemon is not running"
 
 .PHONY: test
-test: test/check test/common test/cleanup
+test: test/check test/common test/trie test/cleanup
 	# test/unit test/integration test/e2e
 	# test/core
 	# test/registry
@@ -229,6 +229,14 @@ test/node:
 	@IMAGEID="$(IMAGEID)" PEERID="$(PEERID)" METHOD="$(METHOD)" go test -v node/*.go $(ARGS)
 
 # /END REGISTRY
+
+# TRIE
+
+.PHONY: test/trie
+test/trie:
+	go test -v -parallel 1 trie/*.go $(ARGS)
+
+# /END TRIE
 
 # LOGGER
 
