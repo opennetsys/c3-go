@@ -18,12 +18,13 @@ var fileperm = os.FileMode(0644)
 
 // NOTE: properties must be uppercase (exported) to save as TOML
 type config struct {
-	Port           int    `toml:"port"`
-	DataDir        string `toml:"dataDir"`
-	PrivateKeyPath string `toml:"privateKey"`
-	Peer           string `toml:"peer"`
-	configDir      string `toml:"-"` // NOTE: don't save to TOML
-	configFilename string `toml:"-"` // NOTE: don't save to TOML
+	Port            int    `toml:"port"`
+	DataDir         string `toml:"dataDir"`
+	PrivateKeyPath  string `toml:"privateKey"`
+	Peer            string `toml:"peer"`
+	BlockDifficulty int    `toml:"blockDifficulty"`
+	configDir       string `toml:"-"` // NOTE: don't save to TOML
+	configFilename  string `toml:"-"` // NOTE: don't save to TOML
 }
 
 // Config ...
@@ -36,12 +37,13 @@ type Config struct {
 func New() *Config {
 	cnf := &Config{
 		config: &config{
-			Port:           DefaultServerPort,
-			configDir:      DefaultConfigDirectory,
-			configFilename: DefaultConfigFilename,
-			DataDir:        DefaultStoreDirectory,
-			PrivateKeyPath: DefaultConfigDirectory + "/" + DefaultPrivateKeyFilename,
-			Peer:           "",
+			Port:            DefaultServerPort,
+			configDir:       DefaultConfigDirectory,
+			configFilename:  DefaultConfigFilename,
+			DataDir:         DefaultStoreDirectory,
+			PrivateKeyPath:  DefaultConfigDirectory + "/" + DefaultPrivateKeyFilename,
+			Peer:            "",
+			BlockDifficulty: DefaultBlockDifficulty,
 		},
 	}
 	if err := cnf.setupConfig(); err != nil {
@@ -66,12 +68,13 @@ func NewFromFile(filepath string) *Config {
 
 	cnf := &Config{
 		config: &config{
-			Port:           DefaultServerPort,
-			configDir:      filedir,
-			configFilename: filename,
-			DataDir:        DefaultStoreDirectory,
-			PrivateKeyPath: DefaultConfigDirectory + "/" + DefaultPrivateKeyFilename,
-			Peer:           "",
+			Port:            DefaultServerPort,
+			configDir:       filedir,
+			configFilename:  filename,
+			DataDir:         DefaultStoreDirectory,
+			PrivateKeyPath:  DefaultConfigDirectory + "/" + DefaultPrivateKeyFilename,
+			Peer:            "",
+			BlockDifficulty: DefaultBlockDifficulty,
 		},
 	}
 	if err := cnf.setupConfig(); err != nil {
@@ -113,6 +116,11 @@ func (cnf *Config) PrivateKeyIPNS() string {
 // Peer ...
 func (cnf *Config) Peer() string {
 	return cnf.config.Peer
+}
+
+// BlockDifficulty ...
+func (cnf *Config) BlockDifficulty() int {
+	return cnf.config.BlockDifficulty
 }
 
 func (cnf *Config) setupConfig() error {

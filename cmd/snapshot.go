@@ -37,9 +37,9 @@ func snapshotCmd() *cobra.Command {
 					PEMFile:  privPEM,
 					Password: "",
 				},
-				BlockDifficulty: 5,
-				MempoolType:     "memory",
-				RPCHost:         ":5005",
+				//BlockDifficulty: 5,
+				MempoolType: "memory",
+				RPCHost:     ":5005",
 			})
 			if err != nil {
 				return err

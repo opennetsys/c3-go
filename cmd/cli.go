@@ -38,7 +38,7 @@ func Build() *cobra.Command {
 		dockerLocalRegistryHost string
 		mempoolType             string
 		rpcHost                 string
-		difficulty              int
+		blockDifficulty         int
 	)
 
 	cnf := config.New()
@@ -125,6 +125,7 @@ For more info visit: https://github.com/c3systems/c3-go,
 				dataDir = cnf.DataDir()
 				pem = cnf.PrivateKeyPath()
 				peer = cnf.Peer()
+				blockDifficulty = cnf.BlockDifficulty()
 			}
 
 			if _, err := os.Stat(pem); os.IsNotExist(err) {
@@ -139,7 +140,7 @@ For more info visit: https://github.com/c3systems/c3-go,
 					PEMFile:  pem,
 					Password: password,
 				},
-				BlockDifficulty: difficulty,
+				BlockDifficulty: blockDifficulty,
 				MempoolType:     mempoolType,
 				RPCHost:         rpcHost,
 			})
@@ -159,7 +160,7 @@ For more info visit: https://github.com/c3systems/c3-go,
 	startSubCmd.Flags().StringVar(&password, "password", "", "A password for the pem file [OPTIONAL]")
 	startSubCmd.Flags().StringVar(&mempoolType, "mempool-type", "memory", "The mempool type to use (memory, redis) [OPTIONAL]")
 	startSubCmd.Flags().StringVarP(&rpcHost, "rpc", "", "0.0.0.0:5005", "The port to run rpc on")
-	startSubCmd.Flags().IntVar(&difficulty, "difficulty", 6, "The hashing difficulty for mining blocks. (1-15) [OPTIONAL]. This feature will be deprecated when C3 soon moves to Delegated Proof-of-Stake.")
+	startSubCmd.Flags().IntVar(&blockDifficulty, "difficulty", cnf.BlockDifficulty(), "The hashing difficulty for mining blocks. (1-15) [OPTIONAL]. This feature will be deprecated when C3 soon moves to Delegated Proof-of-Stake.")
 
 	// TODO: add more flags for blockstore and nodestore, etc.
 	nodeCmd.AddCommand(startSubCmd)

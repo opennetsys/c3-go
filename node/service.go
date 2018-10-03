@@ -345,14 +345,13 @@ func (s *Service) spawnNextBlockMiner(prevBlock *mainchain.Block) error {
 	log.Printf("[node] pending tx count: %v", len(pendingTransactions))
 
 	// TODO: need to get this from the network
-	blockDifficulty := config.DefaultBlockDifficulty
+	blockDifficulty := s.props.BlockDifficulty
 
 	var simulated bool
-	// if block difficulty is set to -1 than we simulate block hashing (used for testing)
-	if s.props.BlockDifficulty == -1 {
+
+	// NOTE: if block difficulty is set to 0 than we simulate block hashing (used for testing)
+	if s.props.BlockDifficulty == 0 {
 		simulated = true
-	} else if s.props.BlockDifficulty != 0 {
-		blockDifficulty = s.props.BlockDifficulty
 	}
 
 	log.Printf("[node] block difficult level: %v", blockDifficulty)
@@ -491,11 +490,14 @@ func (s *Service) spawnMinerListener(cancel context.CancelFunc, minerChan chan i
 						return
 					}
 
-					_, err = s.props.P2P.SetLatestBlock(minedBlock.NextBlock)
-					if err != nil {
-						log.Errorf("[node] err storing the head block\n%v", err)
-						return
-					}
+					/*
+						TODO
+						_, err = s.props.P2P.SetLatestBlock(minedBlock.NextBlock)
+						if err != nil {
+							log.Errorf("[node] err storing the head block\n%v", err)
+							return
+						}
+					*/
 
 					if err := s.removeMinedTxs(minedBlock); err != nil {
 						log.Errorf("[node] err removing mined txs\n%v", err)

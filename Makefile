@@ -250,11 +250,11 @@ test/logger/color:
 
 .PHONY: run/node
 run/node:
-	@go run main.go node start --pem=node/test_data/priv1.pem --uri /ip4/0.0.0.0/tcp/3330 --data-dir .tmp --difficulty 5 --mempool-type memory --rpc ":5005"
+	@go run main.go node start --pem=node/test_data/priv1.pem --uri /ip4/0.0.0.0/tcp/3330 --data-dir .tmp --mempool-type memory --rpc ":5005"
 
 .PHONY: run/node/2
 run/node/2:
-	@go run main.go node start --pem=node/test_data/priv2.pem --uri /ip4/0.0.0.0/tcp/3001 --data-dir ~/.c3-2 --difficulty 5 --peer "$(PEER)"
+	@go run main.go node start --pem=node/test_data/priv2.pem --uri /ip4/0.0.0.0/tcp/3001 --data-dir ~/.c3-2 --peer "$(PEER)"
 
 .PHONY: node/save/testimage
 node/save/testimage:

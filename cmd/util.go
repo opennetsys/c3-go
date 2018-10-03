@@ -5,12 +5,15 @@ import (
 	"time"
 
 	"github.com/c3systems/c3-go/common/c3crypto"
+	"github.com/c3systems/c3-go/config"
 	"github.com/c3systems/c3-go/core/chain/statechain"
 	"github.com/c3systems/c3-go/node"
 	nodetypes "github.com/c3systems/c3-go/node/types"
 )
 
 func broadcastTx(txType, image, payloadStr, peer, privPEM string) (string, error) {
+	cnf := config.New()
+
 	nodeURI := "/ip4/0.0.0.0/tcp/9911"
 	dataDir := "~/.c3-2"
 	n, err := node.NewFullNode(&nodetypes.Config{
@@ -21,7 +24,7 @@ func broadcastTx(txType, image, payloadStr, peer, privPEM string) (string, error
 			PEMFile:  privPEM,
 			Password: "",
 		},
-		//BlockDifficulty: -1,
+		BlockDifficulty: cnf.BlockDifficulty(),
 	})
 
 	if err != nil {
