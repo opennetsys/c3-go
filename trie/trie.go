@@ -10,7 +10,8 @@ type Trie struct {
 	cache    *Cache
 }
 
-var maxSize = 20
+// 17 is chosen because there's 16 characters in hex, plus 1 delimiter
+var maxSize = 17
 
 func copyRoot(root interface{}) interface{} {
 	var prevRootCopy interface{}
