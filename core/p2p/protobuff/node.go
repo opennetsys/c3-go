@@ -5,8 +5,6 @@ import (
 	"errors"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/c3systems/c3-go/core/chain/mainchain"
 	"github.com/c3systems/c3-go/core/chain/statechain"
 	pb "github.com/c3systems/c3-go/core/p2p/protobuff/pb"
@@ -18,6 +16,7 @@ import (
 	inet "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
 	protobufCodec "github.com/multiformats/go-multicodec/protobuf"
+	log "github.com/sirupsen/logrus"
 )
 
 // node client version
