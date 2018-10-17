@@ -112,3 +112,7 @@ required = [
 [[constraint]]
   name = "golang.org/x/net"
   branch = "master"
+
+[[constraint]]
+  name = "github.com/libp2p/go-libp2p-crypto"
+  revision = "7240b40a3ddc47c4d17c15baabcbe45e5219171b"

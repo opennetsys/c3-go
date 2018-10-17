@@ -27,18 +27,6 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:4cf11742b199ab3aacf26b00187e72f7ff8ba2145f363b74f295d54f098f79e4"
-  name = "github.com/agl/ed25519"
-  packages = [
-    ".",
-    "edwards25519",
-    "extra25519",
-  ]
-  pruneopts = "UT"
-  revision = "5312a61534124124185d41f09206b9fef1d88403"
-
-[[projects]]
-  branch = "master"
   digest = "1:1f119122026d2fc746c30ff1fc564c6074b2f0e4449d4230146a3deec986bf43"
   name = "github.com/btcsuite/btcd"
   packages = ["btcec"]
@@ -618,15 +606,14 @@
   version = "v2.1.4"
 
 [[projects]]
-  digest = "1:398fcba7a9942805bb7aea628845625f8202f8bfac850f9600e52d39afb11061"
+  digest = "1:cb3d9af37f2bce4339b3b7739f5f66b219290c6821526a0a36f31d55380446d8"
   name = "github.com/libp2p/go-libp2p-crypto"
   packages = [
     ".",
     "pb",
   ]
   pruneopts = "UT"
-  revision = "50487e0f0b4842e9e657317e689fbb8209fab2dc"
-  version = "v1.6.2"
+  revision = "7240b40a3ddc47c4d17c15baabcbe45e5219171b"
 
 [[projects]]
   digest = "1:878f9668b2313b294b806cd2a3b1b84d1cbbcb645eee4b5bbd4b2df00717897f"
