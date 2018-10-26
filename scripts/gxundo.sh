@@ -13,9 +13,26 @@ normal="$(tput sgr0)"
 
 # function to install `jq`
 install_jq() {
-  # note: this assumes debian/ubuntu
   if [[ "$OSTYPE" == "linux-gnu" ]]; then
-      sudo apt-get install jq
+      if [ -n "$(command -v apt-get 2> /dev/null)" ]; then
+      sudo apt-get -y install jq
+    
+  elif [ -n "$(command -v which dnf 2> /dev/null)" ]; then
+      sudo dnf -y install jq 
+    
+  elif [ -n "$(command -v yum 2> /dev/null)"]; then
+      sudo yum -y install jq
+
+  elif [ -n "$(command -v portage 2> /dev/null)"]; then
+      sudo portage -y install jq
+
+  elif [ -n "$(command -v pacman 2> /dev/null)"]; then
+      sudo pacman -y install jq
+
+    else
+      echo "Cannot install jq; No supported package manager installed on system (apt-get dnf, yum, portage, pacman)" >&2
+      exit 1
+    fi
   elif [[ "$OSTYPE" == "darwin"* ]]; then
       brew install jq
   fi
