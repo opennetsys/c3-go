@@ -28,7 +28,7 @@
 Set up a localhost proxy route to `123.123.123.123`
 
 ```bash
-sudo ifconfig $$(ifconfig | grep LOOPBACK | awk '{print $1}' | sed -E 's/[^a-zA-Z0-9]+//g') 123.123.123.123/24
+$ sudo ifconfig $(ifconfig | grep LOOPBACK | awk '{print $1}' | sed -E 's/[^a-zA-Z0-9]+//g') 123.123.123.123/24
 ```
 
 Then configure `daemon.json` to include the private registry as insecured (because it's localhost).
@@ -53,17 +53,18 @@ Restart the docker daemon after configuring `daemon.json`
 Install using `go get` (must have [Go](https://golang.org/doc/install) installed).
 
 ```bash
-go get -u github.com/c3systems/c3
+$ go get -u github.com/c3systems/c3
 ```
 
 ## Hello world tutorial
 
 Warning: Tutorial is not the most intuitive. Please bear with me as we're still in the proof-of-concept stage.
 
-1. Generate a new private key
+1. Generate new private keys
 
 ```bash
-c3-go generate key -o priv.pem
+$ c3-go generate key -o priv.pem
+$ c3-go generate key -o priv2.pem
 ```
 
 2. Run the C3 node
@@ -95,22 +96,22 @@ $ c3-go push $(docker images -q | grep -m1 "")
 5. Deploy the image to the local C3 testnet (update `image` and `peer` to your own values)
 
 ```bash
-c3-go deploy --priv priv.pem --genesis '' --image QmWJF5MYtnjb76P1CXQsn8MHpT26tjdBcs6CzKfR7zjRBm --peer "/ip4/127.0.0.1/tcp/3330/ipfs/QmZQ3cJMMjA7HUyEvsMXmN73LZ7fKsrQUmyKwsxrpecb7Z"
+$ c3-go deploy --priv priv2.pem --genesis '' --image QmWJF5MYtnjb76P1CXQsn8MHpT26tjdBcs6CzKfR7zjRBm --peer "/ip4/127.0.0.1/tcp/3330/ipfs/QmZQ3cJMMjA7HUyEvsMXmN73LZ7fKsrQUmyKwsxrpecb7Z"
 ```
 
-- The private key was derived from step 1.
+- The private key is the second key derived from step 1.
 - The peer multihash was derived from step 2.
 - The image hash was derived from step 4.
 
 6. Invoke a method on the dApp (update `image` and `peer` to your own values from the previous step)
 
 ```bash
-go run main.go invokeMethod --priv priv.pem --payload '["setItem", "foo", "bar"]' --image QmWJF5MYtnjb76P1CXQsn8MHpT26tjdBcs6CzKfR7zjRBm --peer "/ip4/127.0.0.1/tcp/3330/ipfs/QmZQ3cJMMjA7HUyEvsMXmN73LZ7fKsrQUmyKwsxrpecb7Z"
+$ go run main.go invokeMethod --priv priv2.pem --payload '["setItem", "foo", "bar"]' --image QmWJF5MYtnjb76P1CXQsn8MHpT26tjdBcs6CzKfR7zjRBm --peer "/ip4/127.0.0.1/tcp/3330/ipfs/QmZQ3cJMMjA7HUyEvsMXmN73LZ7fKsrQUmyKwsxrpecb7Z"
 ```
 
 - In this example we're invoking the `setItem` method which accepts two arguments; the values are `foo` and `bar`. The example dApp code is found [here](https://github.com/c3systems/c3-sdk-go-example-hello-world/blob/master/main.go).
 
-- The private key was derived from step 1.
+- The private key is the second key derived from step 1.
 - The peer multihash was derived from step 2.
 - The image hash was derived from step 4.
 
@@ -169,7 +170,7 @@ $ c3-go invokeMethod [options]
 ## Test
 
 ```bash
-make test
+$ make test
 ```
 
 Tests require docker daemon and IPFS daemon to be running.
@@ -179,7 +180,7 @@ Tests require docker daemon and IPFS daemon to be running.
 Install new dependencies to `vendor/` (will take a couple of minutes)
 
 ```bash
-make deps
+$ make deps
 ```
 
 ## License
