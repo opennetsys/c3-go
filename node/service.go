@@ -910,10 +910,12 @@ func (s *Service) checkpointBlock(minedBlock *miner.MinedBlock) error {
 		return errors.New("cannot checkpoint nil block")
 	}
 
-	blockHash := *minedBlock.NextBlock.Props().BlockHash
-	_, err := s.props.EOSClient.CheckpointRoot(blockHash)
-	if err != nil {
-		return err
+	if s.props.EOSClient != nil {
+		blockHash := *minedBlock.NextBlock.Props().BlockHash
+		_, err := s.props.EOSClient.CheckpointRoot(blockHash)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
