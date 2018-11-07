@@ -145,7 +145,7 @@
   version = "v0.3.3"
 
 [[projects]]
-  digest = "1:2eb32a05aa41df1041188e8e3aaabb51c646d172e83b20692cc0a849466a8c78"
+  digest = "1:d2c3fc8ee2f6e73d61d5832326fce02937945f4fac6aff083e2e503ed66ebd8a"
   name = "github.com/eoscanada/eos-go"
   packages = [
     ".",
@@ -155,8 +155,7 @@
     "ecc",
   ]
   pruneopts = "UT"
-  revision = "6884b3d8f911343f9274c1ac5b594d17248b40b5"
-  version = "v3.0.0"
+  revision = "00b77394c50e023623e153c536494c872519e16f"
 
 [[projects]]
   digest = "1:865079840386857c809b72ce300be7580cb50d3d3129ce11bf9aa6ca2bc1934a"
@@ -175,7 +174,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:b59378173dbdde86faa40af3c5565653193e33a3238de57c8317839c2142db27"
+  digest = "1:d9880a87d81ffbab8e7aa1126461362074cfa08efca0ef54c501665ca46dc945"
   name = "github.com/gogo/protobuf"
   packages = [
     "gogoproto",
@@ -184,8 +183,7 @@
     "protoc-gen-gogo/descriptor",
   ]
   pruneopts = "UT"
-  revision = "636bf0302bc95575d69441b25a2603156ffdddf1"
-  version = "v1.1.1"
+  revision = "211a54c57504366b3bf4b490fb3c0a5f5b8d290b"
 
 [[projects]]
   digest = "1:bc38c7c481812e178d85160472e231c5e1c9a7f5845d67e23ee4e706933c10d8"
@@ -402,12 +400,12 @@
   revision = "3a56ff15ea24ae9f384f4d2944b750832e80dec4"
 
 [[projects]]
-  digest = "1:6fdf1bafcda4dda847767970e9c0e11c484b5eafa343f1a33f2921df986990b2"
+  digest = "1:8642bd382e590274cb8ed9ec71aaad24c15aaa7b2ad7bc734d424ed9673f261d"
   name = "github.com/ipfs/go-ipfs"
   packages = ["keystore"]
   pruneopts = "UT"
-  revision = "dfd19c470e162ef906382683fd743a8571cede95"
-  version = "v0.4.17"
+  revision = "aefc746f34e5ffdee5fba1915c6603b65a0ebf81"
+  version = "v0.4.18"
 
 [[projects]]
   digest = "1:5e59d6e02abee7ab8ef7f396f5d681054fbfae02ff159fe3d1e1a01e6ed2b034"
@@ -1154,6 +1152,30 @@
   revision = "f9080354173f192dfc8821931eacf9cfd6819253"
 
 [[projects]]
+  digest = "1:2cab41f59638fdb77dda96ab4f9b5860ef30f48967557254eba127e43c756f2e"
+  name = "github.com/tidwall/gjson"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "1e3f6aeaa5bad08d777ea7807b279a07885dd8b2"
+  version = "v1.1.3"
+
+[[projects]]
+  branch = "master"
+  digest = "1:d3f968e2a2c9f8506ed44b01b605ade0176ba6cf73ff679073e77cfdef2c0d55"
+  name = "github.com/tidwall/match"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "1731857f09b1f38450e2c12409748407822dc6be"
+
+[[projects]]
+  digest = "1:f02f814d3bd902a74fe0ff80a8de777d5698a847a509a4b92bfaf11859251806"
+  name = "github.com/tidwall/sjson"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "48d34adceb39a5bd6ed7c12f38c78cd425436442"
+  version = "v1.0.2"
+
+[[projects]]
   branch = "master"
   digest = "1:98fa13beefbf581ec173561adad6374c460631593b4bdcf03adc29cd18e5d2f5"
   name = "github.com/whyrusleeping/base32"
@@ -1267,7 +1289,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:940d88907d632fc01a0e34dfa56258159959faf13b397f9ed41cf0ac965ce764"
+  digest = "1:63aed3ec1021bcdbcaf719e5042e5438b640244fb7449e708d29c4a87c886936"
   name = "golang.org/x/net"
   packages = [
     "bpf",
@@ -1290,11 +1312,11 @@
     "trace",
   ]
   pruneopts = "UT"
-  revision = "10aee181995363b41f712a55844a0dd52ea04646"
+  revision = "a544f70c90f196e50d198126db0c4cb2b562fec0"
 
 [[projects]]
   branch = "master"
-  digest = "1:3d43e8622ed102e20bced77ef6e1d639fe6a62d91ce20cd330788926cbed9295"
+  digest = "1:8f32f0ccb71f71d4780147c6e6fac5bcec522f148e7a0d6d4543770081e8884d"
   name = "golang.org/x/sys"
   packages = [
     "cpu",
@@ -1302,7 +1324,7 @@
     "windows",
   ]
   pruneopts = "UT"
-  revision = "3a76605856fddce5718553cbb8bd50ca492a7274"
+  revision = "66b7b1311ac80bbafcd2daeef9a5e6e2cd1e2399"
 
 [[projects]]
   digest = "1:436b24586f8fee329e0dd65fd67c817681420cda1d7f934345c13fe78c212a73"
@@ -1440,6 +1462,7 @@
     "github.com/libp2p/go-libp2p-netutil",
     "github.com/libp2p/go-libp2p-peer",
     "github.com/libp2p/go-libp2p-peerstore",
+    "github.com/libp2p/go-libp2p-peerstore/pstoremem",
     "github.com/libp2p/go-libp2p-pubsub",
     "github.com/libp2p/go-libp2p-routing",
     "github.com/libp2p/go-libp2p-secio",

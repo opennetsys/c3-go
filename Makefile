@@ -203,6 +203,10 @@ test/core/chain/mainchain/miner:
 test/core/diffing:
 	@go test -v core/diffing/*.go $(ARGS)
 
+.PHONY: test/core/eosclient
+test/core/eosclient:
+	@go test -v core/eosclient/*.go $(ARGS)
+
 # /END CORE
 
 
@@ -250,6 +254,15 @@ run/node:
 .PHONY: run/node/2
 run/node/2:
 	@go run main.go node start --pem=node/test_data/priv2.pem --uri /ip4/0.0.0.0/tcp/3001 --data-dir ~/.c3-2 --peer "$(PEER)"
+
+.PHONY: run/node/eos
+run/node/eos:
+	@go run main.go node start --pem=node/test_data/priv1.pem --uri /ip4/0.0.0.0/tcp/3330 --data-dir .tmp --mempool-type memory --rpc ":5005" \
+		--checkpoint-eos-url "http://api.kylin.alohaeos.com" \
+		--checkpoint-eos-account-name "helloworld54" \
+		--checkpoint-eos-action-name "chkpointroot" \
+		--checkpoint-eos-action-permissions "helloworld54@active" \
+		--checkpoint-eos-wif-private-key "5Jh9tD4Fp1EpVn3EzEW6ura5NV3NddY8NNBcfpCZTvPDsKd9i5c"
 
 .PHONY: node/save/testimage
 node/save/testimage:

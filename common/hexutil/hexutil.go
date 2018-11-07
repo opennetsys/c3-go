@@ -1,9 +1,11 @@
 package hexutil
 
 import (
+	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
 	"math"
 	"math/big"
 	"strconv"
@@ -151,4 +153,14 @@ func RemovePrefix(hexStr string) (string, error) {
 func AddPrefix(str string) string {
 	// note: should check if leader is already present?
 	return fmt.Sprintf("%s%s", Leader, str)
+}
+
+// RandomHex generate random hex string of n length
+func RandomHex(n int) string {
+	bytes := make([]byte, n/2)
+	if _, err := rand.Read(bytes); err != nil {
+		log.Fatal(err)
+	}
+
+	return hex.EncodeToString(bytes)
 }

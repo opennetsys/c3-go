@@ -1,5 +1,7 @@
 package types
 
+import "github.com/c3systems/c3-go/core/eosclient"
+
 // NewAddressResponse ...
 type NewAddressResponse struct {
 	Address string
@@ -30,4 +32,5 @@ type Config struct {
 	BlockDifficulty int
 	MempoolType     string
 	RPCHost         string
+	EOSClient       *eosclient.CheckpointClient
 }

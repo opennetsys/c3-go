@@ -9,6 +9,7 @@ import (
 
 	"github.com/c3systems/c3-go/common/c3crypto"
 	"github.com/c3systems/c3-go/config"
+	"github.com/c3systems/c3-go/core/eosclient"
 	loghooks "github.com/c3systems/c3-go/log/hooks"
 	"github.com/c3systems/c3-go/node"
 	nodetypes "github.com/c3systems/c3-go/node/types"
@@ -39,6 +40,12 @@ func Build() *cobra.Command {
 		mempoolType             string
 		rpcHost                 string
 		blockDifficulty         int
+
+		eosURL         string
+		eosWifPrivKey  string
+		eosAccountName string
+		eosActionName  string
+		eosPermissions string
 	)
 
 	cnf := config.New()
@@ -132,6 +139,18 @@ For more info visit: https://github.com/c3systems/c3-go,
 				return fmt.Errorf("%s does not exist", pem)
 			}
 
+			var eosClient *eosclient.CheckpointClient
+			if eosWifPrivKey != "" {
+				eosClient = eosclient.NewCheckpointClient(&eosclient.CheckpointConfig{
+					URL:           eosURL,
+					WifPrivateKey: eosWifPrivKey,
+					AccountName:   eosAccountName,
+					ActionName:    eosActionName,
+					Permissions:   eosPermissions,
+					Debug:         false,
+				})
+			}
+
 			n, err := node.NewFullNode(&nodetypes.Config{
 				URI:     nodeURI,
 				Peer:    peer,
@@ -143,6 +162,7 @@ For more info visit: https://github.com/c3systems/c3-go,
 				BlockDifficulty: blockDifficulty,
 				MempoolType:     mempoolType,
 				RPCHost:         rpcHost,
+				EOSClient:       eosClient,
 			})
 			if err != nil {
 				return err
@@ -161,6 +181,12 @@ For more info visit: https://github.com/c3systems/c3-go,
 	startSubCmd.Flags().StringVar(&mempoolType, "mempool-type", "memory", "The mempool type to use (memory, redis) [OPTIONAL]")
 	startSubCmd.Flags().StringVarP(&rpcHost, "rpc", "", "0.0.0.0:5005", "The port to run rpc on")
 	startSubCmd.Flags().IntVar(&blockDifficulty, "difficulty", cnf.BlockDifficulty(), "The hashing difficulty for mining blocks. (1-15) [OPTIONAL]. This feature will be deprecated when C3 soon moves to Delegated Proof-of-Stake.")
+
+	startSubCmd.Flags().StringVarP(&eosURL, "checkpoint-eos-url", "", "", "EOS block producer URL for checkpointing")
+	startSubCmd.Flags().StringVarP(&eosWifPrivKey, "checkpoint-eos-wif-private-key", "", "", "EOS private key for EOS account that will be used for checkpointing")
+	startSubCmd.Flags().StringVarP(&eosAccountName, "checkpoint-eos-account-name", "", "", "EOS account name that will be used for checkpointing")
+	startSubCmd.Flags().StringVarP(&eosActionName, "checkpoint-eos-action-name", "", "", "EOS action name for checkpointing")
+	startSubCmd.Flags().StringVarP(&eosPermissions, "checkpoint-eos-action-permissions", "", "", `EOS action permissions for checkpointing. eg. "myaccount@active"`)
 
 	// TODO: add more flags for blockstore and nodestore, etc.
 	nodeCmd.AddCommand(startSubCmd)

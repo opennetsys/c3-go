@@ -2,6 +2,7 @@ package eos
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -16,16 +17,15 @@ import (
 type P2PMessageType byte
 
 const (
-	HandshakeMessageType P2PMessageType = iota
-	GoAwayMessageType
+	HandshakeMessageType P2PMessageType = iota // 0
+	ChainSizeType
+	GoAwayMessageType // 2
 	TimeMessageType
-	NoticeMessageType
+	NoticeMessageType // 4
 	RequestMessageType
-	SyncRequestMessageType
-	SignedBlockSummaryMessageType
-	SignedBlockMessageType
-	SignedTransactionMessageType
-	PackedTransactionMessageType
+	SyncRequestMessageType       // 6
+	SignedBlockType              // 7
+	PackedTransactionMessageType // 8
 )
 
 type MessageReflectTypes struct {
@@ -35,14 +35,13 @@ type MessageReflectTypes struct {
 
 var messageAttributes = []MessageReflectTypes{
 	{Name: "Handshake", ReflectType: reflect.TypeOf(HandshakeMessage{})},
+	{Name: "ChainSize", ReflectType: reflect.TypeOf(ChainSizeMessage{})},
 	{Name: "GoAway", ReflectType: reflect.TypeOf(GoAwayMessage{})},
 	{Name: "Time", ReflectType: reflect.TypeOf(TimeMessage{})},
 	{Name: "Notice", ReflectType: reflect.TypeOf(NoticeMessage{})},
 	{Name: "Request", ReflectType: reflect.TypeOf(RequestMessage{})},
 	{Name: "SyncRequest", ReflectType: reflect.TypeOf(SyncRequestMessage{})},
-	{Name: "SignedBlockSummary", ReflectType: reflect.TypeOf(SignedBlockSummaryMessage{})},
-	{Name: "SignedBlock", ReflectType: reflect.TypeOf(SignedBlockMessage{})},
-	{Name: "SignedTransaction", ReflectType: reflect.TypeOf(SignedTransactionMessage{})},
+	{Name: "SignedBlock", ReflectType: reflect.TypeOf(SignedBlock{})},
 	{Name: "PackedTransaction", ReflectType: reflect.TypeOf(PackedTransactionMessage{})},
 }
 
@@ -84,19 +83,20 @@ func (t P2PMessageType) reflectTypes() (MessageReflectTypes, bool) {
 	return attr, true
 }
 
-type P2PMessageEnvelope struct {
+type Packet struct {
 	Length     uint32         `json:"length"`
 	Type       P2PMessageType `json:"type"`
 	Payload    []byte         `json:"-"`
 	P2PMessage P2PMessage     `json:"message" eos:"-"`
+	Raw        []byte         `json:"-"`
 }
 
-func ReadP2PMessageData(r io.Reader) (envelope *P2PMessageEnvelope, err error) {
-
+func ReadPacket(r io.Reader) (packet *Packet, err error) {
 	data := make([]byte, 0)
 
 	lengthBytes := make([]byte, 4, 4)
-	_, err = r.Read(lengthBytes)
+	//_, err = r.Read(lengthBytes)
+	_, err = io.ReadFull(r, lengthBytes)
 	if err != nil {
 		return
 	}
@@ -106,18 +106,27 @@ func ReadP2PMessageData(r io.Reader) (envelope *P2PMessageEnvelope, err error) {
 	size := binary.LittleEndian.Uint32(lengthBytes)
 
 	payloadBytes := make([]byte, size, size)
-	_, err = io.ReadFull(r, payloadBytes)
+	count, err := io.ReadFull(r, payloadBytes)
+
+	if count != int(size) {
+		err = fmt.Errorf("readfull not full read[%d] expected[%d]", count, size)
+		return
+	}
 
 	if err != nil {
-		fmt.Println("Connection error: ", err)
+		fmt.Println("ReadFull, error: ", err)
 		return
 	}
 
 	data = append(data, payloadBytes...)
 
-	envelope = &P2PMessageEnvelope{}
+	packet = &Packet{}
 	decoder := NewDecoder(data)
-	err = decoder.Decode(envelope)
-
+	decoder.DecodeActions(false)
+	err = decoder.Decode(packet)
+	if err != nil {
+		fmt.Println("Failing data: ", hex.EncodeToString(data))
+	}
+	packet.Raw = data
 	return
 }

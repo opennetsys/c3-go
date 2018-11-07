@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"compress/flate"
 	"compress/zlib"
+	"crypto/sha256"
 	"encoding/binary"
-	"encoding/hex"
+	"errors"
 	"fmt"
 	"time"
 
@@ -18,64 +19,66 @@ import (
 	"github.com/eoscanada/eos-go/ecc"
 )
 
-type Transaction struct { // WARN: is a `variant` in C++, can be a SignedTransaction or a Transaction.
+type TransactionHeader struct {
 	Expiration     JSONTime `json:"expiration"`
-	Region         uint16   `json:"region"`
 	RefBlockNum    uint16   `json:"ref_block_num"`
 	RefBlockPrefix uint32   `json:"ref_block_prefix"`
 
 	MaxNetUsageWords Varuint32 `json:"max_net_usage_words"`
-	MaxKCPUUsage     Varuint32 `json:"max_kcpu_usage"`
+	MaxCPUUsageMS    uint8     `json:"max_cpu_usage_ms"`
 	DelaySec         Varuint32 `json:"delay_sec"` // number of secs to delay, making it cancellable for that duration
-
-	// TODO: implement the estimators and write that in `.Fill()`.. for the transaction.
-
-	ContextFreeActions []*Action `json:"context_free_actions,omitempty"`
-	Actions            []*Action `json:"actions,omitempty"`
 }
 
-// 69c9c15a 0000 1400 62f95d45 b31d 904e 00 00 020000000000ea305500000040258ab2c2010000000000ea305500000000a8ed
+type Transaction struct { // WARN: is a `variant` in C++, can be a SignedTransaction or a Transaction.
+	TransactionHeader
 
-func (tx *Transaction) Fill(api *API) ([]byte, error) {
-	var info *InfoResp
-	var err error
+	ContextFreeActions []*Action    `json:"context_free_actions"`
+	Actions            []*Action    `json:"actions"`
+	Extensions         []*Extension `json:"transaction_extensions"`
+}
 
-	api.lastGetInfoLock.Lock()
-	if !api.lastGetInfoStamp.IsZero() && time.Now().Add(-1*time.Second).Before(api.lastGetInfoStamp) {
-		info = api.lastGetInfo
-	} else {
-		info, err = api.GetInfo()
-		if err != nil {
-			return nil, err
-		}
-		api.lastGetInfoStamp = time.Now()
-		api.lastGetInfo = info
+// NewTransaction creates a transaction. Unless you plan on adding HeadBlockID later, to be complete, opts should contain it.  Sign
+func NewTransaction(actions []*Action, opts *TxOptions) *Transaction {
+	if opts == nil {
+		opts = &TxOptions{}
 	}
-	api.lastGetInfoLock.Unlock()
-	if err != nil {
-		return nil, err
-	}
+
+	tx := &Transaction{Actions: actions}
+	tx.Fill(opts.HeadBlockID, opts.DelaySecs, opts.MaxNetUsageWords, opts.MaxCPUUsageMS)
+	return tx
+}
+
+func (tx *Transaction) SetExpiration(in time.Duration) {
+	tx.Expiration = JSONTime{time.Now().UTC().Add(in)}
+}
+
+type Extension struct {
+	Type uint16   `json:"type"`
+	Data HexBytes `json:"data"`
+}
+
+// Fill sets the fields on a transaction.  If you pass `headBlockID`, then `api` can be nil. If you don't pass `headBlockID`, then the `api` is going to be called to fetch
+func (tx *Transaction) Fill(headBlockID SHA256Bytes, delaySecs, maxNetUsageWords uint32, maxCPUUsageMS uint8) {
+	tx.setRefBlock(headBlockID)
 
 	if tx.ContextFreeActions == nil {
 		tx.ContextFreeActions = make([]*Action, 0, 0)
 	}
-
-	blockID, err := hex.DecodeString(info.HeadBlockID)
-	if err != nil {
-		return nil, fmt.Errorf("decode hex: %s", err)
+	if tx.Extensions == nil {
+		tx.Extensions = make([]*Extension, 0, 0)
 	}
 
-	tx.setRefBlock(blockID)
+	tx.MaxNetUsageWords = Varuint32(maxNetUsageWords)
+	tx.MaxCPUUsageMS = maxCPUUsageMS
+	tx.DelaySec = Varuint32(delaySecs)
 
-	/// TODO: configure somewhere the default time for transactions,
-	/// etc.. add a `.Timeout` with that duration, default to 30
-	/// seconds ?
-	tx.Expiration = JSONTime{info.HeadBlockTime.Add(30 * time.Second)}
-
-	return blockID, nil
+	tx.SetExpiration(30 * time.Second)
 }
 
 func (tx *Transaction) setRefBlock(blockID []byte) {
+	if len(blockID) == 0 {
+		return
+	}
 	tx.RefBlockNum = uint16(binary.BigEndian.Uint32(blockID[:4]))
 	tx.RefBlockPrefix = binary.LittleEndian.Uint32(blockID[8:16])
 }
@@ -106,27 +109,49 @@ func (s *SignedTransaction) String() string {
 	return string(data)
 }
 
-func (tx *Transaction) ID() string {
-	return "ID here" //todo
+func (s *SignedTransaction) SignedByKeys(chainID SHA256Bytes) (out []ecc.PublicKey, err error) {
+	trx, cfd, err := s.PackedTransactionAndCFD()
+	if err != nil {
+		return
+	}
+
+	for _, sig := range s.Signatures {
+		pubKey, err := sig.PublicKey(SigDigest(chainID, trx, cfd))
+		if err != nil {
+			return nil, err
+		}
+
+		out = append(out, pubKey)
+	}
+
+	return
 }
 
-func (s *SignedTransaction) Pack(opts TxOptions) (*PackedTransaction, error) {
+func (s *SignedTransaction) PackedTransactionAndCFD() ([]byte, []byte, error) {
 	rawtrx, err := MarshalBinary(s.Transaction)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	rawcfd, err := MarshalBinary(s.ContextFreeData)
+	rawcfd := []byte{}
+	if len(s.ContextFreeData) > 0 {
+		rawcfd, err = MarshalBinary(s.ContextFreeData)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	return rawtrx, rawcfd, nil
+}
+
+
+func (s *SignedTransaction) Pack(compression CompressionType) (*PackedTransaction, error) {
+	rawtrx, rawcfd, err := s.PackedTransactionAndCFD()
 	if err != nil {
 		return nil, err
 	}
 
-	// Is it so ?
-	if len(s.ContextFreeData) == 0 {
-		rawcfd = []byte{}
-	}
-
-	switch opts.Compress {
+	switch compression {
 	case CompressionZlib:
 		var trx bytes.Buffer
 		var cfd bytes.Buffer
@@ -134,38 +159,31 @@ func (s *SignedTransaction) Pack(opts TxOptions) (*PackedTransaction, error) {
 		// Compress Trx
 		writer, _ := zlib.NewWriterLevel(&trx, flate.BestCompression) // can only fail if invalid `level`..
 		writer.Write(rawtrx)                                          // ignore error, could only bust memory
+		err = writer.Close()
+		if err != nil {
+			return nil, fmt.Errorf("tx writer close %s", err)
+		}
 		rawtrx = trx.Bytes()
 
 		// Compress ContextFreeData
 		writer, _ = zlib.NewWriterLevel(&cfd, flate.BestCompression) // can only fail if invalid `level`..
 		writer.Write(rawcfd)                                         // ignore errors, memory errors only
+		err = writer.Close()
+		if err != nil {
+			return nil, fmt.Errorf("cfd writer close %s", err)
+		}
 		rawcfd = cfd.Bytes()
 
 	}
 
 	packed := &PackedTransaction{
 		Signatures:            s.Signatures,
-		Compression:           opts.Compress,
+		Compression:           compression,
 		PackedContextFreeData: rawcfd,
 		PackedTransaction:     rawtrx,
 	}
 
 	return packed, nil
-}
-
-func (tx *SignedTransaction) estimateResources(opts TxOptions, maxcpu, maxnet uint32) {
-	// see programs/cleos/main.cpp for an estimation algo..
-	if opts.MaxNetUsageWords != 0 {
-		tx.MaxNetUsageWords = Varuint32(opts.MaxNetUsageWords)
-	} else {
-		tx.MaxNetUsageWords = Varuint32(maxnet)
-	}
-
-	if opts.MaxKCPUUsage != 0 {
-		tx.MaxKCPUUsage = Varuint32(opts.MaxKCPUUsage)
-	} else {
-		tx.MaxKCPUUsage = Varuint32(maxcpu)
-	}
 }
 
 // PackedTransaction represents a fully packed transaction, with
@@ -178,7 +196,25 @@ type PackedTransaction struct {
 	PackedTransaction     HexBytes        `json:"packed_trx"`
 }
 
+func (p *PackedTransaction) ID() SHA256Bytes {
+	h := sha256.New()
+	_, _ = h.Write(p.PackedTransaction)
+	return h.Sum(nil)
+}
+
+// Unpack decodes the bytestream of the transaction, and attempts to
+// decode the registered actions.
 func (p *PackedTransaction) Unpack() (signedTx *SignedTransaction, err error) {
+	return p.unpack(false)
+}
+
+// UnpackBare decodes the transcation payload, but doesn't decode the
+// nested action data structure.  See also `Unpack`.
+func (p *PackedTransaction) UnpackBare() (signedTx *SignedTransaction, err error) {
+	return p.unpack(true)
+}
+
+func (p *PackedTransaction) unpack(bare bool) (signedTx *SignedTransaction, err error) {
 	var txReader io.Reader
 	txReader = bytes.NewBuffer(p.PackedTransaction)
 
@@ -189,20 +225,23 @@ func (p *PackedTransaction) Unpack() (signedTx *SignedTransaction, err error) {
 	case CompressionZlib:
 		txReader, err = zlib.NewReader(txReader)
 		if err != nil {
-			return
+			return nil, fmt.Errorf("new reader for tx, %s", err)
 		}
 
-		freeDataReader, err = zlib.NewReader(freeDataReader)
-		if err != nil {
-			return
+		if len(p.PackedContextFreeData) > 0 {
+			freeDataReader, err = zlib.NewReader(freeDataReader)
+			if err != nil {
+				return nil, fmt.Errorf("new reader for free data, %s", err)
+			}
 		}
 	}
 
 	data, err := ioutil.ReadAll(txReader)
 	if err != nil {
-		return
+		return nil, fmt.Errorf("unpack read all, %s", err)
 	}
 	decoder := NewDecoder(data)
+	decoder.DecodeActions(!bare)
 
 	var tx Transaction
 	err = decoder.Decode(&tx)
@@ -235,12 +274,50 @@ type DeferredTransaction struct {
 	DelayUntil JSONTime    `json:"delay_until"`
 }
 
+type ScheduledTransaction struct {
+	TransactionID SHA256Bytes `json:"trx_id"`
+	Sender        AccountName `json:"sender"`
+	SenderID      string      `json:"sender_id"`
+	Payer         AccountName `json:"payer"`
+	DelayUntil    JSONTime    `json:"delay_until"`
+	Expiration    JSONTime    `json:"expiration"`
+	Published     JSONTime    `json:"published"`
+
+	Transaction *Transaction `json:"transaction"`
+}
+
 // TxOptions represents options you want to pass to the transaction
 // you're sending.
 type TxOptions struct {
+	ChainID          SHA256Bytes // If specified, we won't hit the API to fetch it
+	HeadBlockID      SHA256Bytes // If provided, don't hit API to fetch it.  This allows offline transaction signing.
 	MaxNetUsageWords uint32
-	Delay            time.Duration
-	MaxKCPUUsage     uint32 // If you want to override the CPU usage (in counts of 1024)
+	DelaySecs        uint32
+	MaxCPUUsageMS    uint8 // If you want to override the CPU usage (in counts of 1024)
 	//ExtraKCPUUsage uint32 // If you want to *add* some CPU usage to the estimated amount (in counts of 1024)
 	Compress CompressionType
+}
+
+// FillFromChain will load ChainID (for signing transactions) and
+// HeadBlockID (to fill transaction with TaPoS data).
+func (opts *TxOptions) FillFromChain(api *API) error {
+	if opts == nil {
+		return errors.New("TxOptions should not be nil, send an object")
+	}
+
+	if opts.HeadBlockID == nil || opts.ChainID == nil {
+		info, err := api.cachedGetInfo()
+		if err != nil {
+			return err
+		}
+
+		if opts.HeadBlockID == nil {
+			opts.HeadBlockID = info.HeadBlockID
+		}
+		if opts.ChainID == nil {
+			opts.ChainID = info.ChainID
+		}
+	}
+
+	return nil
 }

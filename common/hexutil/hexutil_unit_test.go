@@ -427,3 +427,12 @@ func TestEncodeDecodeBigInt(t *testing.T) {
 		t.Errorf("expected %s\nreceived %s", b.String(), b1.String())
 	}
 }
+
+func TestRandomHex(t *testing.T) {
+	t.Parallel()
+	randhex := RandomHex(10)
+
+	if len(randhex) != 10 {
+		t.Errorf("expected %d\nreceived %d", 10, len(randhex))
+	}
+}

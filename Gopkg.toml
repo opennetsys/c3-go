@@ -105,7 +105,6 @@ required = [
 [[override]]
   name = "github.com/libp2p/go-libp2p-netutil"
   branch = "master"
-  #version = "v0.4.3"
 
 [[override]]
   name = "github.com/libp2p/go-libp2p"
@@ -141,3 +140,11 @@ required = [
 [[constraint]]
   name = "github.com/libp2p/go-libp2p-pubsub"
   branch = "master"
+
+[[constraint]]
+  name = "github.com/gogo/protobuf"
+  revision = "211a54c57504366b3bf4b490fb3c0a5f5b8d290b"
+
+[[constraint]]
+  name = "github.com/eoscanada/eos-go"
+  revision = "00b77394c50e023623e153c536494c872519e16f"
