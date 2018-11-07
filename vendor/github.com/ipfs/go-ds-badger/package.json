@@ -15,15 +15,21 @@
     },
     {
       "author": "jbenet",
-      "hash": "QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i",
+      "hash": "QmUyz7JTJzgegC6tiJrfby3mPhzcdswVtG4x58TQ6pq8jV",
       "name": "go-datastore",
-      "version": "2.4.1"
+      "version": "3.2.0"
     },
     {
       "author": "dgraph-io",
-      "hash": "QmeAEa8FDWAmZJTL6YcM1oEndZ4MyhCr5rTsjYZQui1x1L",
+      "hash": "Qmb3GBFCHMuzmi9EpH3pxpYBiviyc3tEPyDQHxZJQJSxj9",
       "name": "badger",
-      "version": "2.6.1"
+      "version": "2.7.3"
+    },
+    {
+      "author": "Kubuxu",
+      "hash": "QmXuBJ7DR6k3rmUEKtvVMhwjmXDuJgXXPUt4LQXKBMsU93",
+      "name": "go-os-helper",
+      "version": "0.0.0"
     }
   ],
   "gxVersion": "0.8.0",
@@ -31,6 +37,6 @@
   "license": "",
   "name": "go-ds-badger",
   "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
-  "version": "1.4.7"
+  "version": "1.7.0"
 }
 

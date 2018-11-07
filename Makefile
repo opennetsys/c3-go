@@ -12,14 +12,9 @@ install:
 
 .PHONY: deps
 deps:
-	@rm -rf ./vendor && \
-		echo "running dep ensure..." && \
+	@echo "running dep ensure..." && \
 		dep ensure -v && \
 		$(MAKE) gxundo && \
-		(cd vendor/github.com/libp2p/go-libp2p-pubsub/pb \
-		&& rm rpc.pb.go && rm rpc.proto \
-		&& wget https://github.com/c3systems/go-libp2p-pubsub/raw/master/pb/rpc.pb.go \
-		&& wget https://github.com/c3systems/go-libp2p-pubsub/raw/master/pb/rpc.proto) && \
 		git clone https://github.com/gxed/pubsub.git vendor/github.com/gxed/pubsub && \
 		rm -rf vendor/github.com/gxed/pubsub/.git && \
 		$(MAKE) deps/copy/ethereum/crypto
@@ -383,6 +378,11 @@ fix/libp2pcrypto:
 	#@sed -iE 's/k1, k2 :=/k1, k2, _ :=/g' vendor/github.com/libp2p/go-libp2p-secio/protocol.go
 	#@sed -iE 's/s.local.keys = k1/\/\/s.local.keys = k1/g' vendor/github.com/libp2p/go-libp2p-secio/protocol.go
 	#@sed -iE 's/s.remote.keys = k2/\/\/s.remote.keys = k2/g' vendor/github.com/libp2p/go-libp2p-secio/protocol.go
+
+.PHONY: fix/libp2ppubsub
+fix/libp2pubsub:
+	@rm vendor/github.com/libp2p/go-libp2p-pubsub/pb/rpc.pb.go 
+	@(cd vendor/github.com/libp2p/go-libp2p-pubsub/pb && wget https://raw.githubusercontent.com/libp2p/go-libp2p-pubsub/master/pb/rpc.pb.go)
 
 # RPC
 

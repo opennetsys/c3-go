@@ -2,16 +2,11 @@ package node
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
-
-	redis "github.com/gomodule/redigo/redis"
-	ipfsaddr "github.com/ipfs/go-ipfs-addr"
-	bstore "github.com/ipfs/go-ipfs-blockstore"
-	ma "github.com/multiformats/go-multiaddr"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/c3systems/c3-go/common/c3crypto"
 	"github.com/c3systems/c3-go/common/hexutil"
@@ -30,22 +25,24 @@ import (
 	"github.com/c3systems/c3-go/node/store/safemempool"
 	nodetypes "github.com/c3systems/c3-go/node/types"
 	"github.com/c3systems/c3-go/rpc"
-
-	"crypto/ecdsa"
-
-	floodsub "github.com/libp2p/go-floodsub"
+	redis "github.com/gomodule/redigo/redis"
+	ipfsaddr "github.com/ipfs/go-ipfs-addr"
+	bstore "github.com/ipfs/go-ipfs-blockstore"
 	lCrypt "github.com/libp2p/go-libp2p-crypto"
+	host "github.com/libp2p/go-libp2p-host"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	net "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
 	peerstore "github.com/libp2p/go-libp2p-peerstore"
+	pstoremem "github.com/libp2p/go-libp2p-peerstore/pstoremem"
+	floodsub "github.com/libp2p/go-libp2p-pubsub"
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	tcp "github.com/libp2p/go-tcp-transport"
-
-	host "github.com/libp2p/go-libp2p-host"
+	ma "github.com/multiformats/go-multiaddr"
+	log "github.com/sirupsen/logrus"
 )
 
 // Keys ...
@@ -121,7 +118,7 @@ func NewFullNode(cfg *nodetypes.Config) (*Service, error) {
 		return nil, fmt.Errorf("err parsing ipfs uri\n%v", err)
 	}
 
-	ps := peerstore.NewPeerstore()
+	ps := pstoremem.NewPeerstore()
 	if err := ps.AddPrivKey(pid, wPriv); err != nil {
 		return nil, fmt.Errorf("err adding priv key\n%v", err)
 	}

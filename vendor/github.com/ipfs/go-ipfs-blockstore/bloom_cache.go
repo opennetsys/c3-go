@@ -2,10 +2,11 @@ package blockstore
 
 import (
 	"context"
+	"fmt"
 	"sync/atomic"
 	"time"
 
-	bloom "github.com/gxed/bbloom"
+	bloom "github.com/ipfs/bbloom"
 	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
 	metrics "github.com/ipfs/go-metrics-interface"
@@ -19,85 +20,98 @@ func bloomCached(ctx context.Context, bs Blockstore, bloomSize, hashCount int) (
 	if err != nil {
 		return nil, err
 	}
-	bc := &bloomcache{blockstore: bs, bloom: bl}
-	bc.hits = metrics.NewCtx(ctx, "bloom.hits_total",
-		"Number of cache hits in bloom cache").Counter()
-	bc.total = metrics.NewCtx(ctx, "bloom_total",
-		"Total number of requests to bloom cache").Counter()
-
-	bc.Invalidate()
-	go bc.Rebuild(ctx)
-	if metrics.Active() {
-		go func() {
+	bc := &bloomcache{
+		blockstore: bs,
+		bloom:      bl,
+		hits: metrics.NewCtx(ctx, "bloom.hits_total",
+			"Number of cache hits in bloom cache").Counter(),
+		total: metrics.NewCtx(ctx, "bloom_total",
+			"Total number of requests to bloom cache").Counter(),
+		buildChan: make(chan struct{}),
+	}
+	go func() {
+		err := bc.build(ctx)
+		if err != nil {
+			select {
+			case <-ctx.Done():
+				log.Warning("Cache rebuild closed by context finishing: ", err)
+			default:
+				log.Error(err)
+			}
+			return
+		}
+		if metrics.Active() {
 			fill := metrics.NewCtx(ctx, "bloom_fill_ratio",
 				"Ratio of bloom filter fullnes, (updated once a minute)").Gauge()
 
-			<-bc.rebuildChan
 			t := time.NewTicker(1 * time.Minute)
+			defer t.Stop()
 			for {
 				select {
 				case <-ctx.Done():
-					t.Stop()
 					return
 				case <-t.C:
 					fill.Set(bc.bloom.FillRatio())
 				}
 			}
-		}()
-	}
+		}
+	}()
 	return bc, nil
 }
 
 type bloomcache struct {
-	bloom  *bloom.Bloom
 	active int32
 
-	// This chan is only used for testing to wait for bloom to enable
-	rebuildChan chan struct{}
-	blockstore  Blockstore
+	bloom    *bloom.Bloom
+	buildErr error
+
+	buildChan  chan struct{}
+	blockstore Blockstore
 
 	// Statistics
 	hits  metrics.Counter
 	total metrics.Counter
 }
 
-func (b *bloomcache) Invalidate() {
-	b.rebuildChan = make(chan struct{})
-	atomic.StoreInt32(&b.active, 0)
-}
-
 func (b *bloomcache) BloomActive() bool {
 	return atomic.LoadInt32(&b.active) != 0
 }
 
-func (b *bloomcache) Rebuild(ctx context.Context) {
-	evt := log.EventBegin(ctx, "bloomcache.Rebuild")
+func (b *bloomcache) Wait(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-b.buildChan:
+		return b.buildErr
+	}
+}
+
+func (b *bloomcache) build(ctx context.Context) error {
+	evt := log.EventBegin(ctx, "bloomcache.build")
 	defer evt.Done()
+	defer close(b.buildChan)
 
 	ch, err := b.blockstore.AllKeysChan(ctx)
 	if err != nil {
-		log.Errorf("AllKeysChan failed in bloomcache rebuild with: %v", err)
-		return
+		b.buildErr = fmt.Errorf("AllKeysChan failed in bloomcache rebuild with: %v", err)
+		return b.buildErr
 	}
-	finish := false
-	for !finish {
+	for {
 		select {
 		case key, ok := <-ch:
-			if ok {
-				b.bloom.AddTS(key.Bytes()) // Use binary key, the more compact the better
-			} else {
-				finish = true
+			if !ok {
+				atomic.StoreInt32(&b.active, 1)
+				return nil
 			}
+			b.bloom.AddTS(key.Bytes()) // Use binary key, the more compact the better
 		case <-ctx.Done():
-			log.Warning("Cache rebuild closed by context finishing.")
-			return
+			b.buildErr = ctx.Err()
+			return b.buildErr
 		}
 	}
-	close(b.rebuildChan)
-	atomic.StoreInt32(&b.active, 1)
 }
 
-func (b *bloomcache) DeleteBlock(k *cid.Cid) error {
+func (b *bloomcache) DeleteBlock(k cid.Cid) error {
 	if has, ok := b.hasCached(k); ok && !has {
 		return ErrNotFound
 	}
@@ -107,10 +121,10 @@ func (b *bloomcache) DeleteBlock(k *cid.Cid) error {
 
 // if ok == false has is inconclusive
 // if ok == true then has respons to question: is it contained
-func (b *bloomcache) hasCached(k *cid.Cid) (has bool, ok bool) {
+func (b *bloomcache) hasCached(k cid.Cid) (has bool, ok bool) {
 	b.total.Inc()
-	if k == nil {
-		log.Error("nil cid in bloom cache")
+	if !k.Defined() {
+		log.Error("undefined in bloom cache")
 		// Return cache invalid so call to blockstore
 		// in case of invalid key is forwarded deeper
 		return false, false
@@ -125,7 +139,7 @@ func (b *bloomcache) hasCached(k *cid.Cid) (has bool, ok bool) {
 	return false, false
 }
 
-func (b *bloomcache) Has(k *cid.Cid) (bool, error) {
+func (b *bloomcache) Has(k cid.Cid) (bool, error) {
 	if has, ok := b.hasCached(k); ok {
 		return has, nil
 	}
@@ -133,7 +147,11 @@ func (b *bloomcache) Has(k *cid.Cid) (bool, error) {
 	return b.blockstore.Has(k)
 }
 
-func (b *bloomcache) Get(k *cid.Cid) (blocks.Block, error) {
+func (b *bloomcache) GetSize(k cid.Cid) (int, error) {
+  return b.blockstore.GetSize(k)
+}
+
+func (b *bloomcache) Get(k cid.Cid) (blocks.Block, error) {
 	if has, ok := b.hasCached(k); ok && !has {
 		return nil, ErrNotFound
 	}
@@ -169,7 +187,7 @@ func (b *bloomcache) HashOnRead(enabled bool) {
 	b.blockstore.HashOnRead(enabled)
 }
 
-func (b *bloomcache) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) {
+func (b *bloomcache) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 	return b.blockstore.AllKeysChan(ctx)
 }
 

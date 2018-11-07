@@ -34,6 +34,8 @@ required = [
   "github.com/ipfs/go-ipfs-routing/mock",
   "github.com/ipfs/go-log",
   "github.com/libp2p/go-libp2p-netutil",
+  "github.com/ipfs/go-verifcid",
+  "github.com/libp2p/go-libp2p-pubsub",
   "github.com/libp2p/go-libp2p/p2p/net/mock"
 ]
 
@@ -66,44 +68,54 @@ required = [
 [[override]]
   name =  "github.com/ipfs/go-datastore"
   #version = "v2.4.1"
-  revision = "e9b957d683804610bb830a00aed753633c4a5d36"
+  #revision = "e9b957d683804610bb830a00aed753633c4a5d36"
+  branch = "master"
 
 [[override]]
   name = "github.com/ipfs/go-ipfs-delay"
-  version = "v0.0.1"
+  branch = "master"
+  #version = "v0.0.1"
 
 [[override]]
   name = "github.com/ipfs/go-ipfs-exchange-interface"
-  version = "v0.0.2"
+  branch = "master"
+  #version = "v0.0.2"
 
 [[override]]
   name = "github.com/ipfs/go-ipfs-flags"
-  version = "v0.0.1"
+  branch = "master"
+  #version = "v0.0.1"
 
 [[override]]
   name = "github.com/ipfs/go-ipfs-pq"
-  version = "v0.0.1"
+  branch = "master"
+  #version = "v0.0.1"
 
 [[override]]
   name = "github.com/ipfs/go-ipfs-routing"
-  version = "v0.0.13"
+  branch = "master"
+  #version = "v0.0.13"
   #revision = "ee2d893c7c7ad08922055feafae55462b5a4600a"
 
 [[override]]
   name = "github.com/ipfs/go-log"
-  version = "v1.5.3"
+  branch = "master"
+  #version = "v1.5.3"
 
 [[override]]
   name = "github.com/libp2p/go-libp2p-netutil"
-  version = "v0.4.3"
+  branch = "master"
+  #version = "v0.4.3"
 
 [[override]]
   name = "github.com/libp2p/go-libp2p"
-  version = "v6.0.4"
+  branch = "master"
+  #version = "v6.0.4"
 
 [[constraint]]
   name = "github.com/libp2p/go-libp2p-blankhost"
-  version = "0.3.3"
+  branch = "master"
+  #version = "0.3.3"
 
 [[constraint]]
   name = "github.com/golang/protobuf"
@@ -115,4 +127,17 @@ required = [
 
 [[constraint]]
   name = "github.com/libp2p/go-libp2p-crypto"
-  revision = "7240b40a3ddc47c4d17c15baabcbe45e5219171b"
+  branch = "master"
+  #revision = "7240b40a3ddc47c4d17c15baabcbe45e5219171b"
+
+[[constraint]]
+  name = "github.com/ipfs/go-blockservice"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/ipfs/go-verifcid"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/libp2p/go-libp2p-pubsub"
+  branch = "master"

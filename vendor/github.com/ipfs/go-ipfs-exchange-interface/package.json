@@ -9,15 +9,15 @@
   "gxDependencies": [
     {
       "author": "stebalien",
-      "hash": "QmTRCUvZLiir12Qr6MV3HKfKMHX8Nf1Vddn6t2g5nsQSb9",
+      "hash": "QmWoXtvgC8inqFkAATB7cp2Dax7XBi9VDvSg9RCCZufmRk",
       "name": "go-block-format",
-      "version": "0.1.7"
+      "version": "0.2.1"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmapdYm1b22Frv3k17fqrBYTFRxwiaVJkB299Mfn33edeB",
+      "hash": "QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw",
       "name": "go-cid",
-      "version": "0.7.21"
+      "version": "0.9.1"
     }
   ],
   "gxVersion": "0.12.1",
@@ -25,6 +25,6 @@
   "license": "MIT",
   "name": "go-ipfs-exchange-interface",
   "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
-  "version": "0.0.2"
+  "version": "0.1.2"
 }
 

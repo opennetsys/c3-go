@@ -10,12 +10,11 @@ import (
 	"github.com/c3systems/c3-go/core/chain/merkle"
 	"github.com/c3systems/c3-go/core/chain/statechain"
 	colorlog "github.com/c3systems/c3-go/log/color"
-	log "github.com/sirupsen/logrus"
-
 	bfmt "github.com/ipfs/go-block-format"
+	bserv "github.com/ipfs/go-blockservice"
 	cid "github.com/ipfs/go-cid"
-	bserv "github.com/ipfs/go-ipfs/blockservice"
 	mh "github.com/multiformats/go-multihash"
+	log "github.com/sirupsen/logrus"
 )
 
 // GetCIDByHash ...
@@ -25,7 +24,8 @@ func GetCIDByHash(hash string) (*cid.Cid, error) {
 		return nil, err
 	}
 
-	return cid.NewCidV1(mhCode, multiHash), nil
+	c := cid.NewCidV1(mhCode, multiHash)
+	return &c, nil
 }
 
 // GetCID ...
@@ -168,7 +168,7 @@ func FetchMainchainBlock(bs bserv.BlockService, c *cid.Cid) (*mainchain.Block, e
 
 	log.Printf("[p2p] ipfs get main chain block %s", c.String())
 
-	data, err := bs.GetBlock(ctx, c)
+	data, err := bs.GetBlock(ctx, *c)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +192,7 @@ func FetchStateChainBlock(bs bserv.BlockService, c *cid.Cid) (*statechain.Block,
 
 	log.Printf("[p2p] ipfs get state chain block %s", c.String())
 
-	data, err := bs.GetBlock(ctx, c)
+	data, err := bs.GetBlock(ctx, *c)
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +216,7 @@ func FetchStateChainTransaction(bs bserv.BlockService, c *cid.Cid) (*statechain.
 
 	log.Printf("[p2p] ipfs get state chain transaction %s", c.String())
 
-	data, err := bs.GetBlock(ctx, c)
+	data, err := bs.GetBlock(ctx, *c)
 	if err != nil {
 		return nil, err
 	}
@@ -240,7 +240,7 @@ func FetchStateChainDiff(bs bserv.BlockService, c *cid.Cid) (*statechain.Diff, e
 
 	log.Printf("[p2p] ipfs get state chain diff %s", c.String())
 
-	data, err := bs.GetBlock(ctx, c)
+	data, err := bs.GetBlock(ctx, *c)
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +264,7 @@ func FetchMerkleTree(bs bserv.BlockService, c *cid.Cid) (*merkle.Tree, error) {
 
 	log.Printf("[p2p] ipfs get merkle tree %s", c.String())
 
-	data, err := bs.GetBlock(ctx, c)
+	data, err := bs.GetBlock(ctx, *c)
 	if err != nil {
 		return nil, err
 	}
@@ -288,7 +288,7 @@ func FetchBytes(bs bserv.BlockService, c *cid.Cid) ([]byte, error) {
 
 	log.Printf("[p2p] ipfs get merkle tree %s", c.String())
 
-	data, err := bs.GetBlock(ctx, c)
+	data, err := bs.GetBlock(ctx, *c)
 	if err != nil {
 		return nil, err
 	}
@@ -307,7 +307,7 @@ func FetchLatestBlock(bs bserv.BlockService, c *cid.Cid) (*mainchain.Block, erro
 
 	log.Printf("[p2p] ipfs read latest stored main chain block %s", c.String())
 
-	data, err := bs.GetBlock(ctx, c)
+	data, err := bs.GetBlock(ctx, *c)
 	if err != nil {
 		return nil, err
 	}
@@ -373,7 +373,7 @@ func PutMainchainBlock(bs bserv.BlockService, block *mainchain.Block) (*cid.Cid,
 		return nil, err
 	}
 
-	basicIPFSBlock, err := bfmt.NewBlockWithCid(bytes, c)
+	basicIPFSBlock, err := bfmt.NewBlockWithCid(bytes, *c)
 	if err != nil {
 		return nil, err
 	}
@@ -404,7 +404,7 @@ func PutStatechainBlock(bs bserv.BlockService, block *statechain.Block) (*cid.Ci
 		return nil, err
 	}
 
-	basicIPFSBlock, err := bfmt.NewBlockWithCid(bytes, c)
+	basicIPFSBlock, err := bfmt.NewBlockWithCid(bytes, *c)
 	if err != nil {
 		return nil, err
 	}
@@ -434,7 +434,7 @@ func PutStatechainTransaction(bs bserv.BlockService, tx *statechain.Transaction)
 		return nil, err
 	}
 
-	basicIPFSBlock, err := bfmt.NewBlockWithCid(bytes, c)
+	basicIPFSBlock, err := bfmt.NewBlockWithCid(bytes, *c)
 	if err != nil {
 		return nil, err
 	}
@@ -462,7 +462,7 @@ func PutStatechainDiff(bs bserv.BlockService, d *statechain.Diff) (*cid.Cid, err
 		return nil, err
 	}
 
-	basicIPFSBlock, err := bfmt.NewBlockWithCid(bytes, c)
+	basicIPFSBlock, err := bfmt.NewBlockWithCid(bytes, *c)
 	if err != nil {
 		return nil, err
 	}
@@ -490,7 +490,7 @@ func PutMerkleTree(bs bserv.BlockService, tree *merkle.Tree) (*cid.Cid, error) {
 		return nil, err
 	}
 
-	basicIPFSBlock, err := bfmt.NewBlockWithCid(bytes, c)
+	basicIPFSBlock, err := bfmt.NewBlockWithCid(bytes, *c)
 	if err != nil {
 		return nil, err
 	}
@@ -513,7 +513,7 @@ func PutBytes(bs bserv.BlockService, data []byte) (*cid.Cid, error) {
 		return nil, err
 	}
 
-	basicIPFSBlock, err := bfmt.NewBlockWithCid(data, c)
+	basicIPFSBlock, err := bfmt.NewBlockWithCid(data, *c)
 	if err != nil {
 		return nil, err
 	}
@@ -541,7 +541,7 @@ func PutLatestBlock(bs bserv.BlockService, block *mainchain.Block) (*cid.Cid, er
 		return nil, err
 	}
 
-	basicIPFSBlock, err := bfmt.NewBlockWithCid(bytes, c)
+	basicIPFSBlock, err := bfmt.NewBlockWithCid(bytes, *c)
 	if err != nil {
 		return nil, err
 	}
@@ -549,7 +549,7 @@ func PutLatestBlock(bs bserv.BlockService, block *mainchain.Block) (*cid.Cid, er
 	log.Println("[p2p] ipfs put latest main chain block %s", c.String())
 
 	// must delete previous data in order to set new data
-	if err := bs.DeleteBlock(c); err != nil {
+	if err := bs.DeleteBlock(*c); err != nil {
 		return nil, err
 	}
 

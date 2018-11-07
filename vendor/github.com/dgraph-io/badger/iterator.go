@@ -160,9 +160,14 @@ func (item *Item) yieldItemValue() ([]byte, func(), error) {
 		var vp valuePointer
 		vp.Decode(item.vptr)
 		result, cb, err := item.db.vlog.Read(vp, item.slice)
-		if err != ErrRetry || bytes.HasPrefix(key, badgerMove) {
-			// The error is not retry, or we have already searched the move keyspace.
+		if err != ErrRetry {
 			return result, cb, err
+		}
+		if bytes.HasPrefix(key, badgerMove) {
+			// err == ErrRetry
+			// Error is retry even after checking the move keyspace. So, let's
+			// just assume that value is not present.
+			return nil, cb, nil
 		}
 
 		// The value pointer is pointing to a deleted value log. Look for the
@@ -182,9 +187,13 @@ func (item *Item) yieldItemValue() ([]byte, func(), error) {
 		if vs.Version != item.Version() {
 			return nil, nil, nil
 		}
-		item.vptr = vs.Value
+		// Bug fix: Always copy the vs.Value into vptr here. Otherwise, when item is reused this
+		// slice gets overwritten.
+		item.vptr = y.SafeCopy(item.vptr, vs.Value)
 		item.meta &^= bitValuePointer // Clear the value pointer bit.
-		item.meta |= vs.Meta          // This meta would only be about value pointer.
+		if vs.Meta&bitValuePointer > 0 {
+			item.meta |= bitValuePointer // This meta would only be about value pointer.
+		}
 	}
 }
 

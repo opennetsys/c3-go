@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"errors"
+	"time"
 
 	query "github.com/ipfs/go-datastore/query"
 )
@@ -39,17 +40,22 @@ type Datastore interface {
 	// Ultimately, the lowest-level datastore will need to do some value checking
 	// or risk getting incorrect values. It may also be useful to expose a more
 	// type-safe interface to your application, and do the checking up-front.
-	Put(key Key, value interface{}) error
+	Put(key Key, value []byte) error
 
 	// Get retrieves the object `value` named by `key`.
 	// Get will return ErrNotFound if the key is not mapped to a value.
-	Get(key Key) (value interface{}, err error)
+	Get(key Key) (value []byte, err error)
 
 	// Has returns whether the `key` is mapped to a `value`.
 	// In some contexts, it may be much cheaper only to check for existence of
 	// a value, rather than retrieving the value itself. (e.g. HTTP HEAD).
 	// The default implementation is found in `GetBackedHas`.
 	Has(key Key) (exists bool, err error)
+
+	// GetSize returns the size of the `value` named by `key`.
+	// In some contexts, it may be much cheaper to only get the size of the
+	// value rather than retrieving the value itself.
+	GetSize(key Key) (size int, err error)
 
 	// Delete removes the value for given `key`.
 	Delete(key Key) error
@@ -130,6 +136,43 @@ func DiskUsage(d Datastore) (uint64, error) {
 	return persDs.DiskUsage()
 }
 
+// TTLDatastore is an interface that should be implemented by datastores that
+// support expiring entries.
+type TTLDatastore interface {
+	Datastore
+
+	PutWithTTL(key Key, value []byte, ttl time.Duration) error
+	SetTTL(key Key, ttl time.Duration) error
+	GetExpiration(key Key) (time.Time, error)
+}
+
+// Txn extends the Datastore type. Txns allow users to batch queries and
+// mutations to the Datastore into atomic groups, or transactions. Actions
+// performed on a transaction will not take hold until a successful call to
+// Commit has been made. Likewise, transactions can be aborted by calling
+// Discard before a successful Commit has been made.
+type Txn interface {
+	Datastore
+
+	// Commit finalizes a transaction, attempting to commit it to the Datastore.
+	// May return an error if the transaction has gone stale. The presence of an
+	// error is an indication that the data was not committed to the Datastore.
+	Commit() error
+	// Discard throws away changes recorded in a transaction without committing
+	// them to the underlying Datastore. Any calls made to Discard after Commit
+	// has been successfully called will have no effect on the transaction and
+	// state of the Datastore, making it safe to defer.
+	Discard()
+}
+
+// TxnDatastore is an interface that should be implemented by datastores that
+// support transactions.
+type TxnDatastore interface {
+	Datastore
+
+	NewTransaction(readOnly bool) (Txn, error)
+}
+
 // Errors
 
 // ErrNotFound is returned by Get, Has, and Delete when a datastore does not
@@ -159,8 +202,22 @@ func GetBackedHas(ds Datastore, key Key) (bool, error) {
 	}
 }
 
+// GetBackedSize provides a default Datastore.GetSize implementation.
+// It exists so Datastore.GetSize implementations can use it, like so:
+//
+// func (*d SomeDatastore) GetSize(key Key) (size int, err error) {
+//   return GetBackedSize(d, key)
+// }
+func GetBackedSize(ds Datastore, key Key) (int, error) {
+	value, err := ds.Get(key)
+	if err == nil {
+		return len(value), nil
+	}
+	return -1, err
+}
+
 type Batch interface {
-	Put(key Key, val interface{}) error
+	Put(key Key, val []byte) error
 
 	Delete(key Key) error
 

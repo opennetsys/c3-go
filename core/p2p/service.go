@@ -9,12 +9,11 @@ import (
 	"github.com/c3systems/c3-go/core/chain/merkle"
 	"github.com/c3systems/c3-go/core/chain/statechain"
 	loghooks "github.com/c3systems/c3-go/log/hooks"
-	log "github.com/sirupsen/logrus"
-
+	bitswap "github.com/ipfs/go-bitswap"
+	"github.com/ipfs/go-bitswap/network"
+	bserv "github.com/ipfs/go-blockservice"
 	cid "github.com/ipfs/go-cid"
-	bserv "github.com/ipfs/go-ipfs/blockservice"
-	"github.com/ipfs/go-ipfs/exchange/bitswap"
-	"github.com/ipfs/go-ipfs/exchange/bitswap/network"
+	log "github.com/sirupsen/logrus"
 )
 
 // Ensure the struct implements the interface

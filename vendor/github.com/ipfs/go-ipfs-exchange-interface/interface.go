@@ -25,13 +25,13 @@ type Interface interface { // type Exchanger interface
 // Fetcher is an object that can be used to retrieve blocks
 type Fetcher interface {
 	// GetBlock returns the block associated with a given key.
-	GetBlock(context.Context, *cid.Cid) (blocks.Block, error)
-	GetBlocks(context.Context, []*cid.Cid) (<-chan blocks.Block, error)
+	GetBlock(context.Context, cid.Cid) (blocks.Block, error)
+	GetBlocks(context.Context, []cid.Cid) (<-chan blocks.Block, error)
 }
 
 // SessionExchange is an exchange.Interface which supports
 // sessions.
 type SessionExchange interface {
 	Interface
-	NewSession(context.Context) Interface
+	NewSession(context.Context) Fetcher
 }

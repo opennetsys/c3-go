@@ -1,6 +1,7 @@
 package dht
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -11,7 +12,6 @@ import (
 	ds "github.com/ipfs/go-datastore"
 	u "github.com/ipfs/go-ipfs-util"
 	pb "github.com/libp2p/go-libp2p-kad-dht/pb"
-	lgbl "github.com/libp2p/go-libp2p-loggables"
 	inet "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
@@ -45,13 +45,9 @@ func (dht *IpfsDHT) handlerForMsgType(t pb.Message_MessageType) dhtHandler {
 }
 
 func (dht *IpfsDHT) handleGetValue(ctx context.Context, p peer.ID, pmes *pb.Message) (_ *pb.Message, err error) {
-	eip := log.EventBegin(ctx, "handleGetValue", p)
-	defer func() {
-		if err != nil {
-			eip.SetError(err)
-		}
-		eip.Done()
-	}()
+	ctx = log.Start(ctx, "handleGetValue")
+	log.SetTag(ctx, "peer", p)
+	defer func() { log.FinishWithErr(ctx, err) }()
 	log.Debugf("%s handleGetValue for key: %s", dht.self, pmes.GetKey())
 
 	// setup response
@@ -59,7 +55,7 @@ func (dht *IpfsDHT) handleGetValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 
 	// first, is there even a key?
 	k := pmes.GetKey()
-	if k == "" {
+	if len(k) == 0 {
 		return nil, errors.New("handleGetValue but no key was provided")
 		// TODO: send back an error response? could be bad, but the other node's hanging.
 	}
@@ -90,11 +86,11 @@ func (dht *IpfsDHT) handleGetValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 	return resp, nil
 }
 
-func (dht *IpfsDHT) checkLocalDatastore(k string) (*recpb.Record, error) {
+func (dht *IpfsDHT) checkLocalDatastore(k []byte) (*recpb.Record, error) {
 	log.Debugf("%s handleGetValue looking into ds", dht.self)
 	dskey := convertToDsKey(k)
-	iVal, err := dht.datastore.Get(dskey)
-	log.Debugf("%s handleGetValue looking into ds GOT %v", dht.self, iVal)
+	buf, err := dht.datastore.Get(dskey)
+	log.Debugf("%s handleGetValue looking into ds GOT %v", dht.self, buf)
 
 	if err == ds.ErrNotFound {
 		return nil, nil
@@ -108,13 +104,8 @@ func (dht *IpfsDHT) checkLocalDatastore(k string) (*recpb.Record, error) {
 	// if we have the value, send it back
 	log.Debugf("%s handleGetValue success!", dht.self)
 
-	byts, ok := iVal.([]byte)
-	if !ok {
-		return nil, fmt.Errorf("datastore had non byte-slice value for %v", dskey)
-	}
-
 	rec := new(recpb.Record)
-	err = proto.Unmarshal(byts, rec)
+	err = proto.Unmarshal(buf, rec)
 	if err != nil {
 		log.Debug("failed to unmarshal DHT record from datastore")
 		return nil, err
@@ -150,19 +141,14 @@ func (dht *IpfsDHT) checkLocalDatastore(k string) (*recpb.Record, error) {
 
 // Cleans the record (to avoid storing arbitrary data).
 func cleanRecord(rec *recpb.Record) {
-	rec.XXX_unrecognized = nil
-	rec.TimeReceived = nil
+	rec.TimeReceived = ""
 }
 
 // Store a value in this peer local storage
 func (dht *IpfsDHT) handlePutValue(ctx context.Context, p peer.ID, pmes *pb.Message) (_ *pb.Message, err error) {
-	eip := log.EventBegin(ctx, "handlePutValue", p)
-	defer func() {
-		if err != nil {
-			eip.SetError(err)
-		}
-		eip.Done()
-	}()
+	ctx = log.Start(ctx, "handlePutValue")
+	log.SetTag(ctx, "peer", p)
+	defer func() { log.FinishWithErr(ctx, err) }()
 
 	rec := pmes.GetRecord()
 	if rec == nil {
@@ -170,14 +156,14 @@ func (dht *IpfsDHT) handlePutValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 		return nil, errors.New("nil record")
 	}
 
-	if pmes.GetKey() != rec.GetKey() {
+	if !bytes.Equal(pmes.GetKey(), rec.GetKey()) {
 		return nil, errors.New("put key doesn't match record key")
 	}
 
 	cleanRecord(rec)
 
 	// Make sure the record is valid (not expired, valid signature etc)
-	if err = dht.Validator.Validate(rec.GetKey(), rec.GetValue()); err != nil {
+	if err = dht.Validator.Validate(string(rec.GetKey()), rec.GetValue()); err != nil {
 		log.Warningf("Bad dht record in PUT from: %s. %s", p.Pretty(), err)
 		return nil, err
 	}
@@ -194,7 +180,7 @@ func (dht *IpfsDHT) handlePutValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 
 	if existing != nil {
 		recs := [][]byte{rec.GetValue(), existing.GetValue()}
-		i, err := dht.Validator.Select(rec.GetKey(), recs)
+		i, err := dht.Validator.Select(string(rec.GetKey()), recs)
 		if err != nil {
 			log.Warningf("Bad dht record in PUT from %s: %s", p.Pretty(), err)
 			return nil, err
@@ -206,7 +192,7 @@ func (dht *IpfsDHT) handlePutValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 	}
 
 	// record the time we receive every record
-	rec.TimeReceived = proto.String(u.FormatRFC3339(time.Now()))
+	rec.TimeReceived = u.FormatRFC3339(time.Now())
 
 	data, err := proto.Marshal(rec)
 	if err != nil {
@@ -221,7 +207,7 @@ func (dht *IpfsDHT) handlePutValue(ctx context.Context, p peer.ID, pmes *pb.Mess
 // returns nil, nil when either nothing is found or the value found doesn't properly validate.
 // returns nil, some_error when there's a *datastore* error (i.e., something goes very wrong)
 func (dht *IpfsDHT) getRecordFromDatastore(dskey ds.Key) (*recpb.Record, error) {
-	reci, err := dht.datastore.Get(dskey)
+	buf, err := dht.datastore.Get(dskey)
 	if err == ds.ErrNotFound {
 		return nil, nil
 	}
@@ -229,23 +215,15 @@ func (dht *IpfsDHT) getRecordFromDatastore(dskey ds.Key) (*recpb.Record, error) 
 		log.Errorf("Got error retrieving record with key %s from datastore: %s", dskey, err)
 		return nil, err
 	}
-
-	byt, ok := reci.([]byte)
-	if !ok {
-		// Bad data in datastore, log it but don't return an error, we'll just overwrite it
-		log.Errorf("Value stored in datastore with key %s is not []byte", dskey)
-		return nil, nil
-	}
-
 	rec := new(recpb.Record)
-	err = proto.Unmarshal(byt, rec)
+	err = proto.Unmarshal(buf, rec)
 	if err != nil {
 		// Bad data in datastore, log it but don't return an error, we'll just overwrite it
 		log.Errorf("Bad record data stored in datastore with key %s: could not unmarshal record", dskey)
 		return nil, nil
 	}
 
-	err = dht.Validator.Validate(rec.GetKey(), rec.GetValue())
+	err = dht.Validator.Validate(string(rec.GetKey()), rec.GetValue())
 	if err != nil {
 		// Invalid record in datastore, probably expired but don't return an error,
 		// we'll just overwrite it
@@ -261,9 +239,11 @@ func (dht *IpfsDHT) handlePing(_ context.Context, p peer.ID, pmes *pb.Message) (
 	return pmes, nil
 }
 
-func (dht *IpfsDHT) handleFindPeer(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
-	defer log.EventBegin(ctx, "handleFindPeer", p).Done()
-	resp := pb.NewMessage(pmes.GetType(), "", pmes.GetClusterLevel())
+func (dht *IpfsDHT) handleFindPeer(ctx context.Context, p peer.ID, pmes *pb.Message) (_ *pb.Message, _err error) {
+	ctx = log.Start(ctx, "handleFindPeer")
+	defer func() { log.FinishWithErr(ctx, _err) }()
+	log.SetTag(ctx, "peer", p)
+	resp := pb.NewMessage(pmes.GetType(), nil, pmes.GetClusterLevel())
 	var closest []peer.ID
 
 	// if looking for self... special case where we send it on CloserPeers.
@@ -310,20 +290,17 @@ func (dht *IpfsDHT) handleFindPeer(ctx context.Context, p peer.ID, pmes *pb.Mess
 	return resp, nil
 }
 
-func (dht *IpfsDHT) handleGetProviders(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
-	lm := make(lgbl.DeferredMap)
-	lm["peer"] = func() interface{} { return p.Pretty() }
-	eip := log.EventBegin(ctx, "handleGetProviders", lm)
-	defer eip.Done()
+func (dht *IpfsDHT) handleGetProviders(ctx context.Context, p peer.ID, pmes *pb.Message) (_ *pb.Message, _err error) {
+	ctx = log.Start(ctx, "handleGetProviders")
+	defer func() { log.FinishWithErr(ctx, _err) }()
+	log.SetTag(ctx, "peer", p)
 
 	resp := pb.NewMessage(pmes.GetType(), pmes.GetKey(), pmes.GetClusterLevel())
 	c, err := cid.Cast([]byte(pmes.GetKey()))
 	if err != nil {
-		eip.SetError(err)
 		return nil, err
 	}
-
-	lm["key"] = func() interface{} { return c.String() }
+	log.SetTag(ctx, "key", c)
 
 	// debug logging niceness.
 	reqDesc := fmt.Sprintf("%s handleGetProviders(%s, %s): ", dht.self, p, c)
@@ -331,7 +308,7 @@ func (dht *IpfsDHT) handleGetProviders(ctx context.Context, p peer.ID, pmes *pb.
 	defer log.Debugf("%s end", reqDesc)
 
 	// check if we have this value, to add ourselves as provider.
-	has, err := dht.datastore.Has(convertToDsKey(c.KeyString()))
+	has, err := dht.datastore.Has(convertToDsKey(c.Bytes()))
 	if err != nil && err != ds.ErrNotFound {
 		log.Debugf("unexpected datastore error: %v\n", err)
 		has = false
@@ -361,19 +338,16 @@ func (dht *IpfsDHT) handleGetProviders(ctx context.Context, p peer.ID, pmes *pb.
 	return resp, nil
 }
 
-func (dht *IpfsDHT) handleAddProvider(ctx context.Context, p peer.ID, pmes *pb.Message) (*pb.Message, error) {
-	lm := make(lgbl.DeferredMap)
-	lm["peer"] = func() interface{} { return p.Pretty() }
-	eip := log.EventBegin(ctx, "handleAddProvider", lm)
-	defer eip.Done()
+func (dht *IpfsDHT) handleAddProvider(ctx context.Context, p peer.ID, pmes *pb.Message) (_ *pb.Message, _err error) {
+	ctx = log.Start(ctx, "handleAddProvider")
+	defer func() { log.FinishWithErr(ctx, _err) }()
+	log.SetTag(ctx, "peer", p)
 
 	c, err := cid.Cast([]byte(pmes.GetKey()))
 	if err != nil {
-		eip.SetError(err)
 		return nil, err
 	}
-
-	lm["key"] = func() interface{} { return c.String() }
+	log.SetTag(ctx, "key", c)
 
 	log.Debugf("%s adding %s as a provider for '%s'\n", dht.self, p, c)
 
@@ -403,6 +377,6 @@ func (dht *IpfsDHT) handleAddProvider(ctx context.Context, p peer.ID, pmes *pb.M
 	return nil, nil
 }
 
-func convertToDsKey(s string) ds.Key {
-	return ds.NewKey(base32.RawStdEncoding.EncodeToString([]byte(s)))
+func convertToDsKey(s []byte) ds.Key {
+	return ds.NewKey(base32.RawStdEncoding.EncodeToString(s))
 }

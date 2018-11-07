@@ -354,18 +354,13 @@ var putMaxRetries = 6
 // one arrived slightly later than the other. In the case of a
 // concurrent Put and a Delete operation, we cannot guarantee which one
 // will win.
-func (fs *Datastore) Put(key datastore.Key, value interface{}) error {
-	val, ok := value.([]byte)
-	if !ok {
-		return datastore.ErrInvalidType
-	}
-
+func (fs *Datastore) Put(key datastore.Key, value []byte) error {
 	var err error
 	for i := 1; i <= putMaxRetries; i++ {
 		err = fs.doWriteOp(&op{
 			typ: opPut,
 			key: key,
-			v:   val,
+			v:   value,
 		})
 		if err == nil {
 			break
@@ -557,7 +552,7 @@ func (fs *Datastore) putMany(data map[datastore.Key]interface{}) error {
 	return nil
 }
 
-func (fs *Datastore) Get(key datastore.Key) (value interface{}, err error) {
+func (fs *Datastore) Get(key datastore.Key) (value []byte, err error) {
 	_, path := fs.encode(key)
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -579,6 +574,18 @@ func (fs *Datastore) Has(key datastore.Key) (exists bool, err error) {
 		return false, nil
 	default:
 		return false, err
+	}
+}
+
+func (fs *Datastore) GetSize(key datastore.Key) (size int, err error) {
+	_, path := fs.encode(key)
+	switch s, err := os.Stat(path); {
+	case err == nil:
+		return int(s.Size()), nil
+	case os.IsNotExist(err):
+		return -1, datastore.ErrNotFound
+	default:
+		return -1, err
 	}
 }
 
@@ -868,6 +875,11 @@ func (fs *Datastore) checkpointLoop() {
 
 func (fs *Datastore) writeDiskUsageFile(du int64, doSync bool) {
 	tmp, err := ioutil.TempFile(fs.path, "du-")
+	if err != nil {
+		log.Warningf("cound not write disk usage: %v", err)
+		return
+	}
+
 	removed := false
 	defer func() {
 		if !removed {
@@ -875,10 +887,6 @@ func (fs *Datastore) writeDiskUsageFile(du int64, doSync bool) {
 			_ = os.Remove(tmp.Name())
 		}
 	}()
-	if err != nil {
-		log.Warningf("cound not write disk usage: %v", err)
-		return
-	}
 
 	toWrite := fs.storedValue
 	toWrite.DiskUsage = du
@@ -1025,7 +1033,7 @@ func (fs *Datastore) Batch() (datastore.Batch, error) {
 	}, nil
 }
 
-func (bt *flatfsBatch) Put(key datastore.Key, val interface{}) error {
+func (bt *flatfsBatch) Put(key datastore.Key, val []byte) error {
 	bt.puts[key] = val
 	return nil
 }

@@ -9,21 +9,21 @@
   "gxDependencies": [
     {
       "author": "whyrusleeping",
-      "hash": "QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN",
+      "hash": "QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB",
       "name": "go-libp2p-peer",
-      "version": "2.3.5"
+      "version": "2.4.0"
     },
     {
       "author": "whyrusleeping",
-      "hash": "Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5",
+      "hash": "QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n",
       "name": "go-libp2p-crypto",
-      "version": "1.6.2"
+      "version": "2.0.1"
     },
     {
       "author": "whyrusleeping",
-      "hash": "Qme1bbEkDJmtCQ2XCN1TNFSGTmcE5rSmBYwJ2VdsMVoziM",
+      "hash": "QmXuRkCR7BNQa9uqfpTiFWsTQLzmTWYg91Ja1w95gnqb6u",
       "name": "go-libp2p-net",
-      "version": "3.0.4"
+      "version": "3.0.15"
     }
   ],
   "gxVersion": "0.12.1",
@@ -31,6 +31,6 @@
   "license": "MIT",
   "name": "go-conn-security",
   "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
-  "version": "0.1.4"
+  "version": "0.1.15"
 }
 

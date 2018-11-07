@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	bstore "github.com/ipfs/go-ipfs-blockstore"
-	bserv "github.com/ipfs/go-ipfs/blockservice"
+	bserv "github.com/ipfs/go-blockservice"
 	host "github.com/libp2p/go-libp2p-host"
 	routing "github.com/libp2p/go-libp2p-routing"
 	mh "github.com/multiformats/go-multihash"

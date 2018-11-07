@@ -18,12 +18,12 @@ type delayed struct {
 	delay delay.D
 }
 
-func (dds *delayed) Put(key ds.Key, value interface{}) (err error) {
+func (dds *delayed) Put(key ds.Key, value []byte) (err error) {
 	dds.delay.Wait()
 	return dds.ds.Put(key, value)
 }
 
-func (dds *delayed) Get(key ds.Key) (value interface{}, err error) {
+func (dds *delayed) Get(key ds.Key) (value []byte, err error) {
 	dds.delay.Wait()
 	return dds.ds.Get(key)
 }
@@ -31,6 +31,11 @@ func (dds *delayed) Get(key ds.Key) (value interface{}, err error) {
 func (dds *delayed) Has(key ds.Key) (exists bool, err error) {
 	dds.delay.Wait()
 	return dds.ds.Has(key)
+}
+
+func (dds *delayed) GetSize(key ds.Key) (size int, err error) {
+	dds.delay.Wait()
+	return dds.ds.GetSize(key)
 }
 
 func (dds *delayed) Delete(key ds.Key) (err error) {

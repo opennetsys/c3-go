@@ -13,7 +13,7 @@ type Datastore struct {
 	child ds.Batching
 
 	// TODO: discuss making ds.Batch implement the full ds.Datastore interface
-	buffer           map[ds.Key]interface{}
+	buffer           map[ds.Key][]byte
 	maxBufferEntries int
 }
 
@@ -23,20 +23,25 @@ type Datastore struct {
 func NewAutoBatching(d ds.Batching, size int) *Datastore {
 	return &Datastore{
 		child:            d,
-		buffer:           make(map[ds.Key]interface{}),
+		buffer:           make(map[ds.Key][]byte),
 		maxBufferEntries: size,
 	}
 }
 
 // Delete deletes a key/value
 func (d *Datastore) Delete(k ds.Key) error {
+	_, found := d.buffer[k]
 	delete(d.buffer, k)
 
-	return d.child.Delete(k)
+	err := d.child.Delete(k)
+	if found && err == ds.ErrNotFound {
+		return nil
+	}
+	return err
 }
 
 // Get retrieves a value given a key.
-func (d *Datastore) Get(k ds.Key) (interface{}, error) {
+func (d *Datastore) Get(k ds.Key) ([]byte, error) {
 	val, ok := d.buffer[k]
 	if ok {
 		return val, nil
@@ -46,7 +51,7 @@ func (d *Datastore) Get(k ds.Key) (interface{}, error) {
 }
 
 // Put stores a key/value.
-func (d *Datastore) Put(k ds.Key, val interface{}) error {
+func (d *Datastore) Put(k ds.Key, val []byte) error {
 	d.buffer[k] = val
 	if len(d.buffer) > d.maxBufferEntries {
 		return d.Flush()
@@ -68,7 +73,7 @@ func (d *Datastore) Flush() error {
 		}
 	}
 	// clear out buffer
-	d.buffer = make(map[ds.Key]interface{})
+	d.buffer = make(map[ds.Key][]byte)
 
 	return b.Commit()
 }
@@ -81,6 +86,16 @@ func (d *Datastore) Has(k ds.Key) (bool, error) {
 	}
 
 	return d.child.Has(k)
+}
+
+// GetSize implements Datastore.GetSize
+func (d *Datastore) GetSize(k ds.Key) (int, error) {
+	v, ok := d.buffer[k]
+	if ok {
+		return len(v), nil
+	}
+
+	return d.child.GetSize(k)
 }
 
 // Query performs a query
