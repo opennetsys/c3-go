@@ -9,7 +9,7 @@ import (
 	"log"
 
 	"github.com/c3systems/c3-go/common/c3crypto"
-	"github.com/ipfs/go-ipfs/keystore"
+	keystore "github.com/ipfs/go-ipfs-keystore"
 	lCrypt "github.com/libp2p/go-libp2p-crypto"
 	peer "github.com/libp2p/go-libp2p-peer"
 	b58 "github.com/mr-tron/base58/base58"

@@ -400,14 +400,6 @@
   revision = "3a56ff15ea24ae9f384f4d2944b750832e80dec4"
 
 [[projects]]
-  digest = "1:8642bd382e590274cb8ed9ec71aaad24c15aaa7b2ad7bc734d424ed9673f261d"
-  name = "github.com/ipfs/go-ipfs"
-  packages = ["keystore"]
-  pruneopts = "UT"
-  revision = "aefc746f34e5ffdee5fba1915c6603b65a0ebf81"
-  version = "v0.4.18"
-
-[[projects]]
   digest = "1:5e59d6e02abee7ab8ef7f396f5d681054fbfae02ff159fe3d1e1a01e6ed2b034"
   name = "github.com/ipfs/go-ipfs-addr"
   packages = ["."]
@@ -470,6 +462,14 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "3682c830b2305ad267269db3756b87c63c792719"
+
+[[projects]]
+  branch = "master"
+  digest = "1:02df66d8098a1087e74f74326883e1e104844f528227431c7290510fd165ced7"
+  name = "github.com/ipfs/go-ipfs-keystore"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "508c1e10090009fde253d4d9eb9e2c581e3781ad"
 
 [[projects]]
   branch = "master"
@@ -1447,9 +1447,9 @@
     "github.com/ipfs/go-ipfs-delay",
     "github.com/ipfs/go-ipfs-exchange-interface",
     "github.com/ipfs/go-ipfs-flags",
+    "github.com/ipfs/go-ipfs-keystore",
     "github.com/ipfs/go-ipfs-pq",
     "github.com/ipfs/go-ipfs-routing/mock",
-    "github.com/ipfs/go-ipfs/keystore",
     "github.com/ipfs/go-log",
     "github.com/ipfs/go-verifcid",
     "github.com/jbenet/go-base58",

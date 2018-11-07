@@ -13,10 +13,10 @@ install:
 .PHONY: deps
 deps:
 	@echo "running dep ensure..." && \
-		dep ensure -v && \
+		dep ensure -update -v && \
 		$(MAKE) gxundo && \
-		git clone https://github.com/gxed/pubsub.git vendor/github.com/gxed/pubsub && \
-		rm -rf vendor/github.com/gxed/pubsub/.git && \
+		#git clone https://github.com/gxed/pubsub.git vendor/github.com/gxed/pubsub && \
+		#rm -rf vendor/github.com/gxed/pubsub/.git && \
 		$(MAKE) deps/copy/ethereum/crypto
 
 .PHONY: gxundo
