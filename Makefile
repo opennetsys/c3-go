@@ -208,6 +208,10 @@ test/core/chain/mainchain/miner:
 test/core/diffing:
 	@go test -v core/diffing/*.go $(ARGS)
 
+.PHONY: test/core/eosclient
+test/core/eosclient:
+	@go test -v core/eosclient/*.go $(ARGS)
+
 # /END CORE
 
 
