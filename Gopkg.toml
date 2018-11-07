@@ -95,7 +95,7 @@ required = [
 
 [[override]]
   name = "github.com/libp2p/go-libp2p-netutil"
-  version = "v0.4.3"
+  version = "v0.4.15"
 
 [[override]]
   name = "github.com/libp2p/go-libp2p"
@@ -115,4 +115,8 @@ required = [
 
 [[constraint]]
   name = "github.com/libp2p/go-libp2p-crypto"
-  revision = "7240b40a3ddc47c4d17c15baabcbe45e5219171b"
+  revision = "3120e9f9526fe05f2d3905961a5e0701b85579d9"
+
+[[constraint]]
+  name = "github.com/gogo/protobuf"
+  revision = "211a54c57504366b3bf4b490fb3c0a5f5b8d290b"
