@@ -1,6 +1,8 @@
 EOS.IO API library for Go
 =========================
 
+[点击查看中文版](./README-cn.md)
+
 [![GoDoc](https://godoc.org/github.com/eoscanada/eos-go?status.svg)](https://godoc.org/github.com/eoscanada/eos-go)
 
 This library provides simple access to data structures (binary packing
@@ -37,8 +39,8 @@ Example
 
 See example usages of the library:
 
-* https://github.com/eoscanada/eos-bios/blob/master/bios.go
-* https://github.com/eoscanada/eos-bios/blob/master/ops.go
+* https://github.com/eoscanada/eos-bios/blob/master/bios/bios.go
+* https://github.com/eoscanada/eos-bios/blob/master/bios/ops.go
 * Some other `main` packages under `cmd/`.
 
 

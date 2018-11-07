@@ -20,23 +20,20 @@ import (
 type API struct {
 	HttpClient              *http.Client
 	BaseURL                 string
-	ChainID                 []byte
 	Signer                  Signer
 	Debug                   bool
 	Compress                CompressionType
-	DefaultMaxKCPUUsage     uint32 // in kilo-cpu cycles
+	DefaultMaxCPUUsageMS    uint8
 	DefaultMaxNetUsageWords uint32 // in 8-bytes words
 
 	lastGetInfo      *InfoResp
 	lastGetInfoStamp time.Time
 	lastGetInfoLock  sync.Mutex
+
+	customGetRequiredKeys func(tx *Transaction) ([]ecc.PublicKey, error)
 }
 
-func New(baseURL string, chainID []byte) *API {
-	if len(chainID) != 32 {
-		panic("chainID must be 32 bytes")
-	}
-
+func New(baseURL string) *API {
 	api := &API{
 		HttpClient: &http.Client{
 			Transport: &http.Transport{
@@ -54,7 +51,6 @@ func New(baseURL string, chainID []byte) *API {
 			},
 		},
 		BaseURL:  baseURL,
-		ChainID:  chainID,
 		Compress: CompressionZlib,
 	}
 
@@ -101,58 +97,118 @@ func (api *API) EnableKeepAlives() bool {
 	return false
 }
 
+func (api *API) SetCustomGetRequiredKeys(f func(tx *Transaction) ([]ecc.PublicKey, error)) {
+	api.customGetRequiredKeys = f
+}
+
 func (api *API) SetSigner(s Signer) {
 	api.Signer = s
 }
 
-// Chain APIs
-// Wallet APIs
+// ProducerPause will pause block production on a nodeos with
+// `producer_api` plugin loaded.
+func (api *API) ProducerPause() error {
+	return api.call("producer", "pause", nil, nil)
+}
 
-// List here: https://github.com/Netherdrake/py-eos-api/blob/master/eosapi/client.py
+// CreateSnapshot will write a snapshot file on a nodeos with
+// `producer_api` plugin loaded.
+func (api *API) CreateSnapshot() (out *CreateSnapshotResp, err error) {
+	err = api.call("producer", "create_snapshot", nil, &out)
+	return
+}
 
-// const string push_txn_func = chain_func_base + "/push_transaction";
-// const string push_txns_func = chain_func_base + "/push_transactions";
-// const string json_to_bin_func = chain_func_base + "/abi_json_to_bin";
-// const string get_block_func = chain_func_base + "/get_block";
-// const string get_account_func = chain_func_base + "/get_account";
-// const string get_table_func = chain_func_base + "/get_table_rows";
-// const string get_code_func = chain_func_base + "/get_code";
-// const string get_currency_balance_func = chain_func_base + "/get_currency_balance";
-// const string get_currency_stats_func = chain_func_base + "/get_currency_stats";
-// const string get_required_keys = chain_func_base + "/get_required_keys";
+// GetIntegrityHash will produce a hash corresponding to current
+// state. Requires `producer_api` and useful when loading
+// from a snapshot
+func (api *API) GetIntegrityHash() (out *GetIntegrityHashResp, err error) {
+	err = api.call("producer", "get_integrity_hash", nil, &out)
+	return
+}
 
-// const string account_history_func_base = "/v1/account_history";
-// const string get_transaction_func = account_history_func_base + "/get_transaction";
-// const string get_transactions_func = account_history_func_base + "/get_transactions";
-// const string get_key_accounts_func = account_history_func_base + "/get_key_accounts";
-// const string get_controlled_accounts_func = account_history_func_base + "/get_controlled_accounts";
+// ProducerResume will resume block production on a nodeos with
+// `producer_api` plugin loaded. Obviously, this needs to be a
+// producing node on the producers schedule for it to do anything.
+func (api *API) ProducerResume() error {
+	return api.call("producer", "resume", nil, nil)
+}
 
-// const string net_func_base = "/v1/net";
-// const string net_connect = net_func_base + "/connect";
-// const string net_disconnect = net_func_base + "/disconnect";
-// const string net_status = net_func_base + "/status";
-// const string net_connections = net_func_base + "/connections";
-
-// const string wallet_func_base = "/v1/wallet";
-// const string wallet_create = wallet_func_base + "/create";
-// const string wallet_open = wallet_func_base + "/open";
-// const string wallet_list = wallet_func_base + "/list_wallets";
-// const string wallet_list_keys = wallet_func_base + "/list_keys";
-// const string wallet_public_keys = wallet_func_base + "/get_public_keys";
-// const string wallet_lock = wallet_func_base + "/lock";
-// const string wallet_lock_all = wallet_func_base + "/lock_all";
-// const string wallet_unlock = wallet_func_base + "/unlock";
-// const string wallet_import_key = wallet_func_base + "/import_key";
-// const string wallet_sign_trx = wallet_func_base + "/sign_transaction";
+// IsProducerPaused queries the blockchain for the pause statement of
+// block production.
+func (api *API) IsProducerPaused() (out bool, err error) {
+	err = api.call("producer", "paused", nil, &out)
+	return
+}
 
 func (api *API) GetAccount(name AccountName) (out *AccountResp, err error) {
 	err = api.call("chain", "get_account", M{"account_name": name}, &out)
 	return
 }
 
-func (api *API) GetCode(account AccountName) (out *Code, err error) {
-	err = api.call("chain", "get_code", M{"account_name": account}, &out)
+func (api *API) GetRawCodeAndABI(account AccountName) (out *GetRawCodeAndABIResp, err error) {
+	err = api.call("chain", "get_raw_code_and_abi", M{"account_name": account}, &out)
 	return
+}
+
+func (api *API) GetCode(account AccountName) (out *GetCodeResp, err error) {
+	err = api.call("chain", "get_code", M{"account_name": account, "code_as_wasm": true}, &out)
+	return
+}
+
+func (api *API) GetCodeHash(account AccountName) (out SHA256Bytes, err error) {
+	resp := GetCodeHashResp{}
+	if err = api.call("chain", "get_code_hash", M{"account_name": account}, &resp); err != nil {
+		return
+	}
+
+	buffer, err := hex.DecodeString(resp.CodeHash)
+	return SHA256Bytes(buffer), err
+}
+
+func (api *API) GetABI(account AccountName) (out *GetABIResp, err error) {
+	err = api.call("chain", "get_abi", M{"account_name": account}, &out)
+	return
+}
+
+func (api *API) ABIJSONToBin(code AccountName, action Name, payload M) (out HexBytes, err error) {
+	resp := ABIJSONToBinResp{}
+	err = api.call("chain", "abi_json_to_bin", M{"code": code, "action": action, "args": payload}, &resp)
+	if err != nil {
+		return
+	}
+
+	buffer, err := hex.DecodeString(resp.Binargs)
+	return HexBytes(buffer), err
+}
+
+func (api *API) ABIBinToJSON(code AccountName, action Name, payload HexBytes) (out M, err error) {
+	resp := ABIBinToJSONResp{}
+	err = api.call("chain", "abi_bin_to_json", M{"code": code, "action": action, "binargs": payload}, &resp)
+	if err != nil {
+		return
+	}
+
+	return resp.Args, nil
+}
+
+func (api *API) WalletCreate(walletName string) (err error) {
+	return api.call("wallet", "create", walletName, nil)
+}
+
+func (api *API) WalletOpen(walletName string) (err error) {
+	return api.call("wallet", "open", walletName, nil)
+}
+
+func (api *API) WalletLock(walletName string) (err error) {
+	return api.call("wallet", "lock", walletName, nil)
+}
+
+func (api *API) WalletLockAll() (err error) {
+	return api.call("wallet", "lock_all", nil, nil)
+}
+
+func (api *API) WalletUnlock(walletName, password string) (err error) {
+	return api.call("wallet", "unlock", []string{walletName, password}, nil)
 }
 
 // WalletImportKey loads a new WIF-encoded key into the wallet.
@@ -178,6 +234,55 @@ func (api *API) WalletPublicKeys() (out []ecc.PublicKey, err error) {
 	return
 }
 
+func (api *API) ListWallets(walletName ...string) (out []string, err error) {
+	err = api.call("wallet", "list_wallets", walletName, &out)
+	if err != nil {
+		return nil, err
+	}
+
+	return
+}
+
+func (api *API) ListKeys(walletNames ...string) (out []*ecc.PrivateKey, err error) {
+	var textKeys []string
+	err = api.call("wallet", "list_keys", walletNames, &textKeys)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, k := range textKeys {
+		newKey, err := ecc.NewPrivateKey(k)
+		if err != nil {
+			return nil, err
+		}
+
+		out = append(out, newKey)
+	}
+	return
+}
+
+func (api *API) GetPublicKeys() (out []*ecc.PublicKey, err error) {
+	var textKeys []string
+	err = api.call("wallet", "get_public_keys", nil, &textKeys)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, k := range textKeys {
+		newKey, err := ecc.NewPublicKey(k)
+		if err != nil {
+			return nil, err
+		}
+
+		out = append(out, &newKey)
+	}
+	return
+}
+
+func (api *API) WalletSetTimeout(timeout int32) (err error) {
+	return api.call("wallet", "set_timeout", timeout, nil)
+}
+
 func (api *API) WalletSignTransaction(tx *SignedTransaction, chainID []byte, pubKeys ...ecc.PublicKey) (out *WalletSignTransactionResp, err error) {
 	var textKeys []string
 	for _, key := range pubKeys {
@@ -187,56 +292,91 @@ func (api *API) WalletSignTransaction(tx *SignedTransaction, chainID []byte, pub
 	err = api.call("wallet", "sign_transaction", []interface{}{
 		tx,
 		textKeys,
-		hex.EncodeToString(api.ChainID), // eventually, we should receive the `chainID` from somewhere instead.
+		hex.EncodeToString(chainID),
 	}, &out)
 	return
 }
 
+// SignPushActions will create a transaction, fill it with default
+// values, sign it and submit it to the chain.  It is the highest
+// level function on top of the `/v1/chain/push_transaction` endpoint.
 func (api *API) SignPushActions(a ...*Action) (out *PushTransactionFullResp, err error) {
-	return api.SignPushTransaction(&Transaction{Actions: a}, nil)
+	return api.SignPushActionsWithOpts(a, nil)
 }
 
-func (api *API) SignPushActionsWithOpts(opts TxOptions, a ...*Action) (out *PushTransactionFullResp, err error) {
-	return api.SignPushTransaction(&Transaction{Actions: a}, &opts)
-}
-
-func (api *API) SignPushTransaction(tx *Transaction, opts *TxOptions) (out *PushTransactionFullResp, err error) {
-	if api.Signer == nil {
-		return nil, fmt.Errorf("no Signer configured")
-	}
-
+func (api *API) SignPushActionsWithOpts(actions []*Action, opts *TxOptions) (out *PushTransactionFullResp, err error) {
 	if opts == nil {
 		opts = &TxOptions{}
 	}
 
-	_, err = tx.Fill(api)
+	if err := opts.FillFromChain(api); err != nil {
+		return nil, err
+	}
+
+	tx := NewTransaction(actions, opts)
+
+	return api.SignPushTransaction(tx, opts.ChainID, opts.Compress)
+}
+
+// SignPushTransaction will sign a transaction and submit it to the
+// chain.
+func (api *API) SignPushTransaction(tx *Transaction, chainID SHA256Bytes, compression CompressionType) (out *PushTransactionFullResp, err error) {
+	_, packed, err := api.SignTransaction(tx, chainID, compression)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := api.GetRequiredKeys(tx)
-	if err != nil {
-		return nil, fmt.Errorf("GetRequiredKeys: %s", err)
+	return api.PushTransaction(packed)
+}
+
+// SignTransaction will sign and pack a transaction, but not submit to
+// the chain.  It lives on the `api` object because it might query the
+// blockchain to learn which keys are required to sign this particular
+// transaction.
+//
+// You can override the way we request keys (which defaults to
+// `api.GetRequiredKeys()`) with SetCustomGetRequiredKeys().
+//
+// To sign a transaction, you need a Signer defined on the `API`
+// object. See SetSigner.
+func (api *API) SignTransaction(tx *Transaction, chainID SHA256Bytes, compression CompressionType) (*SignedTransaction, *PackedTransaction, error) {
+	if api.Signer == nil {
+		return nil, nil, fmt.Errorf("no Signer configured")
 	}
 
 	stx := NewSignedTransaction(tx)
 
-	stx.estimateResources(*opts, api.DefaultMaxKCPUUsage, api.DefaultMaxNetUsageWords)
-
-	signedTx, err := api.Signer.Sign(stx, api.ChainID, resp.RequiredKeys...)
-	if err != nil {
-		return nil, fmt.Errorf("Sign: %s", err)
+	var requiredKeys []ecc.PublicKey
+	if api.customGetRequiredKeys != nil {
+		var err error
+		requiredKeys, err = api.customGetRequiredKeys(tx)
+		if err != nil {
+			return nil, nil, fmt.Errorf("custom_get_required_keys: %s", err)
+		}
+	} else {
+		resp, err := api.GetRequiredKeys(tx)
+		if err != nil {
+			return nil, nil, fmt.Errorf("get_required_keys: %s", err)
+		}
+		requiredKeys = resp.RequiredKeys
 	}
 
-	packed, err := signedTx.Pack(*opts)
+	signedTx, err := api.Signer.Sign(stx, chainID, requiredKeys...)
 	if err != nil {
-		return nil, err
+		return nil, nil, fmt.Errorf("signing through wallet: %s", err)
 	}
 
-	return api.PushSignedTransaction(packed)
+	packed, err := signedTx.Pack(compression)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return signedTx, packed, nil
 }
 
-func (api *API) PushSignedTransaction(tx *PackedTransaction) (out *PushTransactionFullResp, err error) {
+// PushTransaction submits a properly filled (tapos), packed and
+// signed transaction to the blockchain.
+func (api *API) PushTransaction(tx *PackedTransaction) (out *PushTransactionFullResp, err error) {
 	err = api.call("chain", "push_transaction", tx, &out)
 	return
 }
@@ -244,6 +384,30 @@ func (api *API) PushSignedTransaction(tx *PackedTransaction) (out *PushTransacti
 func (api *API) GetInfo() (out *InfoResp, err error) {
 	err = api.call("chain", "get_info", nil, &out)
 	return
+}
+
+func (api *API) cachedGetInfo() (*InfoResp, error) {
+	api.lastGetInfoLock.Lock()
+	defer api.lastGetInfoLock.Unlock()
+
+	var info *InfoResp
+	var err error
+
+	if !api.lastGetInfoStamp.IsZero() && time.Now().Add(-1*time.Second).Before(api.lastGetInfoStamp) {
+		info = api.lastGetInfo
+	} else {
+		info, err = api.GetInfo()
+		if err != nil {
+			return nil, err
+		}
+		api.lastGetInfoStamp = time.Now()
+		api.lastGetInfo = info
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return api.lastGetInfo, nil
 }
 
 func (api *API) GetNetConnections() (out []*NetConnectionsResp, err error) {
@@ -271,18 +435,58 @@ func (api *API) GetBlockByID(id string) (out *BlockResp, err error) {
 	return
 }
 
-func (api *API) GetBlockByNum(num uint64) (out *BlockResp, err error) {
-	err = api.call("chain", "get_block", M{"block_num_or_id": fmt.Sprintf("%d", num)}, &out)
+// GetScheduledTransactionsWithBounds returns scheduled transactions within specified bounds
+func (api *API) GetScheduledTransactionsWithBounds(lower_bound string, limit uint32) (out *ScheduledTransactionsResp, err error) {
+	err = api.call("chain", "get_scheduled_transactions", M{"json": true, "lower_bound": lower_bound, "limit": limit}, &out)
 	return
 }
 
-func (api *API) GetBlockByNumOrID(query string) (out *SignedBlockMessage, err error) {
+// GetScheduledTransactions returns the Top 100 scheduled transactions
+func (api *API) GetScheduledTransactions() (out *ScheduledTransactionsResp, err error) {
+	return api.GetScheduledTransactionsWithBounds("", 100)
+}
+
+func (api *API) GetProducers() (out *ProducersResp, err error) {
+	/*
+		+FC_REFLECT( eosio::chain_apis::read_only::get_producers_params, (json)(lower_bound)(limit) )
+		+FC_REFLECT( eosio::chain_apis::read_only::get_producers_result, (rows)(total_producer_vote_weight)(more) ); */
+	err = api.call("chain", "get_producers", nil, &out)
+	return
+}
+
+func (api *API) GetBlockByNum(num uint32) (out *BlockResp, err error) {
+	err = api.call("chain", "get_block", M{"block_num_or_id": fmt.Sprintf("%d", num)}, &out)
+	//err = api.call("chain", "get_block", M{"block_num_or_id": num}, &out)
+	return
+}
+
+func (api *API) GetBlockByNumOrID(query string) (out *SignedBlock, err error) {
 	err = api.call("chain", "get_block", M{"block_num_or_id": query}, &out)
 	return
 }
 
+func (api *API) GetBlockByNumOrIDRaw(query string) (out interface{}, err error) {
+	err = api.call("chain", "get_block", M{"block_num_or_id": query}, &out)
+	return
+}
+
+func (api *API) GetDBSize() (out *DBSizeResp, err error) {
+	err = api.call("db_size", "get", nil, &out)
+	return
+}
+
 func (api *API) GetTransaction(id string) (out *TransactionResp, err error) {
-	err = api.call("account_history", "get_transaction", M{"transaction_id": id}, &out)
+	err = api.call("history", "get_transaction", M{"id": id}, &out)
+	return
+}
+
+func (api *API) GetTransactionRaw(id string) (out json.RawMessage, err error) {
+	err = api.call("history", "get_transaction", M{"id": id}, &out)
+	return
+}
+
+func (api *API) GetActions(params GetActionsRequest) (out *ActionsResp, err error) {
+	err = api.call("history", "get_actions", params, &out)
 	return
 }
 
@@ -307,7 +511,11 @@ func (api *API) GetRequiredKeys(tx *Transaction) (out *GetRequiredKeysResp, err 
 }
 
 func (api *API) GetCurrencyBalance(account AccountName, symbol string, code AccountName) (out []Asset, err error) {
-	err = api.call("chain", "get_currency_balance", M{"account": account, "symbol": symbol, "code": code}, &out)
+	params := M{"account": account, "code": code}
+	if symbol != "" {
+		params["symbol"] = symbol
+	}
+	err = api.call("chain", "get_currency_balance", params, &out)
 	return
 }
 
@@ -338,7 +546,7 @@ func (api *API) call(baseAPI string, endpoint string, body interface{}, out inte
 
 	resp, err := api.HttpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("Do: %s", err)
+		return fmt.Errorf("%s: %s", req.URL.String(), err)
 	}
 	defer resp.Body.Close()
 
@@ -352,7 +560,7 @@ func (api *API) call(baseAPI string, endpoint string, body interface{}, out inte
 		return ErrNotFound
 	}
 	if resp.StatusCode > 299 {
-		return fmt.Errorf("status code=%d, body=%s", resp.StatusCode, cnt.String())
+		return fmt.Errorf("%s: status code=%d, body=%s", req.URL.String(), resp.StatusCode, cnt.String())
 	}
 
 	if api.Debug {

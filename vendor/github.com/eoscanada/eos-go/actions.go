@@ -2,7 +2,10 @@ package eos
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
+	"reflect"
 )
 
 // See: libraries/chain/include/eosio/chain/contracts/types.hpp:203
@@ -13,7 +16,7 @@ type SetCode struct {
 	Account   AccountName `json:"account"`
 	VMType    byte        `json:"vmtype"`
 	VMVersion byte        `json:"vmversion"`
-	Code      HexBytes    `json:"bytes"`
+	Code      HexBytes    `json:"code"`
 }
 
 // SetABI represents the hard-coded `setabi` action.
@@ -22,21 +25,29 @@ type SetABI struct {
 	ABI     ABI         `json:"abi"`
 }
 
-// NewAccount represents the hard-coded `newaccount` action.
-type NewAccount struct {
-	Creator  AccountName `json:"creator"`
-	Name     AccountName `json:"name"`
-	Owner    Authority   `json:"owner"`
-	Active   Authority   `json:"active"`
-	Recovery Authority   `json:"recovery"`
-}
-
 // Action
 type Action struct {
 	Account       AccountName       `json:"account"`
 	Name          ActionName        `json:"name"`
 	Authorization []PermissionLevel `json:"authorization,omitempty"`
 	ActionData
+}
+
+func (a Action) Digest() SHA256Bytes {
+	toEat := jsonActionToServer{
+		Account:       a.Account,
+		Name:          a.Name,
+		Authorization: a.Authorization,
+		Data:          a.ActionData.HexData,
+	}
+	bin, err := MarshalBinary(toEat)
+	if err != nil {
+		panic("this should never panic, we know it marshals properly all the time")
+	}
+
+	h := sha256.New()
+	_, _ = h.Write(bin)
+	return h.Sum(nil)
 }
 
 type ActionData struct {
@@ -48,10 +59,24 @@ type ActionData struct {
 
 func NewActionData(obj interface{}) ActionData {
 	return ActionData{
-		HexData:  []byte(""),
+		HexData:  []byte{},
 		Data:     obj,
 		toServer: true,
 	}
+}
+
+func NewActionDataFromHexData(data []byte) ActionData {
+	return ActionData{
+		HexData:  data,
+		Data:     nil,
+		toServer: true,
+	}
+}
+
+func (a *ActionData) SetToServer(toServer bool) {
+	// FIXME: let's clarify this design, make it simpler..
+	// toServer doesn't speak of the intent..
+	a.toServer = toServer
 }
 
 //  jsonActionToServer represents what /v1/chain/push_transaction
@@ -73,21 +98,16 @@ type jsonActionFromServer struct {
 
 func (a *Action) MarshalJSON() ([]byte, error) {
 	if a.toServer {
-		var err error
-		buf := new(bytes.Buffer)
-		encoder := NewEncoder(buf)
-		encoder.Encode(a.ActionData.Data)
-
+		data, err := a.ActionData.EncodeActionData()
 		if err != nil {
 			return nil, err
 		}
-		data := buf.Bytes()
 
 		return json.Marshal(&jsonActionToServer{
 			Account:       a.Account,
 			Name:          a.Name,
 			Authorization: a.Authorization,
-			Data:          HexBytes(data),
+			Data:          data,
 		})
 	}
 
@@ -98,4 +118,55 @@ func (a *Action) MarshalJSON() ([]byte, error) {
 		HexData:       a.HexData,
 		Data:          a.Data,
 	})
+}
+
+func (data *ActionData) EncodeActionData() ([]byte, error) {
+	if data.Data == nil {
+		return data.HexData, nil
+	}
+
+	buf := new(bytes.Buffer)
+	encoder := NewEncoder(buf)
+
+	if err := encoder.Encode(data.Data); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
+func (a *Action) MapToRegisteredAction() error {
+	src, ok := a.ActionData.Data.(map[string]interface{})
+	if !ok {
+		return nil
+	}
+
+	actionMap := RegisteredActions[a.Account]
+
+	var decodeInto reflect.Type
+	if actionMap != nil {
+		objType := actionMap[a.Name]
+		if objType != nil {
+			decodeInto = objType
+		}
+	}
+	if decodeInto == nil {
+		return nil
+	}
+
+	obj := reflect.New(decodeInto)
+	objIface := obj.Interface()
+
+	cnt, err := json.Marshal(src)
+	if err != nil {
+		return fmt.Errorf("marshaling data: %s", err)
+	}
+	err = json.Unmarshal(cnt, objIface)
+	if err != nil {
+		return fmt.Errorf("json unmarshal into registered actions: %s", err)
+	}
+
+	a.ActionData.Data = objIface
+
+	return nil
 }

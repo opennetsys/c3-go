@@ -18,6 +18,7 @@ import (
 	"github.com/c3systems/c3-go/config"
 	"github.com/c3systems/c3-go/core/chain/mainchain"
 	"github.com/c3systems/c3-go/core/chain/statechain"
+	"github.com/c3systems/c3-go/core/eosclient"
 	"github.com/c3systems/c3-go/core/miner"
 	"github.com/c3systems/c3-go/core/p2p"
 	"github.com/c3systems/c3-go/core/p2p/protobuff"
@@ -68,6 +69,7 @@ type Props struct {
 	Keys                Keys
 	Protobyff           protobuff.Interface
 	BlockDifficulty     int
+	EOSClient           *eosclient.CheckpointClient
 }
 
 // Service ...
@@ -306,6 +308,7 @@ func NewFullNode(cfg *nodetypes.Config) (*Service, error) {
 			Pub:  pub,
 		},
 		BlockDifficulty: cfg.BlockDifficulty,
+		EOSClient:       cfg.EOSClient,
 	}
 
 	if err := n.listenForEvents(); err != nil {
@@ -478,6 +481,8 @@ func (s *Service) spawnMinerListener(cancel context.CancelFunc, minerChan chan i
 						log.Errorf("[node] err broadcasting mined block\n%s", err)
 						return
 					}
+
+					go s.checkpointBlock(minedBlock)
 
 					go func() {
 						if err := s.setMinedBlockData(minedBlock); err != nil {
@@ -897,6 +902,21 @@ func (s *Service) removeMinedTxs(minedBlock *miner.MinedBlock) error {
 	}
 
 	return s.props.Store.RemoveTxs(txs)
+}
+
+// CheckpointBlock ...
+func (s *Service) checkpointBlock(minedBlock *miner.MinedBlock) error {
+	if minedBlock == nil {
+		return errors.New("cannot checkpoint nil block")
+	}
+
+	blockHash := *minedBlock.NextBlock.Props().BlockHash
+	_, err := s.props.EOSClient.CheckpointRoot(blockHash)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Start ...

@@ -1,9 +1,11 @@
 package eos
 
 import (
+	"crypto/sha256"
 	"fmt"
 
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 
 	"github.com/eoscanada/eos-go/ecc"
@@ -15,7 +17,7 @@ type P2PMessage interface {
 
 type HandshakeMessage struct {
 	// net_plugin/protocol.hpp handshake_message
-	NetworkVersion           int16         `json:"network_version"`
+	NetworkVersion           uint16        `json:"network_version"`
 	ChainID                  SHA256Bytes   `json:"chain_id"`
 	NodeID                   SHA256Bytes   `json:"node_id"` // sha256
 	Key                      ecc.PublicKey `json:"key"`     // can be empty, producer key, or peer key
@@ -36,14 +38,25 @@ func (m *HandshakeMessage) GetType() P2PMessageType {
 	return HandshakeMessageType
 }
 
+type ChainSizeMessage struct {
+	LastIrreversibleBlockNum uint32      `json:"last_irreversible_block_num"`
+	LastIrreversibleBlockID  SHA256Bytes `json:"last_irreversible_block_id"`
+	HeadNum                  uint32      `json:"head_num"`
+	HeadID                   SHA256Bytes `json:"head_id"`
+}
+
+func (m *ChainSizeMessage) GetType() P2PMessageType {
+	return ChainSizeType
+}
+
 func (m *HandshakeMessage) String() string {
-	return fmt.Sprintf("Handshake: Head [%d] Last Irreversible [%d] Time [%s]", m.HeadNum, m.LastIrreversibleBlockNum, m.Time)
+	return fmt.Sprintf("handshake: Head [%d] 	Last Irreversible [%d] Time [%s]", m.HeadNum, m.LastIrreversibleBlockNum, m.Time)
 }
 
 type GoAwayReason uint8
 
 const (
-	GoAwayNoReason = uint8(iota)
+	GoAwayNoReason = GoAwayReason(iota)
 	GoAwaySelfConnect
 	GoAwayDuplicate
 	GoAwayWrongChain
@@ -58,6 +71,38 @@ const (
 	GoAwayCrazy
 )
 
+func (r GoAwayReason) String() string {
+	switch r {
+	case GoAwayNoReason:
+		return "no reason"
+	case GoAwaySelfConnect:
+		return "self connect"
+	case GoAwayDuplicate:
+		return "duplicate"
+	case GoAwayWrongChain:
+		return "wrong chain"
+	case GoAwayWrongVersion:
+		return "wrong version"
+	case GoAwayForked:
+		return "forked"
+	case GoAwayUnlinkable:
+		return "unlinkable"
+	case GoAwayBadTransaction:
+		return "bad transaction"
+	case GoAwayValidation:
+		return "validation"
+	case GoAwayAuthentication:
+		return "authentication"
+	case GoAwayFatalOther:
+		return "fatal other"
+	case GoAwayBenignOther:
+		return "benign other"
+	case GoAwayCrazy:
+		return "crazy"
+	}
+	return "invalid go away code"
+}
+
 type GoAwayMessage struct {
 	Reason GoAwayReason `json:"reason"`
 	NodeID SHA256Bytes  `json:"node_id"`
@@ -65,6 +110,10 @@ type GoAwayMessage struct {
 
 func (m *GoAwayMessage) GetType() P2PMessageType {
 	return GoAwayMessageType
+}
+
+func (m *GoAwayMessage) String() string {
+	return fmt.Sprintf("go away: reason [%d]", m.Reason)
 }
 
 type TimeMessage struct {
@@ -89,6 +138,7 @@ const (
 	TransactionStatusSoftFail                          ///< objectively failed (not executed), error handler executed
 	TransactionStatusHardFail                          ///< objectively failed and error handler objectively failed thus no state change
 	TransactionStatusDelayed                           ///< transaction delayed
+	TransactionStatusExpired                           ///< transaction expired
 	TransactionStatusUnknown  = TransactionStatus(255)
 )
 
@@ -102,11 +152,12 @@ func (s *TransactionStatus) UnmarshalJSON(data []byte) error {
 		*s = TransactionStatusExecuted
 	case "soft_fail":
 		*s = TransactionStatusSoftFail
-
 	case "hard_fail":
 		*s = TransactionStatusHardFail
 	case "delayed":
 		*s = TransactionStatusDelayed
+	case "expired":
+		*s = TransactionStatusExpired
 	default:
 		*s = TransactionStatusUnknown
 	}
@@ -124,6 +175,8 @@ func (s TransactionStatus) MarshalJSON() (data []byte, err error) {
 		out = "hard_fail"
 	case TransactionStatusDelayed:
 		out = "delayed"
+	case TransactionStatusExpired:
+		out = "expired"
 	}
 	return json.Marshal(out)
 }
@@ -133,11 +186,13 @@ func (s TransactionStatus) String() string {
 	case TransactionStatusExecuted:
 		return "executed"
 	case TransactionStatusSoftFail:
-		return "soft fail"
+		return "soft_fail"
 	case TransactionStatusHardFail:
-		return "hard fail"
+		return "hard_fail"
 	case TransactionStatusDelayed:
 		return "delayed"
+	case TransactionStatusExpired:
+		return "expired"
 	default:
 		return "unknown"
 	}
@@ -146,32 +201,8 @@ func (s TransactionStatus) String() string {
 
 //type TransactionID SHA256Bytes
 
-type TransactionReceipt struct {
-	Status        TransactionStatus `json:"status"`
-	KCPUUsage     Varuint32         `json:"kcpu_usage"`
-	NetUsageWords Varuint32         `json:"net_usage_words"`
-	ID            SHA256Bytes       `json:"id"`
-}
-
-type ShardLock struct {
-	AccountName AccountName `json:"account_name"`
-	ScopeName   ScopeName   `json:"scope_name"`
-}
-
-type ShardSummary struct {
-	ReadLocks    []ShardLock          `json:"read_locks"`
-	WriteLocks   []ShardLock          `json:"write_locks"`
-	Transactions []TransactionReceipt `json:"transactions"`
-}
-
-type Cycles []ShardSummary
-type RegionSummary struct {
-	Region        uint16   `json:"region"`
-	CyclesSummary []Cycles `json:"cycles_summary"`
-}
-
 type ProducerKey struct {
-	AccountName     AccountName   `json:"account_name"`
+	AccountName     AccountName   `json:"producer_name"`
 	BlockSigningKey ecc.PublicKey `json:"block_signing_key"`
 }
 
@@ -181,26 +212,38 @@ type ProducerSchedule struct {
 }
 
 type BlockHeader struct {
-	Previous         SHA256Bytes              `json:"previous"`
-	Timestamp        BlockTimestamp           `json:"timestamp"`
-	TransactionMRoot SHA256Bytes              `json:"transaction_mroot"`
-	ActionMRoot      SHA256Bytes              `json:"action_mroot"`
-	BlockMRoot       SHA256Bytes              `json:"block_mroot"`
-	Producer         AccountName              `json:"producer"`
-	ScheduleVersion  uint32                   `json:"schedule_version"`
-	NewProducers     OptionalProducerSchedule `json:"new_producers"`
+	Timestamp        BlockTimestamp            `json:"timestamp"`
+	Producer         AccountName               `json:"producer"`
+	Confirmed        uint16                    `json:"confirmed"`
+	Previous         SHA256Bytes               `json:"previous"`
+	TransactionMRoot SHA256Bytes               `json:"transaction_mroot"`
+	ActionMRoot      SHA256Bytes               `json:"action_mroot"`
+	ScheduleVersion  uint32                    `json:"schedule_version"`
+	NewProducers     *OptionalProducerSchedule `json:"new_producers" eos:"optional"`
+	HeaderExtensions []*Extension              `json:"header_extensions"`
 }
 
 func (b *BlockHeader) BlockNumber() uint32 {
 	return binary.BigEndian.Uint32(b.Previous[:4]) + 1
 }
 
-type OptionalProducerSchedule struct {
-	ProducerSchedule
+func (b *BlockHeader) BlockID() (SHA256Bytes, error) {
+	cereal, err := MarshalBinary(b)
+	if err != nil {
+		return nil, err
+	}
+
+	h := sha256.New()
+	_, _ = h.Write(cereal)
+	hashed := h.Sum(nil)
+
+	binary.BigEndian.PutUint32(hashed, b.BlockNumber())
+
+	return SHA256Bytes(hashed), nil
 }
 
-func (a *OptionalProducerSchedule) OptionalBinaryMarshalerPresent() bool {
-	return a == nil
+type OptionalProducerSchedule struct {
+	ProducerSchedule
 }
 
 type SignedBlockHeader struct {
@@ -208,29 +251,115 @@ type SignedBlockHeader struct {
 	ProducerSignature ecc.Signature `json:"producer_signature"`
 }
 
-type SignedBlockSummaryMessage struct {
+type SignedBlock struct {
 	SignedBlockHeader
-	Regions []RegionSummary `json:"regions"`
+	Transactions    []TransactionReceipt `json:"transactions"`
+	BlockExtensions []*Extension         `json:"block_extensions"`
 }
 
-func (m *SignedBlockSummaryMessage) GetType() P2PMessageType {
-	return SignedBlockSummaryMessageType
+func (m *SignedBlock) String() string {
+	return fmt.Sprintf("SignedBlock [%d] with %d txs", m.BlockNumber(), len(m.Transactions))
 }
 
-type SignedBlockMessage struct {
-	SignedBlockSummaryMessage
-	InputTransactions []PackedTransaction `json:"input_transactions"`
+func (m *SignedBlock) GetType() P2PMessageType {
+	return SignedBlockType
 }
 
-func (m *SignedBlockMessage) String() string {
-	return "SignedBlockMessage"
+type TransactionReceiptHeader struct {
+	Status               TransactionStatus `json:"status"`
+	CPUUsageMicroSeconds uint32            `json:"cpu_usage_us"`
+	NetUsageWords        Varuint32         `json:"net_usage_words"`
 }
 
-func (m *SignedBlockMessage) GetType() P2PMessageType {
-	return SignedBlockMessageType
+type TransactionReceipt struct {
+	TransactionReceiptHeader
+	Transaction TransactionWithID `json:"trx"`
 }
 
-type IDListMode uint8
+type TransactionWithID struct {
+	ID     SHA256Bytes
+	Packed *PackedTransaction
+}
+
+func (t TransactionWithID) MarshalJSON() ([]byte, error) {
+	return json.Marshal([]interface{}{
+		t.ID,
+		t.Packed,
+	})
+}
+
+func (t *TransactionWithID) UnmarshalJSON(data []byte) error {
+	var packed PackedTransaction
+	if data[0] == '{' {
+		if err := json.Unmarshal(data, &packed); err != nil {
+			return err
+		}
+		*t = TransactionWithID{
+			ID:     packed.ID(),
+			Packed: &packed,
+		}
+
+		return nil
+	} else if data[0] == '"' {
+		var id string
+		err := json.Unmarshal(data, &id)
+		if err != nil {
+			return err
+		}
+
+		shaID, err := hex.DecodeString(id)
+		if err != nil {
+			return fmt.Errorf("decoding id in trx: %s", err)
+		}
+
+		*t = TransactionWithID{
+			ID: SHA256Bytes(shaID),
+		}
+
+		return nil
+	}
+
+	var in []json.RawMessage
+	err := json.Unmarshal(data, &in)
+	if err != nil {
+		return err
+	}
+
+	if len(in) != 2 {
+		return fmt.Errorf("expected two params for TransactionWithID, got %d", len(in))
+	}
+
+	typ := string(in[0])
+	switch typ {
+	case "0":
+		var s string
+		if err := json.Unmarshal(in[1], &s); err != nil {
+			return err
+		}
+
+		*t = TransactionWithID{}
+		if err := json.Unmarshal(in[1], &t.ID); err != nil {
+			return err
+		}
+	case "1":
+
+		// ignore the ID field right now..
+		err = json.Unmarshal(in[1], &packed)
+		if err != nil {
+			return err
+		}
+
+		*t = TransactionWithID{
+			ID:     packed.ID(),
+			Packed: &packed,
+		}
+	default:
+		return fmt.Errorf("unsupported multi-variant trx serialization type from C++ code into Go: %q", typ)
+	}
+	return nil
+}
+
+type IDListMode byte
 
 const (
 	none IDListMode = iota
@@ -240,21 +369,32 @@ const (
 )
 
 type OrderedTransactionIDs struct {
-	Unknown [3]byte       `json:"-"` ///// WWUUuuuuuuuuuuuutzthat ?
-	Mode    IDListMode    `json:"mode"`
+	Mode    [4]byte       `json:"mode"`
 	Pending uint32        `json:"pending"`
 	IDs     []SHA256Bytes `json:"ids"`
 }
 type OrderedBlockIDs struct {
-	Unknown [3]byte       `json:"-"` ///// wuuttzthat?
-	Mode    IDListMode    `json:"mode"`
+	Mode    [4]byte       `json:"mode"`
 	Pending uint32        `json:"pending"`
 	IDs     []SHA256Bytes `json:"ids"`
+}
+
+func (o *OrderedBlockIDs) String() string {
+
+	ids := ""
+	for _, id := range o.IDs {
+		ids += fmt.Sprintf("%s,", id)
+	}
+	return fmt.Sprintf("Mode %d, Pending %d, ids [%s]", o.Mode, o.Pending, ids)
 }
 
 type NoticeMessage struct {
 	KnownTrx    OrderedBlockIDs `json:"known_trx"`
 	KnownBlocks OrderedBlockIDs `json:"known_blocks"`
+}
+
+func (n *NoticeMessage) String() string {
+	return fmt.Sprintf("KnownTrx %s :: KnownBlocks %s", n.KnownTrx.String(), n.KnownBlocks.String())
 }
 
 func (m *NoticeMessage) GetType() P2PMessageType {
@@ -278,6 +418,10 @@ type RequestMessage struct {
 	ReqBlocks OrderedBlockIDs `json:"req_blocks"`
 }
 
+func (r *RequestMessage) String() string {
+	return fmt.Sprintf("ReqTrx %s :: ReqBlocks %s", r.ReqTrx.String(), r.ReqBlocks.String())
+}
+
 func (m *RequestMessage) GetType() P2PMessageType {
 	return RequestMessageType
 }
@@ -285,10 +429,6 @@ func (m *RequestMessage) GetType() P2PMessageType {
 type SignedTransactionMessage struct {
 	Signatures      []ecc.Signature `json:"signatures"`
 	ContextFreeData []byte          `json:"context_free_data"`
-}
-
-func (m *SignedTransactionMessage) GetType() P2PMessageType {
-	return SignedTransactionMessageType
 }
 
 type PackedTransactionMessage struct {
