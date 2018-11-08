@@ -2,7 +2,6 @@ package util
 
 import (
 	"encoding/base32"
-	"log"
 	"strings"
 
 	base58 "github.com/jbenet/go-base58"

@@ -249,7 +249,7 @@ func (registry *Registry) uploadDir(root string) (string, error) {
 		}
 	}
 
-	return nil, errors.New("could not upload")
+	return "", errors.New("could not upload")
 }
 
 func ipfsShellCmd(cmdStr string) (string, string, error) {
