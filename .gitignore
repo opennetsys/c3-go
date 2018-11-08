@@ -37,3 +37,6 @@ vendor.bak
 tmp/
 
 .tmp
+
+# binary
+./c3-go

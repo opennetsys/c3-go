@@ -29,7 +29,7 @@ func invokeMethodCmd() *cobra.Command {
 
 			txHash, err := broadcastTx(methodTypes.InvokeMethod, image, payload, peer, privPEM)
 			if err != nil {
-				return err
+				return errw(err)
 			}
 
 			log.Printf("Broadcasted tx hash: %s", txHash)

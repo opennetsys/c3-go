@@ -15,7 +15,7 @@ func peerCmd() *cobra.Command {
 		Long:  "Peer command requires a sub command",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
-				return ErrSubCommandRequired
+				return errw(ErrSubCommandRequired)
 			}
 
 			return nil
@@ -36,7 +36,7 @@ func peerCmd() *cobra.Command {
 			cnf := config.New()
 			ip, err := netutil.LocalIP()
 			if err != nil {
-				return err
+				return errw(err)
 			}
 
 			fmt.Printf("Your Peer ID:\n/ip4/%s/tcp/%v/%s", ip.String(), cnf.Port(), cnf.PrivateKeyIPNS())

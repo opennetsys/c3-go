@@ -29,7 +29,7 @@ func deployCmd() *cobra.Command {
 
 			txHash, err := broadcastTx(methodTypes.Deploy, image, genesis, peer, privPEM)
 			if err != nil {
-				return err
+				return errw(err)
 			}
 
 			log.Printf("Broadcasted tx hash: %s", txHash)

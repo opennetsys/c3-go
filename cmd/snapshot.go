@@ -42,7 +42,7 @@ func snapshotCmd() *cobra.Command {
 				RPCHost:     ":5005",
 			})
 			if err != nil {
-				return err
+				return errw(err)
 			}
 
 			svc := snapshot.New(&snapshot.Config{

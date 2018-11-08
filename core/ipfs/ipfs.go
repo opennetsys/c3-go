@@ -45,12 +45,12 @@ func NewClient() *Client {
 }
 
 // NewRemoteClient ...
-func NewRemoteClient(url string) *Client {
-	client := api.NewShell(url)
+func NewRemoteClient(host string) *Client {
+	client := api.NewShell(host)
 	return &Client{
 		client:   client,
 		isRemote: true,
-		host:     url,
+		host:     host,
 	}
 }
 

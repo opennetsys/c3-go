@@ -68,10 +68,10 @@ For more info visit: https://github.com/c3systems/c3-go,
 		Long:  "Push the docker image to the decentralized registry on IPFS",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
-				return ErrImageIDRequired
+				return errw(ErrImageIDRequired)
 			}
 			if len(args) != 1 {
-				return ErrOnlyOneArgumentRequired
+				return errw(ErrOnlyOneArgumentRequired)
 			}
 
 			return nil
@@ -84,7 +84,7 @@ For more info visit: https://github.com/c3systems/c3-go,
 
 			hash, err := reg.PushImageByID(args[0])
 			if err != nil {
-				return err
+				return errw(err)
 			}
 
 			log.Printf("[cli] %s", hash)
@@ -100,10 +100,10 @@ For more info visit: https://github.com/c3systems/c3-go,
 		Long:  "Pull the docker image from the decentralized registry on IPFS",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
-				return ErrImageIDRequired
+				return errw(ErrImageIDRequired)
 			}
 			if len(args) != 1 {
-				return ErrOnlyOneArgumentRequired
+				return errw(ErrOnlyOneArgumentRequired)
 			}
 
 			return nil
@@ -113,7 +113,7 @@ For more info visit: https://github.com/c3systems/c3-go,
 				DockerLocalRegistryHost: dockerLocalRegistryHost,
 			})
 			_, err := reg.PullImage(args[0])
-			return err
+			return errw(err)
 		},
 	}
 
@@ -141,7 +141,7 @@ For more info visit: https://github.com/c3systems/c3-go,
 			}
 
 			if _, err := os.Stat(pem); os.IsNotExist(err) {
-				return fmt.Errorf("%s does not exist", pem)
+				return errw(fmt.Errorf("%s does not exist", pem))
 			}
 
 			var eosClient *eosclient.CheckpointClient
@@ -170,10 +170,14 @@ For more info visit: https://github.com/c3systems/c3-go,
 				EOSClient:       eosClient,
 			})
 			if err != nil {
-				return err
+				return errw(err)
 			}
 
-			return n.Start()
+			if err = n.Start(); err != nil {
+				return errw(err)
+			}
+
+			return nil
 		},
 	}
 
@@ -202,7 +206,7 @@ For more info visit: https://github.com/c3systems/c3-go,
 		Long:  "Generate command requires a sub command",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
-				return ErrSubCommandRequired
+				return errw(ErrSubCommandRequired)
 			}
 
 			return nil
@@ -222,7 +226,7 @@ For more info visit: https://github.com/c3systems/c3-go,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			priv, err := c3crypto.NewPrivateKey()
 			if err != nil {
-				return err
+				return errw(err)
 			}
 
 			var pwd *string
@@ -234,7 +238,7 @@ For more info visit: https://github.com/c3systems/c3-go,
 			}
 
 			if err := c3crypto.WritePrivateKeyToPemFile(priv, pwd, outputPath); err != nil {
-				return err
+				return errw(err)
 			}
 
 			log.Printf("private key saved in %s", outputPath)
