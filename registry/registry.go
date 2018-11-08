@@ -16,8 +16,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/c3systems/c3-go/common/netutil"
 	c3config "github.com/c3systems/c3-go/config"
 	"github.com/c3systems/c3-go/core/docker"
@@ -25,6 +23,7 @@ import (
 	loghooks "github.com/c3systems/c3-go/log/hooks"
 	"github.com/c3systems/c3-go/registry/server"
 	"github.com/c3systems/c3-go/registry/util"
+	log "github.com/sirupsen/logrus"
 )
 
 // Ensure the struct implements the interface
@@ -236,14 +235,21 @@ func (registry *Registry) uploadDir(root string) (string, error) {
 	}
 
 	// get the first ref, which contains the image data
-	refs, err := registry.ipfsClient.Refs(hash, false)
+	refs, err := registry.ipfsClient.Refs(hash, true)
 	if err != nil {
 		return "", err
 	}
 
-	firstRef := <-refs
+	var firstRef string
+	for i := 0; i < 10; i++ {
+		firstRef = <-refs
 
-	return firstRef, nil
+		if firstRef != "" {
+			return firstRef, nil
+		}
+	}
+
+	return nil, errors.New("could not upload")
 }
 
 func ipfsShellCmd(cmdStr string) (string, string, error) {
