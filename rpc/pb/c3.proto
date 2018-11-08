@@ -71,3 +71,7 @@ message StateBlockResponse {
   string statePrevDiffHash = 7;
   string stateCurrentHash = 8;
 }
+
+message ImageResponse {
+
+}

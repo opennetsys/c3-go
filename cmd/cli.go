@@ -39,6 +39,7 @@ func Build() *cobra.Command {
 		dockerLocalRegistryHost string
 		mempoolType             string
 		rpcHost                 string
+		ipfsHost                string
 		blockDifficulty         int
 
 		eosURL         string
@@ -78,7 +79,9 @@ For more info visit: https://github.com/c3systems/c3-go,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			reg := registry.NewRegistry(&registry.Config{
 				DockerLocalRegistryHost: dockerLocalRegistryHost,
+				IPFSHost:                ipfsHost,
 			})
+
 			hash, err := reg.PushImageByID(args[0])
 			if err != nil {
 				return err
@@ -88,6 +91,8 @@ For more info visit: https://github.com/c3systems/c3-go,
 			return nil
 		},
 	}
+
+	pushCmd.Flags().StringVarP(&ipfsHost, "ipfs-host", "", "", "A remote IPFS API host to push the image to. Example: 127.0.0.1:5001")
 
 	pullCmd := &cobra.Command{
 		Use:   "pull",

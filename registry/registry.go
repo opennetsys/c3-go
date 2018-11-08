@@ -38,6 +38,7 @@ type Registry struct {
 // Config ...
 type Config struct {
 	DockerLocalRegistryHost string
+	IPFSHost                string
 }
 
 // NewRegistry ...
@@ -55,7 +56,12 @@ func NewRegistry(config *Config) *Registry {
 		}
 	}
 
-	ipfsClient := ipfs.NewClient()
+	var ipfsClient *ipfs.Client
+	if config.IPFSHost != "" {
+		ipfsClient = ipfs.NewRemoteClient(config.IPFSHost)
+	} else {
+		ipfsClient = ipfs.NewClient()
+	}
 
 	return &Registry{
 		dockerLocalRegistryHost: dockerLocalRegistryHost,
@@ -91,6 +97,8 @@ func (registry *Registry) PushImage(reader io.Reader) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	log.Printf("[registry] root dir: %s", root)
 
 	imageIpfsHash, err := registry.uploadDir(root)
 	if err != nil {
@@ -233,6 +241,8 @@ func (registry *Registry) uploadDir(root string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	log.Printf("[registry] upload hash %s", hash)
 
 	// get the first ref, which contains the image data
 	refs, err := registry.ipfsClient.Refs(hash, true)

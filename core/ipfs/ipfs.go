@@ -1,8 +1,10 @@
 package ipfs
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"os/exec"
 	"strings"
 	"time"
@@ -19,7 +21,9 @@ var _ Interface = (*Client)(nil)
 
 // Client ...
 type Client struct {
-	client *api.Shell
+	client   *api.Shell
+	isRemote bool
+	host     string
 }
 
 // NewClient ...
@@ -40,6 +44,16 @@ func NewClient() *Client {
 	}
 }
 
+// NewRemoteClient ...
+func NewRemoteClient(url string) *Client {
+	client := api.NewShell(url)
+	return &Client{
+		client:   client,
+		isRemote: true,
+		host:     url,
+	}
+}
+
 // Get ...
 func (client *Client) Get(hash, outdir string) error {
 	return client.client.Get(hash, outdir)
@@ -52,7 +66,40 @@ func (client *Client) AddDir(dir string) (string, error) {
 
 // Refs ...
 func (client *Client) Refs(hash string, recursive bool) (<-chan string, error) {
+	if client.isRemote {
+		return client.remoteRefs(hash, recursive)
+	}
+
 	return client.client.Refs(hash, recursive)
+}
+
+func (client *Client) remoteRefs(hash string, recursive bool) (<-chan string, error) {
+	url := fmt.Sprintf("http://%s/api/v0/refs?arg=%s&recursive=%v", client.host, hash, recursive)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+
+	var ref struct {
+		Ref string
+	}
+
+	out := make(chan string)
+	dec := json.NewDecoder(resp.Body)
+	go func() {
+		for {
+			err := dec.Decode(&ref)
+			if err != nil {
+				return
+			}
+			if len(ref.Ref) > 0 {
+				out <- ref.Ref
+			}
+		}
+	}()
+
+	return out, nil
 }
 
 // RunDaemon ...

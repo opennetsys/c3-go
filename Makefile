@@ -394,7 +394,7 @@ fix/libp2pcrypto:
 
 .PHONY: fix/libp2ppubsub
 fix/libp2pubsub:
-	@rm vendor/github.com/libp2p/go-libp2p-pubsub/pb/rpc.pb.go 
+	@rm vendor/github.com/libp2p/go-libp2p-pubsub/pb/rpc.pb.go
 	@(cd vendor/github.com/libp2p/go-libp2p-pubsub/pb && wget https://raw.githubusercontent.com/libp2p/go-libp2p-pubsub/master/pb/rpc.pb.go)
 
 # RPC
@@ -431,6 +431,40 @@ run/rpc/getblock:
 .PHONY: run/rpc/getstateblock
 run/rpc/getstateblock:
 	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_getStateBlock","params":["65cb6a153dd5", "0x1"]}' $(RPC_HOST) protos.C3Service/Send
+
+.PHONY: run/rpc/pushImage
+run/rpc/pushImage:
+	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_pushImage","params":[]}' $(RPC_HOST) protos.C3Service/Send
+
+.PHONY: run/rpc/getstateblock
+run/rpc/getstateblock:
+	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_getStateBlock","params":["65cb6a153dd5", "0x1"]}' $(RPC_HOST) protos.C3Service/Send
+
+.PHONY: install/grpcwebproxy
+install/grpcwebproxy:
+	@go get github.com/improbable-eng/grpc-web/go/grpcwebproxy
+
+.PHONY: run/grpcwebproxy
+run/grpcwebproxy:
+	@grpcwebproxy --backend_addr=localhost:5005 --run_tls_server=false
+
+# /END RPC
+
+# LOC
+
+# get total lines of code
+.PHONY: loc
+loc:
+	@find ./ -name '*.go' ! -path ".//vendor/*" ! -path ".//.git/*" | xargs wc -l
+
+# /END LOC
+
+# CLI
+# Example
+# $ make snapshot IMAGE=d50ada614c01 STATEBLOCK=2
+.PHONY: snapshot
+snapshot:
+	@go run main.go snapshot --priv priv.pem --image $(IMAGE) --stateblock $(STATEBLOCK)
 
 .PHONY: install/grpcwebproxy
 install/grpcwebproxy:

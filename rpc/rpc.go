@@ -103,6 +103,8 @@ func (s *Server) handleRequest(method string, r *pb.Request) (*any.Any, error) {
 	switch method {
 	case "c3_ping":
 		return ptypes.MarshalAny(s.service.ping())
+	case "c3_pushimage":
+		return ptypes.MarshalAny(s.service.pushImage(r))
 	case "c3_latestblock":
 		return ptypes.MarshalAny(s.service.latestBlock())
 	case "c3_getblock":
