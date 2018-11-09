@@ -14,6 +14,7 @@ import (
 	"github.com/c3systems/c3-go/core/chain/mainchain"
 	"github.com/c3systems/c3-go/core/chain/statechain"
 	"github.com/c3systems/c3-go/core/eosclient"
+	"github.com/c3systems/c3-go/core/ethereumclient"
 	"github.com/c3systems/c3-go/core/miner"
 	"github.com/c3systems/c3-go/core/p2p"
 	"github.com/c3systems/c3-go/core/p2p/protobuff"
@@ -67,6 +68,7 @@ type Props struct {
 	Protobyff           protobuff.Interface
 	BlockDifficulty     int
 	EOSClient           *eosclient.CheckpointClient
+	EthereumClient      *ethereumclient.CheckpointClient
 }
 
 // Service ...
@@ -306,6 +308,7 @@ func NewFullNode(cfg *nodetypes.Config) (*Service, error) {
 		},
 		BlockDifficulty: cfg.BlockDifficulty,
 		EOSClient:       cfg.EOSClient,
+		EthereumClient:  cfg.EthereumClient,
 	}
 
 	if err := n.listenForEvents(); err != nil {
@@ -910,6 +913,14 @@ func (s *Service) checkpointBlock(minedBlock *miner.MinedBlock) error {
 	if s.props.EOSClient != nil {
 		blockHash := *minedBlock.NextBlock.Props().BlockHash
 		_, err := s.props.EOSClient.CheckpointRoot(blockHash)
+		if err != nil {
+			return err
+		}
+	}
+
+	if s.props.EthereumClient != nil {
+		blockHash := *minedBlock.NextBlock.Props().BlockHash
+		_, err := s.props.EthereumClient.CheckpointRoot(blockHash)
 		if err != nil {
 			return err
 		}

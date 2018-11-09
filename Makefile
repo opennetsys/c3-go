@@ -264,6 +264,14 @@ run/node/eos:
 		--checkpoint-eos-action-permissions "helloworld54@active" \
 		--checkpoint-eos-wif-private-key "5Jh9tD4Fp1EpVn3EzEW6ura5NV3NddY8NNBcfpCZTvPDsKd9i5c"
 
+.PHONY: run/node/ethereum
+run/node/ethereum:
+	@go run main.go node start --pem=node/test_data/priv1.pem --uri /ip4/0.0.0.0/tcp/3330 --data-dir .tmp --mempool-type memory --rpc ":5005" \
+		--checkpoint-ethereum-url "https://rinkeby.infura.io" \
+		--checkpoint-ethereum-contract-address "0x1e8cb4885e3aae139fea9aab55925f8e5ace2840" \
+		--checkpoint-ethereum-method-name "checkpoint" \
+		--checkpoint-ethereum-private-key ""
+
 .PHONY: node/save/testimage
 node/save/testimage:
 	@docker save goexample -o node/test_data/go_example_image.tar

@@ -1,6 +1,9 @@
 package types
 
-import "github.com/c3systems/c3-go/core/eosclient"
+import (
+	"github.com/c3systems/c3-go/core/eosclient"
+	"github.com/c3systems/c3-go/core/ethereumclient"
+)
 
 // NewAddressResponse ...
 type NewAddressResponse struct {
@@ -33,4 +36,5 @@ type Config struct {
 	MempoolType     string
 	RPCHost         string
 	EOSClient       *eosclient.CheckpointClient
+	EthereumClient  *ethereumclient.CheckpointClient
 }

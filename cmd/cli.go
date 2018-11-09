@@ -10,6 +10,7 @@ import (
 	"github.com/c3systems/c3-go/common/c3crypto"
 	"github.com/c3systems/c3-go/config"
 	"github.com/c3systems/c3-go/core/eosclient"
+	"github.com/c3systems/c3-go/core/ethereumclient"
 	loghooks "github.com/c3systems/c3-go/log/hooks"
 	"github.com/c3systems/c3-go/node"
 	nodetypes "github.com/c3systems/c3-go/node/types"
@@ -47,6 +48,11 @@ func Build() *cobra.Command {
 		eosAccountName string
 		eosActionName  string
 		eosPermissions string
+
+		ethereumURL             string
+		ethereumPrivKey         string
+		ethereumContractAddress string
+		ethereumMethodName      string
 	)
 
 	cnf := config.New()
@@ -156,6 +162,16 @@ For more info visit: https://github.com/c3systems/c3-go,
 				})
 			}
 
+			var ethClient *ethereumclient.CheckpointClient
+			if ethereumPrivKey != "" {
+				ethClient = ethereumclient.NewCheckpointClient(&ethereumclient.CheckpointConfig{
+					URL:             ethereumURL,
+					PrivateKey:      ethereumPrivKey,
+					ContractAddress: ethereumContractAddress,
+					MethodName:      ethereumMethodName,
+				})
+			}
+
 			n, err := node.NewFullNode(&nodetypes.Config{
 				URI:     nodeURI,
 				Peer:    peer,
@@ -168,6 +184,7 @@ For more info visit: https://github.com/c3systems/c3-go,
 				MempoolType:     mempoolType,
 				RPCHost:         rpcHost,
 				EOSClient:       eosClient,
+				EthereumClient:  ethClient,
 			})
 			if err != nil {
 				return errw(err)
@@ -196,6 +213,11 @@ For more info visit: https://github.com/c3systems/c3-go,
 	startSubCmd.Flags().StringVarP(&eosAccountName, "checkpoint-eos-account-name", "", "", "EOS account name that will be used for checkpointing")
 	startSubCmd.Flags().StringVarP(&eosActionName, "checkpoint-eos-action-name", "", "", "EOS action name for checkpointing")
 	startSubCmd.Flags().StringVarP(&eosPermissions, "checkpoint-eos-action-permissions", "", "", `EOS action permissions for checkpointing. eg. "myaccount@active"`)
+
+	startSubCmd.Flags().StringVarP(&ethereumURL, "checkpoint-ethereum-url", "", "", "Ethereum host node URL for checkpointing")
+	startSubCmd.Flags().StringVarP(&ethereumPrivKey, "checkpoint-ethereum-private-key", "", "", "Ethereum private key of account for checkpointing")
+	startSubCmd.Flags().StringVarP(&ethereumContractAddress, "checkpoint-ethereum-contract-address", "", "", "Ethereum smart contract address for checkpointing")
+	startSubCmd.Flags().StringVarP(&ethereumMethodName, "checkpoint-ethereum-method-name", "", "", "Ethereum smart contract method for checkpointing")
 
 	// TODO: add more flags for blockstore and nodestore, etc.
 	nodeCmd.AddCommand(startSubCmd)
