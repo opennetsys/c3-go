@@ -127,6 +127,32 @@ func (mr *MockInterfaceMockRecorder) SetMerkleTree(tree interface{}) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetMerkleTree", reflect.TypeOf((*MockInterface)(nil).SetMerkleTree), tree)
 }
 
+// SetBytes mocks base method
+func (m *MockInterface) SetBytes(b []byte) (*go_cid.Cid, error) {
+	ret := m.ctrl.Call(m, "SetBytes", b)
+	ret0, _ := ret[0].(*go_cid.Cid)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetBytes indicates an expected call of SetBytes
+func (mr *MockInterfaceMockRecorder) SetBytes(b interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBytes", reflect.TypeOf((*MockInterface)(nil).SetBytes), b)
+}
+
+// SetLatestBlock mocks base method
+func (m *MockInterface) SetLatestBlock(block *mainchain.Block) (*go_cid.Cid, error) {
+	ret := m.ctrl.Call(m, "SetLatestBlock", block)
+	ret0, _ := ret[0].(*go_cid.Cid)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetLatestBlock indicates an expected call of SetLatestBlock
+func (mr *MockInterfaceMockRecorder) SetLatestBlock(block interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLatestBlock", reflect.TypeOf((*MockInterface)(nil).SetLatestBlock), block)
+}
+
 // GetMainchainBlock mocks base method
 func (m *MockInterface) GetMainchainBlock(c *go_cid.Cid) (*mainchain.Block, error) {
 	ret := m.ctrl.Call(m, "GetMainchainBlock", c)
@@ -190,6 +216,32 @@ func (m *MockInterface) GetMerkleTree(c *go_cid.Cid) (*merkle.Tree, error) {
 // GetMerkleTree indicates an expected call of GetMerkleTree
 func (mr *MockInterfaceMockRecorder) GetMerkleTree(c interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMerkleTree", reflect.TypeOf((*MockInterface)(nil).GetMerkleTree), c)
+}
+
+// GetBytes mocks base method
+func (m *MockInterface) GetBytes(c *go_cid.Cid) ([]byte, error) {
+	ret := m.ctrl.Call(m, "GetBytes", c)
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBytes indicates an expected call of GetBytes
+func (mr *MockInterfaceMockRecorder) GetBytes(c interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBytes", reflect.TypeOf((*MockInterface)(nil).GetBytes), c)
+}
+
+// GetLatestBlock mocks base method
+func (m *MockInterface) GetLatestBlock() (*mainchain.Block, error) {
+	ret := m.ctrl.Call(m, "GetLatestBlock")
+	ret0, _ := ret[0].(*mainchain.Block)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLatestBlock indicates an expected call of GetLatestBlock
+func (mr *MockInterfaceMockRecorder) GetLatestBlock() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLatestBlock", reflect.TypeOf((*MockInterface)(nil).GetLatestBlock))
 }
 
 // FetchMostRecentStateBlock mocks base method

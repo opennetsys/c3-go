@@ -10,6 +10,7 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/c3systems/c3-go/common/c3crypto"
 	"github.com/c3systems/c3-go/common/fileutil"
@@ -432,7 +433,7 @@ func TestGenerateStateFromDiffs(t *testing.T) {
 		diff3,
 	}
 
-	state, err := generateStateFromDiffs(context.TODO(), "fakeImage", genesisState, diffs)
+	state, err := GenerateStateFromDiffs(context.TODO(), "fakeImage", genesisState, diffs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -708,7 +709,29 @@ func TestCleanupFiles(t *testing.T) {
 		f2.Name(),
 	}
 
-	cleanupFiles(fileNames)
+	done := false
+	const (
+		wait    time.Duration = 5 * time.Second
+		maxWait int           = 5
+	)
+
+	// note: important to test this with defer because that's how it's used in code
+	go func() {
+		defer func() { done = true }()
+		defer cleanupFiles(fileNames)
+	}()
+
+	for i := 0; i < maxWait; i++ {
+		if !done {
+			time.Sleep(wait)
+		} else {
+			break
+		}
+
+		if i == maxWait-1 {
+			t.Error("could not wait for cleanup")
+		}
+	}
 
 	if _, err = os.Stat(f1.Name()); !os.IsNotExist(err) {
 		t.Errorf("expected file %s to not exist", f1.Name())
