@@ -61,7 +61,8 @@ func (s *Service) Snapshot(imageHash string, stateBlockNumber int) (string, erro
 	}
 
 	var fileNames []string
-	defer fileutil.RemoveFiles(&fileNames)
+	defer cleanupFiles(&fileNames)
+	defer cleanupDirs(&fileNames)
 
 	ts := time.Now().Unix()
 
@@ -159,4 +160,33 @@ func (s *Service) Snapshot(imageHash string, stateBlockNumber int) (string, erro
 	}
 
 	return docker.ShortImageID(committedImageID), nil
+}
+
+func cleanupFiles(fileNames *[]string) error {
+	if fileNames == nil {
+		log.Info("no files to remove")
+		return nil
+	}
+
+	if err := fileutil.RemoveFiles(*fileNames); err != nil {
+		log.Errorf("[miner] err cleaning up files; %v", err)
+		return err
+	}
+
+	return nil
+}
+
+func cleanupDirs(fileNames *[]string) error {
+	if fileNames == nil {
+		log.Info("no files to remove")
+		return nil
+	}
+
+	dirs := fileutil.DirsFromFiles(*fileNames)
+
+	if err := fileutil.RemoveDirs(dirs); err != nil {
+		log.Errorf("err removing dirs\n%v", err)
+	}
+
+	return nil
 }

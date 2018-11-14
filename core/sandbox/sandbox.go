@@ -130,10 +130,10 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 	hostPort := strconv.Itoa(hp)
 	containerID, err := s.docker.CreateContainer(dockerImageID, nil, &docker.CreateContainerConfig{
 		Volumes: map[string]string{
-		// sock binding will be required for spawning sibling containers
-		// container:host
-		//"/var/run/docker.sock": "/var/run/docker.sock",
-		//"/tmp": tmpdir,
+			// sock binding will be required for spawning sibling containers
+			// container:host
+			//"/var/run/docker.sock": "/var/run/docker.sock",
+			//"/tmp": tmpdir,
 		},
 		Ports: map[string]string{
 			"3333": hostPort,
