@@ -276,10 +276,26 @@ func (s *Client) CreateContainer(imageID string, cmd []string, config *CreateCon
 
 // StartContainer ...
 func (s *Client) StartContainer(containerID string) error {
-	err := s.client.ContainerStart(context.Background(), containerID, types.ContainerStartOptions{})
+	err := s.client.ContainerStart(context.TODO(), containerID, types.ContainerStartOptions{})
 
 	if err != nil {
 		log.Printf("[docker] error starting container %s; %v", containerID, err)
+		return err
+	}
+
+	reader, err := s.client.ContainerLogs(context.TODO(), containerID, types.ContainerLogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+		Follow:     true,
+	})
+
+	go func() {
+		log.Println("[docker] logging to stdout")
+		io.Copy(os.Stdout, reader)
+	}()
+
+	if err != nil {
+		log.Printf("[docker] error reading container logs for %s; %v", containerID, err)
 		return err
 	}
 

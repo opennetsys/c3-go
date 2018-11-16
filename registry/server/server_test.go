@@ -11,6 +11,8 @@ func TestRun(t *testing.T) {
 		err = Run()
 	}()
 
+	select {}
+
 	time.Sleep(1 * time.Second)
 	if err != nil {
 		t.Error(err)

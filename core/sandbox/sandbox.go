@@ -106,6 +106,7 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 		dockerizedHash := regutil.DockerizeHash(config.ImageID)
 		hasImage, err := s.docker.HasImage(dockerizedHash)
 		if err != nil {
+			log.Printf("[sandbox] error checking if have docker image %s; %v", config.ImageID, err)
 			return nil, err
 		}
 		if hasImage {
@@ -115,6 +116,7 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 			log.Printf("[sandbox] image not cached, pulling %s", config.ImageID)
 			dockerImageID, err = s.registry.PullImage(config.ImageID)
 			if err != nil {
+				log.Printf("[sandbox] error pulling ipfs docker image %s; %v", config.ImageID, err)
 				return nil, err
 			}
 		}
@@ -124,8 +126,11 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 
 	hp, err := netutil.GetFreePort()
 	if err != nil {
+		log.Printf("[sandbox] error getting finding a port; %v", err)
 		return nil, err
 	}
+
+	log.Printf("[sandbox] host port %v", hp)
 
 	hostPort := strconv.Itoa(hp)
 	containerID, err := s.docker.CreateContainer(dockerImageID, nil, &docker.CreateContainerConfig{
@@ -140,6 +145,7 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 		},
 	})
 	if err != nil {
+		log.Printf("[sandbox] error creating container; %v", err)
 		return nil, err
 	}
 
@@ -180,7 +186,7 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 		log.Printf("[sandbox] container ID: %s", containerID)
 		log.Println("[sandbox] waiting for dapp to start...")
 		// TODO: optimize
-		time.Sleep(10 * time.Second)
+		time.Sleep(20 * time.Second)
 		err := s.sendMessage(config.Payload, hostPort)
 		if err != nil {
 			log.Errorf("[sandbox] error sending message; %v", err)

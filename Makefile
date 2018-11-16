@@ -249,7 +249,7 @@ test/logger/color:
 
 .PHONY: run/node
 run/node:
-	@go run main.go node start --pem=node/test_data/priv1.pem --uri /ip4/0.0.0.0/tcp/3330 --data-dir .tmp --mempool-type memory --rpc ":5005"
+	@go run main.go node start --pem=node/test_data/priv1.pem --uri /ip4/0.0.0.0/tcp/3330 --data-dir .tmp --mempool-type memory --rpc ":5005" --difficulty=0
 
 .PHONY: run/node/2
 run/node/2:
@@ -499,3 +499,13 @@ loc:
 .PHONY: snapshot
 snapshot:
 	@go run main.go snapshot --priv priv.pem --image $(IMAGE) --stateblock $(STATEBLOCK)
+
+.PHONY: hash/dockerize
+hash/dockerize:
+	@go run scripts/dockerize.go $(HASH)
+
+
+.PHONY: docker/pull
+docker/pull:
+	# make test/registry/server ARGS="-run TestRun"
+	@docker pull 192.168.84.20:5000/$(IMAGE)

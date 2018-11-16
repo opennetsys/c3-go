@@ -56,12 +56,12 @@ func NewRegistry(config *Config) *Registry {
 		}
 	}
 
-	var ipfsClient *ipfs.Client
+	ipfsHost := "127.0.0.1:5001"
 	if config.IPFSHost != "" {
-		ipfsClient = ipfs.NewRemoteClient(config.IPFSHost)
-	} else {
-		ipfsClient = ipfs.NewClient()
+		ipfsHost = config.IPFSHost
 	}
+
+	ipfsClient := ipfs.NewRemoteClient(ipfsHost)
 
 	return &Registry{
 		dockerLocalRegistryHost: dockerLocalRegistryHost,
@@ -138,17 +138,21 @@ func (registry *Registry) PullImage(ipfsHash string) (string, error) {
 	log.Printf("[registry] attempting to pull %s", dockerPullImageID)
 	err := client.PullImage(dockerPullImageID)
 	if err != nil {
+		log.Printf("[registry] error pulling image %s; %v", dockerPullImageID, err)
 		return "", err
 	}
 
 	err = client.TagImage(dockerPullImageID, dockerizedHash)
 	if err != nil {
+		log.Printf("[registry] error tagging image %s; %v", dockerizedHash, err)
 		return "", err
 	}
+
 	log.Printf("[registry] tagged image as %s", dockerizedHash)
 
 	err = client.RemoveImage(dockerPullImageID)
 	if err != nil {
+		log.Printf("[registry] error removing image %s; %v", dockerPullImageID, err)
 		return "", err
 	}
 
@@ -245,7 +249,7 @@ func (registry *Registry) uploadDir(root string) (string, error) {
 	log.Printf("[registry] upload hash %s", hash)
 
 	// get the first ref, which contains the image data
-	refs, err := registry.ipfsClient.Refs(hash, true)
+	refs, err := registry.ipfsClient.Refs(hash, false)
 	if err != nil {
 		return "", err
 	}
@@ -257,6 +261,12 @@ func (registry *Registry) uploadDir(root string) (string, error) {
 		if firstRef != "" {
 			return firstRef, nil
 		}
+	}
+
+	// return base hash if no refs
+	if firstRef == "" {
+		log.Fatal("NO REF")
+		return hash, nil
 	}
 
 	return "", errors.New("could not upload")
