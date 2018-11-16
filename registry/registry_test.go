@@ -13,8 +13,6 @@ func TestNew(t *testing.T) {
 	if registry == nil {
 		t.FailNow()
 	}
-
-	select {}
 }
 
 func TestPushImage(t *testing.T) {

@@ -41,3 +41,34 @@ func TestShortImageID(t *testing.T) {
 		})
 	}
 }
+
+func TestShortContainerID(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		in  string
+		out string
+	}{
+		{
+			"9d4db8b8dc0fe4de396843d0257c64afbf7186b78418ac6a98539ad4a85bed42",
+			"9d4db8b8dc0f",
+		},
+		{
+			"9d4db8b8dc0f",
+			"9d4db8b8dc0f",
+		},
+		{
+			"9d4",
+			"9d4",
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
+			shortid := ShortContainerID(tt.in)
+
+			if shortid != tt.out {
+				t.Errorf("want %v; got %v", tt.out, shortid)
+			}
+		})
+	}
+}
