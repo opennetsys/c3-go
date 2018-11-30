@@ -39,9 +39,12 @@ func CreateTempFile(filename string) (*os.File, error) {
 // RemoveFiles ...
 func RemoveFiles(fileNames []string) error {
 	for idx := range fileNames {
-		if err := os.Remove(fileNames[idx]); err != nil {
-			log.Errorf("err removing file %s\n%v", fileNames[idx], err)
-			return fmt.Errorf("err cleaning up file; %s; %v", fileNames[idx], err)
+		filename := fileNames[idx]
+		if _, err := os.Stat(filename); !os.IsNotExist(err) {
+			if err := os.Remove(filename); err != nil {
+				log.Errorf("err removing file %s\n%v", filename, err)
+				return fmt.Errorf("err cleaning up file; %s; %v", filename, err)
+			}
 		}
 	}
 
