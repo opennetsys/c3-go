@@ -61,8 +61,8 @@ func (s *Service) Snapshot(imageHash string, stateBlockNumber int) (string, erro
 	}
 
 	var fileNames []string
-	defer cleanupFiles(&fileNames)
 	defer cleanupDirs(&fileNames)
+	defer cleanupFiles(&fileNames)
 
 	ts := time.Now().Unix()
 

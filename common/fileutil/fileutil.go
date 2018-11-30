@@ -18,6 +18,7 @@ func CreateTempFile(filename string) (*os.File, error) {
 	prefix := strings.Join(paths[:len(paths)-1], "_")
 	filename = strings.Join(paths[len(paths)-1:len(paths)], "")
 
+	// TODO: use os.TempDir()?
 	tmpdir, err := ioutil.TempDir("/tmp", prefix)
 	if err != nil {
 		log.Errorf("err creating temp dir\n%v", err)
@@ -69,6 +70,11 @@ func DirsFromFiles(fileNames []string) []string {
 func RemoveDirs(dirNames []string) error {
 	var err error
 	for idx := range dirNames {
+		// note: do not want to remove the tmp dir
+		if strings.ToLower(dirNames[idx]) == strings.ToLower(os.TempDir()) {
+			continue
+		}
+
 		if err = os.RemoveAll(dirNames[idx]); err != nil {
 			log.Errorf("err removing directory: %s\n%v", dirNames[idx], err)
 			return err

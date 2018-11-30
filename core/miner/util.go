@@ -1041,8 +1041,8 @@ func GenerateStateFromDiffs(ctx context.Context, imageHash string, genesisState 
 
 	ts := time.Now().Unix()
 	var fileNames []string
-	defer cleanupFiles(&fileNames)
 	defer cleanupDirs(&fileNames)
+	defer cleanupFiles(&fileNames)
 
 	tmpStateFile, err := fileutil.CreateTempFile(fmt.Sprintf("%s/%v/%s", imageHash, ts, StateFileName))
 	if err != nil {
@@ -1092,8 +1092,8 @@ func GenerateStateFromDiffs(ctx context.Context, imageHash string, genesisState 
 func generateCombinedDiffs(ctx context.Context, imageHash string, diffs []*statechain.Diff) ([]byte, error) {
 	ts := time.Now().Unix()
 	var fileNames []string
-	defer cleanupFiles(&fileNames)
 	defer cleanupDirs(&fileNames)
+	defer cleanupFiles(&fileNames)
 
 	if diffs == nil || len(diffs) == 0 {
 		return nil, errors.New("nil diffs")

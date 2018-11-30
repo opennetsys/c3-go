@@ -482,8 +482,8 @@ func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBloc
 		newStatechainBlocks []*statechain.Block
 		fileNames           []string
 	)
-	defer cleanupFiles(&fileNames)
 	defer cleanupDirs(&fileNames)
+	defer cleanupFiles(&fileNames)
 
 	ts := time.Now().Unix()
 
