@@ -1,0 +1,21 @@
+{
+  "author": "edgarl",
+  "bugs": {},
+  "gx": {
+    "dvcsimport": "github.com/ipfs/go-ds-s3"
+  },
+  "gxDependencies": [
+    {
+      "hash": "Qmf4xQhNomPNhrtZc67qSnfJSjxjXs9LWvknJtSXwimPrM",
+      "name": "go-datastore",
+      "version": "3.4.1"
+    }
+  ],
+  "gxVersion": "0.14.0",
+  "language": "go",
+  "license": "MIT",
+  "name": "go-ds-s3",
+  "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
+  "version": "0.0.1"
+}
+

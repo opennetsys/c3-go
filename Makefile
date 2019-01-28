@@ -12,6 +12,11 @@ install:
 
 .PHONY: deps
 deps:
+	@go mod download
+	@go mod vendor
+
+.PHONY: deps/old
+deps/old:
 	@echo "running dep ensure..." && \
 		dep ensure -update -v && \
 		$(MAKE) gxundo && \

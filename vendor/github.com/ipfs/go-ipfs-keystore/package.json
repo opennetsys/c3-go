@@ -1,0 +1,34 @@
+{
+  "author": "zenground0",
+  "bugs": {
+    "url": "https://github.com/ipfs/go-ipfs-keystore"
+  },
+  "gx": {
+    "dvcsimport": "github.com/ipfs/go-ipfs-keystore"
+  },
+  "gxDependencies": [
+    {
+      "hash": "QmcuXC5cxs79ro2cUuHs4HQ2bkDLJUYokwL8aivcX6HW3C",
+      "name": "go-log",
+      "version": "1.5.8"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmNiJiXwWE3kRhZrC5ej3kSjWHm337pYfhjLGSCDNKJP2s",
+      "name": "go-libp2p-crypto",
+      "version": "2.0.4"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmVmDhyTTUcQXFD1rRQ64fGLMSAoaQvNH3hwuaCFAPq2hy",
+      "name": "errors",
+      "version": "0.0.1"
+    }
+  ],
+  "gxVersion": "0.12.1",
+  "language": "go",
+  "license": "MIT",
+  "name": "go-ipfs-keystore",
+  "version": "0.0.8"
+}
+
