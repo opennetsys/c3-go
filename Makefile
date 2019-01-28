@@ -444,10 +444,6 @@ run/rpc/getstateblock:
 run/rpc/pushImage:
 	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_pushImage","params":[]}' $(RPC_HOST) protos.C3Service/Send
 
-.PHONY: run/rpc/getstateblock
-run/rpc/getstateblock:
-	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_getStateBlock","params":["65cb6a153dd5", "0x1"]}' $(RPC_HOST) protos.C3Service/Send
-
 .PHONY: install/grpcwebproxy
 install/grpcwebproxy:
 	@go get github.com/improbable-eng/grpc-web/go/grpcwebproxy
@@ -468,44 +464,24 @@ loc:
 # /END LOC
 
 # CLI
+
 # Example
 # $ make snapshot IMAGE=d50ada614c01 STATEBLOCK=2
 .PHONY: snapshot
 snapshot:
 	@go run main.go snapshot --priv priv.pem --image $(IMAGE) --stateblock $(STATEBLOCK)
 
-.PHONY: install/grpcwebproxy
-install/grpcwebproxy:
-	@go get github.com/improbable-eng/grpc-web/go/grpcwebproxy
+# /END CLI
 
-.PHONY: run/grpcwebproxy
-run/grpcwebproxy:
-	@grpcwebproxy --backend_addr=localhost:5005 --run_tls_server=false
-
-# /END RPC
-
-# LOC
-
-# get total lines of code
-.PHONY: loc
-loc:
-	@find ./ -name '*.go' ! -path ".//vendor/*" ! -path ".//.git/*" | xargs wc -l
-
-# /END LOC
-
-# CLI
-# Example
-# $ make snapshot IMAGE=d50ada614c01 STATEBLOCK=2
-.PHONY: snapshot
-snapshot:
-	@go run main.go snapshot --priv priv.pem --image $(IMAGE) --stateblock $(STATEBLOCK)
+# UTILS
 
 .PHONY: hash/dockerize
 hash/dockerize:
 	@go run scripts/dockerize.go $(HASH)
 
-
 .PHONY: docker/pull
 docker/pull:
 	# make test/registry/server ARGS="-run TestRun"
 	@docker pull 192.168.84.20:5000/$(IMAGE)
+
+# /END UTILS
