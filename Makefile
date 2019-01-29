@@ -72,6 +72,13 @@ clean:
 
 # /END BUILD
 
+# RELEASE
+
+release:
+	@rm -rf dist && goreleaser
+
+# /END RELEASE
+
 # TEST ALL
 
 .PHONY: test/check
