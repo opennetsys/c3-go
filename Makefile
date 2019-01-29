@@ -12,8 +12,7 @@ install:
 
 .PHONY: deps
 deps:
-	@go mod download
-	@go mod vendor
+	@GO111MODULE=on go mod vendor
 
 .PHONY: deps/old
 deps/old:
