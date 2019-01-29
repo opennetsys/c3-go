@@ -11,10 +11,12 @@ import (
 	"github.com/c3systems/c3-go/config"
 	"github.com/c3systems/c3-go/core/eosclient"
 	"github.com/c3systems/c3-go/core/ethereumclient"
+	p2p "github.com/c3systems/c3-go/core/p2p"
 	loghooks "github.com/c3systems/c3-go/log/hooks"
 	"github.com/c3systems/c3-go/node"
 	nodetypes "github.com/c3systems/c3-go/node/types"
 	"github.com/c3systems/c3-go/registry"
+	"github.com/c3systems/c3-go/rpc"
 	"github.com/spf13/cobra"
 )
 
@@ -188,6 +190,16 @@ For more info visit: https://github.com/c3systems/c3-go,
 			})
 			if err != nil {
 				return errw(err)
+			}
+
+			if rpcHost != "" {
+				// start rpc service
+				go rpc.New(&rpc.Config{
+					Mempool: n.Props().Store,
+					P2P:     n.Props().P2P.(*p2p.Service),
+					RPCHost: rpcHost,
+					Node:    n,
+				})
 			}
 
 			if err = n.Start(); err != nil {

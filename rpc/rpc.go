@@ -11,6 +11,7 @@ import (
 
 	"github.com/c3systems/c3-go/core/p2p"
 	loghooks "github.com/c3systems/c3-go/log/hooks"
+	"github.com/c3systems/c3-go/node"
 	"github.com/c3systems/c3-go/node/store"
 	pb "github.com/c3systems/c3-go/rpc/pb"
 	"github.com/golang/protobuf/ptypes"
@@ -33,6 +34,7 @@ type RPC struct {
 	mempool store.Interface
 	p2p     *p2p.Service
 	host    string
+	node    *node.Service
 }
 
 // Config ...
@@ -40,6 +42,7 @@ type Config struct {
 	Mempool store.Interface
 	P2P     *p2p.Service
 	RPCHost string
+	Node    *node.Service
 }
 
 // Server ...
@@ -62,6 +65,7 @@ func New(cfg *Config) *RPC {
 		mempool: cfg.Mempool,
 		p2p:     cfg.P2P,
 		host:    cfg.RPCHost,
+		node:    cfg.Node,
 	}
 
 	listen, err := net.Listen("tcp", svc.host)
@@ -126,7 +130,7 @@ func (s *Server) handleRequest(method string, r *pb.Request) (*any.Any, error) {
 		}
 		return ptypes.MarshalAny(result)
 	case "c3_invokemethod":
-		result, err := ptypes.MarshalAny(s.service.invokeMethod(r.Params))
+		result, err := s.service.invokeMethod(r.Params)
 		if err != nil {
 			return ptypes.MarshalAny(&pb.ErrorResponse{
 				Code:    400,
@@ -140,6 +144,14 @@ func (s *Server) handleRequest(method string, r *pb.Request) (*any.Any, error) {
 			Message: ErrMethodNotSupported.Error(),
 		})
 	}
+}
+
+func stringParams(params []*any.Any) []string {
+	var ret []string
+	for _, v := range params {
+		ret = append(ret, string(v.Value))
+	}
+	return ret
 }
 
 func init() {

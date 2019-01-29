@@ -450,7 +450,15 @@ run/rpc/pushImage:
 
 .PHONY: run/rpc/invokemethod
 run/rpc/invokemethod:
-	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_invokeMethod","params":[$(IMAGE), "createPost", "foo", "bar"]}' $(RPC_HOST) protos.C3Service/Send
+	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_invokeMethod","params":["$(TX)"]}' $(RPC_HOST) protos.C3Service/Send
+
+.PHONY: broadcast/genesis
+broadcast/genesis:
+	@make run/rpc/invokemethod TX="$$(make sign/genesis IMAGE="$(IMAGE)" | sed s/\"/'\\\"'/g)"
+
+.PHONY: broadcast/tx
+broadcast/tx:
+	@make run/rpc/invokemethod TX="$$(make sign IMAGE="$(IMAGE)" | sed s/\"/'\\\"'/g)"
 
 .PHONY: install/grpcwebproxy
 install/grpcwebproxy:

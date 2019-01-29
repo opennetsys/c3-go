@@ -26,7 +26,6 @@ import (
 	"github.com/c3systems/c3-go/node/store/redisstore"
 	"github.com/c3systems/c3-go/node/store/safemempool"
 	nodetypes "github.com/c3systems/c3-go/node/types"
-	"github.com/c3systems/c3-go/rpc"
 	redis "github.com/gomodule/redigo/redis"
 	ipfsaddr "github.com/ipfs/go-ipfs-addr"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
@@ -319,15 +318,6 @@ func NewFullNode(cfg *nodetypes.Config) (*Service, error) {
 		return nil, fmt.Errorf("error starting miner in main start method\n%v", err)
 	}
 	log.Printf("[node] started %s", newNode.ID().Pretty())
-
-	if cfg.RPCHost != "" {
-		// start rpc service
-		go rpc.New(&rpc.Config{
-			Mempool: memPool,
-			P2P:     p2pSvc,
-			RPCHost: cfg.RPCHost,
-		})
-	}
 
 	return n, nil
 }
@@ -774,7 +764,8 @@ func (s *Service) handleReceiptOfMinedBlock(minedBlock *miner.MinedBlock) {
 	}
 }
 
-func (s *Service) handleReceiptOfStatechainTransaction(tx *statechain.Transaction) {
+// HandleReceiptOfStatechainTransaction ...
+func (s *Service) HandleReceiptOfStatechainTransaction(tx *statechain.Transaction) {
 	if tx == nil {
 		log.Errorln("[node] received nil tx")
 		return
@@ -946,7 +937,7 @@ func (s *Service) Start() error {
 		case *statechain.Transaction:
 			log.Print("[node] received statechain transaction")
 			tx, _ := v.(*statechain.Transaction)
-			go s.handleReceiptOfStatechainTransaction(tx)
+			go s.HandleReceiptOfStatechainTransaction(tx)
 
 		default:
 			log.Errorf("[node] received an unknown message on channel of type %T\n%v", v, v)
