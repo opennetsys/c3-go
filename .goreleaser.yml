@@ -1,0 +1,8 @@
+builds:
+  - binary: c3-go
+    goos:
+      - windows
+      - darwin
+      - linux
+    goarch:
+      - amd64

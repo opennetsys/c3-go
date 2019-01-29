@@ -2,6 +2,7 @@ module github.com/c3systems/c3-go
 
 require (
 	github.com/AndreasBriese/bbloom v0.0.0-20180913140656-343706a395b7 // indirect
+	github.com/Bowery/prompt v0.0.0-20180817134258-8a1d5376df1c // indirect
 	github.com/BurntSushi/toml v0.3.1
 	github.com/Kubuxu/go-os-helper v0.0.0-20161003143644-3d3fc2fb493d // indirect
 	github.com/Microsoft/go-winio v0.4.11 // indirect
@@ -12,6 +13,7 @@ require (
 	github.com/c3systems/merkletree v0.1.0
 	github.com/coreos/go-semver v0.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1
+	github.com/dchest/safefile v0.0.0-20151022103144-855e8d98f185 // indirect
 	github.com/deckarep/golang-set v1.7.1 // indirect
 	github.com/dgraph-io/badger v1.5.4
 	github.com/dgryski/go-farm v0.0.0-20190104051053-3adb47b1fb0f // indirect
@@ -20,7 +22,7 @@ require (
 	github.com/docker/go-connections v0.3.0
 	github.com/docker/go-units v0.3.3 // indirect
 	github.com/eoscanada/eos-go v0.0.0-20181105195849-00b77394c50e
-	github.com/ethereum/go-ethereum v1.8.21
+	github.com/ethereum/go-ethereum v1.8.20
 	github.com/fatih/color v1.7.0
 	github.com/fd/go-nat v1.0.0 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
@@ -29,6 +31,7 @@ require (
 	github.com/golang/protobuf v1.2.0
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
 	github.com/gomodule/redigo v2.0.0+incompatible
+	github.com/google/shlex v0.0.0-20181106134648-c34317bd91bf // indirect
 	github.com/google/uuid v1.1.0 // indirect
 	github.com/gxed/pubsub v0.0.0-20180201040156-26ebdf44f824 // indirect
 	github.com/hashicorp/golang-lru v0.5.0 // indirect
@@ -64,6 +67,8 @@ require (
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jbenet/go-temp-err-catcher v0.0.0-20150120210811-aac704a3f4f2 // indirect
 	github.com/jbenet/goprocess v0.0.0-20160826012719-b497e2f366b8 // indirect
+	github.com/karalabe/xgo v0.0.0-20181007145344-72da7d1d3970 // indirect
+	github.com/kardianos/govendor v1.0.9 // indirect
 	github.com/libp2p/go-addr-util v2.0.7+incompatible // indirect
 	github.com/libp2p/go-buffer-pool v0.1.1 // indirect
 	github.com/libp2p/go-conn-security v0.1.15 // indirect

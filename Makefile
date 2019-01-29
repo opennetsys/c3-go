@@ -14,6 +14,10 @@ install:
 deps:
 	@GO111MODULE=on go mod vendor
 
+.PHONY: deps/secp256k1
+deps/secp256k1:
+	@govendor fetch -tree github.com/ethereum/go-ethereum/crypto/secp256k1
+
 .PHONY: deps/old
 deps/old:
 	@echo "running dep ensure..." && \

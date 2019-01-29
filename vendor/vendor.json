@@ -1,0 +1,14 @@
+{
+	"comment": "",
+	"ignore": "",
+	"package": [
+		{
+			"checksumSHA1": "xH1eOeBGeXDFZSy/VnK/qxE+bqs=",
+			"path": "github.com/ethereum/go-ethereum/crypto/secp256k1",
+			"revision": "f4094d09cd3bf4c1420f358d77b803d5d84d0994",
+			"revisionTime": "2019-01-29T16:43:13Z",
+			"tree": true
+		}
+	],
+	"rootPath": "github.com/c3systems/c3-go"
+}
