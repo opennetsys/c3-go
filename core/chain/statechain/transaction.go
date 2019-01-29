@@ -169,8 +169,8 @@ func (tx *Transaction) CalcSig(priv *ecdsa.PrivateKey) (*TxSig, error) {
 	}, nil
 }
 
-// SetSig ...
-func (tx *Transaction) SetSig(priv *ecdsa.PrivateKey) error {
+// Sign ...
+func (tx *Transaction) Sign(priv *ecdsa.PrivateKey) error {
 	if tx == nil {
 		return ErrNilTx
 	}
@@ -178,6 +178,17 @@ func (tx *Transaction) SetSig(priv *ecdsa.PrivateKey) error {
 	sig, err := tx.CalcSig(priv)
 	if err != nil {
 		return err
+	}
+
+	tx.props.Sig = sig
+
+	return nil
+}
+
+// SetSig ...
+func (tx *Transaction) SetSig(sig *TxSig) error {
+	if tx == nil {
+		return ErrNilTx
 	}
 
 	tx.props.Sig = sig

@@ -448,6 +448,10 @@ run/rpc/getstateblock:
 run/rpc/pushImage:
 	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_pushImage","params":[]}' $(RPC_HOST) protos.C3Service/Send
 
+.PHONY: run/rpc/invokemethod
+run/rpc/invokemethod:
+	@grpcurl -v -plaintext -d '{"jsonrpc":"2.0","id":"1","method":"c3_invokeMethod","params":[$(IMAGE), "createPost", "foo", "bar"]}' $(RPC_HOST) protos.C3Service/Send
+
 .PHONY: install/grpcwebproxy
 install/grpcwebproxy:
 	@go get github.com/improbable-eng/grpc-web/go/grpcwebproxy
@@ -474,6 +478,14 @@ loc:
 .PHONY: snapshot
 snapshot:
 	@go run main.go snapshot --priv priv.pem --image $(IMAGE) --stateblock $(STATEBLOCK)
+
+.PHONY: sign
+sign:
+	@go run main.go sign --priv=node/test_data/priv1.pem --image=$(IMAGE) --payload='["createPost", "hello", "world"]'
+
+.PHONY: sign/genesis
+sign/genesis:
+	@go run main.go sign --priv=node/test_data/priv1.pem --image=$(IMAGE) --payload='' --genesis=true
 
 # /END CLI
 

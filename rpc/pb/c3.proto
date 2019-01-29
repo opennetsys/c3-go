@@ -75,3 +75,7 @@ message StateBlockResponse {
 message ImageResponse {
 
 }
+
+message InvokeMethodResponse {
+  string txHash = 1;
+}

@@ -11,6 +11,7 @@ import (
 	"github.com/c3systems/c3-go/common/txparamcoder"
 	"github.com/c3systems/c3-go/core/chain/statechain"
 	log "github.com/sirupsen/logrus"
+
 	//docker "github.com/c3systems/c3-go/core/docker"
 	methodTypes "github.com/c3systems/c3-go/core/types/methods"
 	nodetypes "github.com/c3systems/c3-go/node/types"
@@ -114,7 +115,7 @@ func TestBroadcast(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = tx.SetSig(priv)
+	err = tx.Sign(priv)
 	if err != nil {
 		t.Error(err)
 	}

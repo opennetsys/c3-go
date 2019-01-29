@@ -125,8 +125,20 @@ func (s *Server) handleRequest(method string, r *pb.Request) (*any.Any, error) {
 			})
 		}
 		return ptypes.MarshalAny(result)
+	case "c3_invokemethod":
+		result, err := ptypes.MarshalAny(s.service.invokeMethod(r.Params))
+		if err != nil {
+			return ptypes.MarshalAny(&pb.ErrorResponse{
+				Code:    400,
+				Message: err.Error(),
+			})
+		}
+		return ptypes.MarshalAny(result)
 	default:
-		return nil, ErrMethodNotSupported
+		return ptypes.MarshalAny(&pb.ErrorResponse{
+			Code:    400,
+			Message: ErrMethodNotSupported.Error(),
+		})
 	}
 }
 

@@ -60,7 +60,7 @@ func broadcastTx(txType, image, payloadStr, peer, privPEM string) (string, error
 		return "", err
 	}
 
-	err = tx.SetSig(priv)
+	err = tx.Sign(priv)
 	if err != nil {
 		return "", err
 	}

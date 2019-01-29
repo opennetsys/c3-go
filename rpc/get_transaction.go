@@ -1,6 +1,5 @@
 package rpc
 
-// Ping ...
 import (
 	pb "github.com/c3systems/c3-go/rpc/pb"
 	log "github.com/sirupsen/logrus"
@@ -42,13 +41,13 @@ func (s *RPC) getTransaction(params []string) *pb.TransactionResponse {
 	*/
 
 	return &pb.TransactionResponse{
-	/*
-		TxHash:
-		ImageHash:
-		Method:
-		Payload:
-		From:
-		Sig:
-	*/
+		/*
+			TxHash:
+			ImageHash:
+			Method:
+			Payload:
+			From:
+			Sig:
+		*/
 	}
 }

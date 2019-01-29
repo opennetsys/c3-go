@@ -151,20 +151,26 @@ $ c3-go generate key
 
 #### Encode data
 
-```go
+```bash
 $ c3-go encode [options]
 ```
 
 #### Deploy dApp
 
-```go
+```bash
 $ c3-go deploy [options]
 ```
 
 #### Invoke dApp method
 
-```go
+```bash
 $ c3-go invokeMethod [options]
+```
+
+#### Sign a transaction
+
+```bash
+$ c3-go sign --priv=priv.pem --image={imageID} --payload='["someMethod", "foo", "bar"]'
 ```
 
 ## Test
