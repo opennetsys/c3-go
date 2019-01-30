@@ -165,8 +165,8 @@ func (s *Client) PushImage(imageID string) error {
 }
 
 // TagImage ...
-func (s *Client) TagImage(imageID, tag string) error {
-	return s.client.ImageTag(context.Background(), imageID, tag)
+func (s *Client) TagImage(source, target string) error {
+	return s.client.ImageTag(context.Background(), source, target)
 }
 
 // RemoveImage ...

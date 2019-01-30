@@ -544,6 +544,7 @@ func (s *Service) buildStateblocksAndDiffsFromStateAndTransactions(prevStateBloc
 
 		if tx.Props().Method == methodTypes.InvokeMethod {
 			payload := tx.Props().Payload
+			log.Printf("[miner] tx payload %s", string(payload))
 
 			var parsed []string
 			if err := json.Unmarshal(payload, &parsed); err != nil {

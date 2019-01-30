@@ -56,12 +56,15 @@ func NewRegistry(config *Config) *Registry {
 		}
 	}
 
+	// TODO: do ping to see if alive
 	ipfsHost := "127.0.0.1:5001"
 	if config.IPFSHost != "" {
 		ipfsHost = config.IPFSHost
 	}
 
+	//_ = ipfsHost
 	ipfsClient := ipfs.NewRemoteClient(ipfsHost)
+	//ipfsClient = ipfs.NewClient()
 
 	return &Registry{
 		dockerLocalRegistryHost: dockerLocalRegistryHost,
@@ -142,9 +145,10 @@ func (registry *Registry) PullImage(ipfsHash string) (string, error) {
 		return "", err
 	}
 
-	err = client.TagImage(dockerPullImageID, dockerizedHash)
+	// TODO: fix the tag name
+	err = client.TagImage(dockerPullImageID, "127.0.0.1:9999/"+dockerizedHash+":latest")
 	if err != nil {
-		log.Printf("[registry] error tagging image %s; %v", dockerizedHash, err)
+		log.Errorf("[registry] error tagging image %s; %v", dockerizedHash, err)
 		return "", err
 	}
 
@@ -152,7 +156,7 @@ func (registry *Registry) PullImage(ipfsHash string) (string, error) {
 
 	err = client.RemoveImage(dockerPullImageID)
 	if err != nil {
-		log.Printf("[registry] error removing image %s; %v", dockerPullImageID, err)
+		log.Errorf("[registry] error removing image %s; %v", dockerPullImageID, err)
 		return "", err
 	}
 

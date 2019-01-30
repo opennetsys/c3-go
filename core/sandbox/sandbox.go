@@ -99,6 +99,7 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 	}
 
 	var dockerImageID = config.ImageID
+	var fullDockerImageID = dockerImageID
 	var err error
 
 	// If it's an IPFS hash then pull it from IPFS
@@ -116,9 +117,10 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 			log.Printf("[sandbox] image not cached, pulling %s", config.ImageID)
 			dockerImageID, err = s.registry.PullImage(config.ImageID)
 			if err != nil {
-				log.Printf("[sandbox] error pulling ipfs docker image %s; %v", config.ImageID, err)
+				log.Errorf("[sandbox] error pulling ipfs docker image %s; %v", config.ImageID, err)
 				return nil, err
 			}
+			fullDockerImageID = "127.0.0.1:9999/" + dockerImageID + ":latest"
 		}
 	}
 
@@ -133,19 +135,20 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 	log.Printf("[sandbox] host port %v", hp)
 
 	hostPort := strconv.Itoa(hp)
-	containerID, err := s.docker.CreateContainer(dockerImageID, nil, &docker.CreateContainerConfig{
+	// TODO: fix the tag name
+	containerID, err := s.docker.CreateContainer(fullDockerImageID, nil, &docker.CreateContainerConfig{
 		Volumes: map[string]string{
-			// sock binding will be required for spawning sibling containers
-			// container:host
-			//"/var/run/docker.sock": "/var/run/docker.sock",
-			//"/tmp": tmpdir,
+		// sock binding will be required for spawning sibling containers
+		// container:host
+		//"/var/run/docker.sock": "/var/run/docker.sock",
+		//"/tmp": tmpdir,
 		},
 		Ports: map[string]string{
 			"3333": hostPort,
 		},
 	})
 	if err != nil {
-		log.Printf("[sandbox] error creating container; %v", err)
+		log.Printf("[sandbox] error creating container for image %s; %v", dockerImageID, err)
 		return nil, err
 	}
 
@@ -186,7 +189,7 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 		log.Printf("[sandbox] container ID: %s", containerID)
 		log.Println("[sandbox] waiting for dapp to start...")
 		// TODO: optimize
-		time.Sleep(20 * time.Second)
+		time.Sleep(10 * time.Second)
 		err := s.sendMessage(config.Payload, hostPort)
 		if err != nil {
 			log.Errorf("[sandbox] error sending message; %v", err)
@@ -196,10 +199,11 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 
 		log.Println("[sandbox] writing to done channel")
 		// TODO: optimize
-		time.Sleep(5 * time.Second)
+		time.Sleep(10 * time.Second)
 
 		if config.ContainerIDChannel != nil {
 			go func() {
+				log.Println("[sandbox] wrote to containe ID channel; %s", containerID)
 				config.ContainerIDChannel <- containerID
 			}()
 		}
@@ -247,7 +251,7 @@ func (s *Service) Play(config *PlayConfig) ([]byte, error) {
 		cmd := []string{"bash", "-c", "cat " + c3config.TempContainerStateFilePath}
 		resp, err := s.docker.ContainerExec(containerID, cmd)
 		if err != nil {
-			log.Errorf("[sandbox] error calling exec on contaienr; %v", err)
+			log.Errorf("[sandbox] error calling exec on container; %v", err)
 			return nil, err
 		}
 
@@ -311,6 +315,7 @@ func (s *Service) killContainer(containerID string) error {
 }
 
 func parseNewState(reader io.Reader) ([]byte, error) {
+	log.Printf("[sandbox] parsing new state; %v", reader)
 	var state map[string]string
 
 	src, err := ioutil.ReadAll(reader)
@@ -318,7 +323,7 @@ func parseNewState(reader io.Reader) ([]byte, error) {
 		return nil, err
 	}
 
-	log.Printf("[sandbox] new state json %s", string(src))
+	log.Printf("[sandbox] new state json %s; size %v", string(src), len(src))
 
 	b, err := stringutil.CompactJSON(src)
 	if err != nil {
